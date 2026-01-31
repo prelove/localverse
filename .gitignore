@@ -1,0 +1,22 @@
+# Build artifacts
+build/
+*.class
+
+# Test directories
+test-launcher/
+
+# Runtime files
+logs/
+version.json
+update_pending.flag
+*.jar.bak
+temp/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
