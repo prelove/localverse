@@ -2,11 +2,11 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-01-31
+**最后更新**: 2026-01-31 (14:18 UTC)
 
-### Phase 0: 基础设施 - 83% 完成 (5/6)
-- ✅ 已完成: Launcher, Local JAR, Communication, Database, Plugin System
-- 🟡 待合并: Authentication (PR #7)
+### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
+- ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
+- 🎊 **重大里程碑**: Phase 0 所有任务已完成！
 
 ### Phase 1: 核心应用 - 25% 完成 (1/4)
 - 🟡 部分完成: Frontend Core
@@ -31,7 +31,7 @@
 | [task-002-local-jar](./phase-0/task-002-local-jar.md) | 本地 JAR 服务 | 16h | 001 | ✅ 已完成 |
 | [task-003-communication](./phase-0/task-003-communication.md) | 通信层 | 12h | 002 | ✅ 已完成 |
 | [task-004-database](./phase-0/task-004-database.md) | 数据库服务 | 12h | 003 | ✅ 已完成 |
-| [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | 🟡 待合并 |
+| [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | ✅ 已完成 |
 | [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | ✅ 已完成 |
 
 **Phase 0 总计：约 68 小时**
@@ -156,10 +156,11 @@ task-004-wiki-plugin        task-004-task-plugin
 - 实现: WASM Database, JAR Database, Mock Database
 - 功能: Schema管理、迁移系统
 
-**Task 005: Authentication** (PR #7 - 待合并)
+**Task 005: Authentication** (PR #7 - ✅ 已合并)
 - 位置: `src/frontend/desktop/services/auth/`
-- 状态: 代码完整，PR审查通过，等待合并
+- 状态: ✅ 已完成并合并 (2026-01-31 13:17:02Z)
 - 包含: device-fingerprint, token-manager, auth-service, permission, setup-ui
+- 合并SHA: 2bfbdeb5ceb3edec5926066e36075c47039c8a3c
 
 **Task 006: Plugin System** (PR #13)
 - 位置: `src/frontend/desktop/core/plugin/`
