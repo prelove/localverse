@@ -1,0 +1,61 @@
+{
+  "id": "demo",
+  "name": {
+    "zh": "演示插件",
+    "en": "Demo Plugin",
+    "ja": "デモプラグイン"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "演示插件系统功能的示例插件",
+    "en": "Demo plugin to showcase plugin system capabilities",
+    "ja": "プラグインシステムの機能を示すデモプラグイン"
+  },
+  "author": "Localverse Team",
+  "license": "MIT",
+  
+  "icon": "./icon.svg",
+  "category": "utility",
+  "tags": ["demo", "example"],
+  
+  "entry": "./index.js",
+  "style": "./style.css",
+  
+  "minAppVersion": "1.0.0",
+  
+  "permissions": [
+    "database:read",
+    "database:write"
+  ],
+  
+  "dependencies": {
+    "services": ["DatabaseService"],
+    "plugins": []
+  },
+  
+  "settings": {
+    "showWelcome": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "显示欢迎消息",
+        "en": "Show welcome message",
+        "ja": "ウェルカムメッセージを表示"
+      }
+    },
+    "theme": {
+      "type": "select",
+      "default": "auto",
+      "options": ["auto", "light", "dark"],
+      "label": {
+        "zh": "主题",
+        "en": "Theme",
+        "ja": "テーマ"
+      }
+    }
+  },
+  
+  "exports": {
+    "sayHello": "sayHello"
+  }
+}

@@ -1,16 +1,30 @@
 /**
  * Event Bus for Plugin Communication
+ * Provides publish-subscribe pattern for plugins
  * Provides publish-subscribe messaging between plugins and core system
  */
 
 export class EventBus {
   constructor() {
+    this.handlers = new Map();
+    this.onceHandlers = new Map();
     this.listeners = new Map();
   }
 
   /**
    * Subscribe to an event
    * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   * @returns {Function} Unsubscribe function
+   */
+  on(event, handler) {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event).add(handler);
+    
+    // Return unsubscribe function
+    return () => this.off(event, handler);
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context (plugin instance)
    * @returns {Function} Unsubscribe function
@@ -30,6 +44,13 @@ export class EventBus {
   /**
    * Subscribe to an event once
    * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   */
+  once(event, handler) {
+    if (!this.onceHandlers.has(event)) {
+      this.onceHandlers.set(event, new Set());
+    }
+    this.onceHandlers.get(event).add(handler);
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context
    * @returns {Function} Unsubscribe function
@@ -45,6 +66,17 @@ export class EventBus {
   /**
    * Unsubscribe from an event
    * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   */
+  off(event, handler) {
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      handlers.delete(handler);
+    }
+    
+    const onceHandlers = this.onceHandlers.get(event);
+    if (onceHandlers) {
+      onceHandlers.delete(handler);
    * @param {Function} callback - Event handler to remove
    */
   off(event, callback) {
@@ -66,6 +98,100 @@ export class EventBus {
   /**
    * Emit an event
    * @param {string} event - Event name
+   * @param {*} data - Event data
+   */
+  emit(event, data) {
+    // Regular handlers
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        try {
+          handler(data);
+        } catch (error) {
+          console.error(`Event handler error [${event}]:`, error);
+        }
+      }
+    }
+    
+    // Once handlers
+    const onceHandlers = this.onceHandlers.get(event);
+    if (onceHandlers) {
+      for (const handler of onceHandlers) {
+        try {
+          handler(data);
+        } catch (error) {
+          console.error(`Once handler error [${event}]:`, error);
+        }
+      }
+      this.onceHandlers.delete(event);
+    }
+    
+    // Wildcard handlers
+    const wildcardHandlers = this.handlers.get('*');
+    if (wildcardHandlers) {
+      for (const handler of wildcardHandlers) {
+        try {
+          handler({ event, data });
+        } catch (error) {
+          console.error('Wildcard handler error:', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Emit an event asynchronously
+   * @param {string} event - Event name
+   * @param {*} data - Event data
+   */
+  async emitAsync(event, data) {
+    const handlers = this.handlers.get(event) || new Set();
+    const onceHandlers = this.onceHandlers.get(event) || new Set();
+    
+    const allHandlers = [...handlers, ...onceHandlers];
+    
+    await Promise.all(
+      allHandlers.map(async handler => {
+        try {
+          await handler(data);
+        } catch (error) {
+          console.error(`Async handler error [${event}]:`, error);
+        }
+      })
+    );
+    
+    this.onceHandlers.delete(event);
+  }
+
+  /**
+   * Wait for an event to be emitted
+   * @param {string} event - Event name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise<*>} Event data
+   */
+  wait(event, timeout = 30000) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Event timeout: ${event}`));
+      }, timeout);
+      
+      this.once(event, (data) => {
+        clearTimeout(timer);
+        resolve(data);
+      });
+    });
+  }
+
+  /**
+   * Clear all event handlers
+   */
+  clear() {
+    this.handlers.clear();
+    this.onceHandlers.clear();
+  }
+}
+
+export default EventBus;
    * @param {...any} args - Arguments to pass to handlers
    */
   emit(event, ...args) {
