@@ -108,7 +108,7 @@ export class SetupUI {
         }
       } catch (error) {
         console.error('Setup failed:', error);
-        alert('设置失败，请重试');
+        alert('设置失败: ' + error.message + '，请重试');
         submitBtn.disabled = false;
         submitBtn.textContent = '完成设置';
       }

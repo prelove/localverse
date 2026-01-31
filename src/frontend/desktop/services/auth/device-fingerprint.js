@@ -7,6 +7,17 @@
 
 /**
  * Generate a unique device ID based on browser/device characteristics
+ * 
+ * This function collects various browser fingerprints to create a stable device ID.
+ * The device ID remains consistent across sessions but may change if:
+ * - Browser is updated or settings change significantly
+ * - Screen resolution changes
+ * - Timezone changes
+ * - WebGL/Canvas rendering changes
+ * 
+ * Graceful degradation: If WebGL or Canvas are unavailable, the function
+ * continues to work with available fingerprints.
+ * 
  * @returns {Promise<string>} Device ID in format 'd_<16 hex chars>'
  */
 export async function generateDeviceId() {

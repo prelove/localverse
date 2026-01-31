@@ -10,6 +10,12 @@
 
 import { detectPlatform } from './device-fingerprint.js';
 
+// Secret key for token signing
+// NOTE: In production, this should be loaded from a secure configuration
+// For internal network use, a hardcoded key is acceptable but should be:
+// 1. Changed from this default value
+// 2. Kept consistent across all clients
+// 3. Rotated periodically for security
 const SECRET_KEY = 'localverse-secret-key-2024';
 const TOKEN_STORAGE_KEY = 'localverse_token';
 const TOKEN_EXPIRY_DAYS = 30;
