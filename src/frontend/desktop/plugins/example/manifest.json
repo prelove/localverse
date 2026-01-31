@@ -1,0 +1,39 @@
+{
+  "id": "example",
+  "name": {
+    "zh": "示例插件",
+    "en": "Example Plugin"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "一个简单的示例插件，展示插件系统的基本功能",
+    "en": "A simple example plugin demonstrating basic plugin system features"
+  },
+  "author": "Localverse Team",
+  "entry": "./index.js",
+  "style": "./style.css",
+  "permissions": [
+    "notification"
+  ],
+  "settings": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "启用插件",
+        "en": "Enable Plugin"
+      }
+    },
+    "message": {
+      "type": "string",
+      "default": "Hello from Example Plugin!",
+      "label": {
+        "zh": "欢迎消息",
+        "en": "Welcome Message"
+      }
+    }
+  },
+  "exports": {
+    "greet": "greet"
+  }
+}

@@ -7,6 +7,7 @@ import { Router } from './router.js';
 import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
+import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
@@ -20,6 +21,8 @@ class LocalverseApp {
     this.store = store;
     this.i18n = new I18n();
     this.theme = new ThemeManager();
+    this.eventBus = new EventBus();
+    this.permissionManager = new PermissionManager();
   }
 
   /**
@@ -44,13 +47,17 @@ class LocalverseApp {
       // 4. Initialize theme
       this.theme.init();
       
-      // 5. Setup routes
+      // 5. Initialize plugin system
+      await this.initPluginSystem();
+      this.updateSplash(this.i18n.t('splash.loading_plugins'));
+      
+      // 6. Setup routes
       this.setupRoutes();
       
-      // 6. Render UI
+      // 7. Render UI
       this.render();
       
-      // 7. Hide splash
+      // 8. Hide splash
       setTimeout(() => this.hideSplash(), 500);
       
       this.ready = true;
@@ -132,6 +139,28 @@ class LocalverseApp {
   }
 
   /**
+   * Initialize plugin system
+   */
+  async initPluginSystem() {
+    try {
+      this.plugins = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus,
+        permissionManager: this.permissionManager
+      });
+      
+      // Load all available plugins
+      await this.plugins.loadAll();
+      
+      console.log(`Loaded ${this.plugins.getAll().length} plugins`);
+    } catch (error) {
+      console.error('Plugin system init failed:', error);
+      // Non-fatal error, continue without plugins
+    }
+  }
+
+  /**
    * Setup routing
    */
   setupRoutes() {
@@ -194,12 +223,32 @@ class LocalverseApp {
    */
   showPlugin(pluginId) {
     const content = document.getElementById('content');
-    content.innerHTML = `
-      <div class="plugin-page">
-        <h1>Plugin: ${pluginId}</h1>
-        <p>Plugin functionality coming soon...</p>
-      </div>
-    `;
+    
+    if (!this.plugins) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin System Not Available</h1>
+          <p>Plugin system is not initialized.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const plugin = this.plugins.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Not Found</h1>
+          <p>Plugin '${pluginId}' is not installed or loaded.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Clear content and mount plugin
+    content.innerHTML = '<div id="plugin-container"></div>';
+    const container = document.getElementById('plugin-container');
+    plugin.mount(container);
   }
 
   /**
