@@ -73,10 +73,11 @@ export class PluginLoader {
   async discoverPlugins() {
     // For browser environment, we need to have a registry of plugins
     // Since we can't scan directories in browser, we use a static list
+    // Note: Use absolute paths from root
     const builtInPlugins = [
-      { id: 'demo', path: './plugins/demo' },
-      { id: 'finder', path: './plugins/finder' },
-      { id: 'wiki', path: './plugins/wiki' },
+      { id: 'demo', path: '/plugins/demo' },
+      { id: 'finder', path: '/plugins/finder' },
+      { id: 'wiki', path: '/plugins/wiki' },
     ];
 
     // Filter to only plugins that exist

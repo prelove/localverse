@@ -291,7 +291,7 @@ class LocalverseApp {
         const link = document.createElement('link');
         link.id = styleId;
         link.rel = 'stylesheet';
-        link.href = `./plugins/${pluginId}/${manifest.style}`;
+        link.href = `/plugins/${pluginId}/${manifest.style}`;
         document.head.appendChild(link);
       }
     }

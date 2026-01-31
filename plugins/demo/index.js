@@ -3,7 +3,7 @@
  * A simple demonstration plugin to test the plugin system
  */
 
-import { PluginBase } from '../../src/frontend/desktop/core/plugin/plugin-base.js';
+import { PluginBase } from '/src/frontend/desktop/core/plugin/plugin-base.js';
 
 export default class DemoPlugin extends PluginBase {
   constructor(context) {
