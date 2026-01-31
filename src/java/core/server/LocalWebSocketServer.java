@@ -6,53 +6,58 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import utils.JsonUtil;
+import utils.Version;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Local WebSocket Server
- * Provides real-time bidirectional communication
+ * WebSocket 服务器
  */
 public class LocalWebSocketServer extends WebSocketServer {
     private final Config config;
-    private final Map<WebSocket, String> connections = new ConcurrentHashMap<>();
-    private final Map<String, Map<WebSocket, Boolean>> channels = new ConcurrentHashMap<>();
+    private final Map<WebSocket, String> connections;
+    private final ScheduledExecutorService heartbeatExecutor;
 
     public LocalWebSocketServer(Config config) {
-        super(createAddress(config));
+        super(new InetSocketAddress(
+            config.client().bindAddress(), 
+            config.client().wsPort()
+        ));
+        
         this.config = config;
+        this.connections = new ConcurrentHashMap<>();
+        this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
+        
+        // 使用虚拟线程
         setReuseAddr(true);
-    }
-
-    private static InetSocketAddress createAddress(Config config) {
-        int port = "client".equals(config.mode()) ? 
-            config.client().wsPort() : config.server().wsPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-        return new InetSocketAddress(bindAddress, port);
     }
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        String sessionId = java.util.UUID.randomUUID().toString();
-        connections.put(conn, sessionId);
-        System.out.println("✓ WebSocket connection opened: " + sessionId);
-
-        // Send welcome message
-        Message welcome = Message.event("connected", Map.of("sessionId", sessionId));
+        String clientId = conn.getRemoteSocketAddress().toString();
+        connections.put(conn, clientId);
+        
+        System.out.println("WebSocket connection opened: " + clientId);
+        
+        // 发送欢迎消息
+        Message welcome = Message.event("connected", Map.of(
+            "message", "Connected to Localverse",
+            "version", Version.VERSION
+        ));
+        
         conn.send(JsonUtil.toJson(welcome));
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        String sessionId = connections.remove(conn);
-        
-        // Remove from all channels
-        channels.values().forEach(subscribers -> subscribers.remove(conn));
-        
-        System.out.println("✓ WebSocket connection closed: " + sessionId);
+        String clientId = connections.remove(conn);
+        System.out.println("WebSocket connection closed: " + clientId + 
+                          " (code: " + code + ", reason: " + reason + ")");
     }
 
     @Override
@@ -61,143 +66,138 @@ public class LocalWebSocketServer extends WebSocketServer {
             Message msg = JsonUtil.fromJson(message, Message.class);
             handleMessage(conn, msg);
         } catch (Exception e) {
-            System.err.println("⚠ Error processing message: " + e.getMessage());
-            Message error = Message.error("parse_error", "Invalid message format");
-            conn.send(JsonUtil.toJson(error));
+            System.err.println("Error parsing message: " + e.getMessage());
+            sendError(conn, "Invalid message format");
         }
     }
 
     @Override
     public void onError(WebSocket conn, Exception ex) {
-        String sessionId = conn != null ? connections.get(conn) : "unknown";
-        System.err.println("⚠ WebSocket error on connection " + sessionId + ": " + ex.getMessage());
+        System.err.println("WebSocket error: " + ex.getMessage());
+        ex.printStackTrace();
     }
 
     @Override
     public void onStart() {
-        int port = "client".equals(config.mode()) ? 
-            config.client().wsPort() : config.server().wsPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-        System.out.println("✓ WebSocket Server started on " + bindAddress + ":" + port);
+        System.out.println("WebSocket Server started on " + 
+                          config.client().bindAddress() + ":" + 
+                          config.client().wsPort());
+        
+        // 启动心跳
+        startHeartbeat();
     }
 
+    /**
+     * 处理消息
+     */
     private void handleMessage(WebSocket conn, Message msg) {
-        switch (msg.type()) {
+        String type = msg.type();
+        String action = msg.action();
+
+        switch (type) {
+            case "heartbeat" -> handleHeartbeat(conn, msg);
             case "auth" -> handleAuth(conn, msg);
             case "subscribe" -> handleSubscribe(conn, msg);
-            case "unsubscribe" -> handleUnsubscribe(conn, msg);
             case "message" -> handleUserMessage(conn, msg);
-            case "heartbeat" -> handleHeartbeat(conn, msg);
-            default -> {
-                Message error = Message.error("unknown_type", "Unknown message type: " + msg.type());
-                conn.send(JsonUtil.toJson(error));
-            }
+            default -> System.out.println("Unknown message type: " + type);
         }
     }
 
-    private void handleAuth(WebSocket conn, Message msg) {
-        // Simple auth - just acknowledge
-        // In production, validate token here
-        Message ack = Message.ack("auth", Map.of("authenticated", true));
-        conn.send(JsonUtil.toJson(ack));
-    }
-
-    private void handleSubscribe(WebSocket conn, Message msg) {
-        if (msg.payload() instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> payload = (Map<String, Object>) msg.payload();
-            String channel = (String) payload.get("channel");
-            
-            if (channel != null) {
-                channels.computeIfAbsent(channel, k -> new ConcurrentHashMap<>())
-                    .put(conn, true);
-                
-                Message ack = Message.ack("subscribe", Map.of("channel", channel));
-                conn.send(JsonUtil.toJson(ack));
-                System.out.println("✓ Connection subscribed to channel: " + channel);
-            }
-        }
-    }
-
-    private void handleUnsubscribe(WebSocket conn, Message msg) {
-        if (msg.payload() instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> payload = (Map<String, Object>) msg.payload();
-            String channel = (String) payload.get("channel");
-            
-            if (channel != null) {
-                Map<WebSocket, Boolean> subscribers = channels.get(channel);
-                if (subscribers != null) {
-                    subscribers.remove(conn);
-                }
-                
-                Message ack = Message.ack("unsubscribe", Map.of("channel", channel));
-                conn.send(JsonUtil.toJson(ack));
-                System.out.println("✓ Connection unsubscribed from channel: " + channel);
-            }
-        }
-    }
-
-    private void handleUserMessage(WebSocket conn, Message msg) {
-        if (msg.payload() instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> payload = (Map<String, Object>) msg.payload();
-            String channel = (String) payload.get("channel");
-            
-            if (channel != null) {
-                // Broadcast to all subscribers of the channel
-                Map<WebSocket, Boolean> subscribers = channels.get(channel);
-                if (subscribers != null) {
-                    Message broadcast = Message.data(msg.action(), payload);
-                    String broadcastJson = JsonUtil.toJson(broadcast);
-                    
-                    subscribers.keySet().forEach(subscriber -> {
-                        if (subscriber != conn && subscriber.isOpen()) {
-                            subscriber.send(broadcastJson);
-                        }
-                    });
-                }
-            }
-        }
-
-        // Acknowledge receipt
-        Message ack = Message.ack("message", Map.of("received", true));
-        conn.send(JsonUtil.toJson(ack));
-    }
-
+    /**
+     * 处理心跳
+     */
     private void handleHeartbeat(WebSocket conn, Message msg) {
-        // Respond to heartbeat
-        Message pong = Message.ack("heartbeat", Map.of("timestamp", System.currentTimeMillis()));
+        // 响应心跳
+        Message pong = Message.create("heartbeat", "pong", Map.of(
+            "timestamp", System.currentTimeMillis()
+        ));
         conn.send(JsonUtil.toJson(pong));
     }
 
     /**
-     * Broadcast message to all connections
+     * 处理认证
      */
-    public void broadcast(Message message) {
-        String json = JsonUtil.toJson(message);
-        connections.keySet().forEach(conn -> {
-            if (conn.isOpen()) {
-                conn.send(json);
-            }
-        });
+    private void handleAuth(WebSocket conn, Message msg) {
+        // 简单认证（实际应该验证 token）
+        Message response = Message.ack("auth", Map.of(
+            "success", true,
+            "userId", config.user().id(),
+            "userName", config.user().name()
+        ));
+        conn.send(JsonUtil.toJson(response));
     }
 
     /**
-     * Broadcast message to specific channel
+     * 处理订阅
      */
-    public void broadcastToChannel(String channel, Message message) {
-        Map<WebSocket, Boolean> subscribers = channels.get(channel);
-        if (subscribers != null) {
-            String json = JsonUtil.toJson(message);
-            // Create a snapshot to avoid ConcurrentModificationException
-            java.util.List<WebSocket> activeSubscribers = new java.util.ArrayList<>(subscribers.keySet());
-            activeSubscribers.forEach(conn -> {
+    private void handleSubscribe(WebSocket conn, Message msg) {
+        String channel = (String) msg.payload().get("channel");
+        
+        Message response = Message.ack("subscribe", Map.of(
+            "success", true,
+            "channel", channel
+        ));
+        conn.send(JsonUtil.toJson(response));
+    }
+
+    /**
+     * 处理用户消息
+     */
+    private void handleUserMessage(WebSocket conn, Message msg) {
+        // 回显消息（实际应该处理业务逻辑）
+        Message response = Message.ack("message", Map.of(
+            "received", true,
+            "messageId", msg.id()
+        ));
+        conn.send(JsonUtil.toJson(response));
+    }
+
+    /**
+     * 发送错误消息
+     */
+    private void sendError(WebSocket conn, String error) {
+        Message msg = Message.create("error", "error", Map.of(
+            "message", error
+        ));
+        conn.send(JsonUtil.toJson(msg));
+    }
+
+    /**
+     * 广播消息到所有连接
+     */
+    public void broadcast(Message message) {
+        String json = JsonUtil.toJson(message);
+        for (WebSocket conn : connections.keySet()) {
+            conn.send(json);
+        }
+    }
+
+    /**
+     * 启动心跳
+     */
+    private void startHeartbeat() {
+        heartbeatExecutor.scheduleAtFixedRate(() -> {
+            Message heartbeat = Message.heartbeat();
+            String json = JsonUtil.toJson(heartbeat);
+            
+            for (WebSocket conn : connections.keySet()) {
                 if (conn.isOpen()) {
                     conn.send(json);
                 }
-            });
+            }
+        }, 30, 30, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 停止服务器
+     */
+    public void shutdown() {
+        try {
+            heartbeatExecutor.shutdown();
+            stop(1000);
+            System.out.println("WebSocket Server stopped");
+        } catch (Exception e) {
+            System.err.println("Error stopping WebSocket server: " + e.getMessage());
         }
     }
 }

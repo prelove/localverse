@@ -1,0 +1,161 @@
+/* CSS Variables - Base Theme System */
+
+:root {
+  /* Primary Colors */
+  --primary-color: #1976d2;
+  --primary-light: #42a5f5;
+  --primary-dark: #1565c0;
+  
+  /* Secondary Colors */
+  --secondary-color: #9c27b0;
+  --secondary-light: #ba68c8;
+  --secondary-dark: #7b1fa2;
+  
+  /* Status Colors */
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --error-color: #f44336;
+  --info-color: #2196f3;
+  
+  /* Gray Scale */
+  --gray-50: #fafafa;
+  --gray-100: #f5f5f5;
+  --gray-200: #eeeeee;
+  --gray-300: #e0e0e0;
+  --gray-400: #bdbdbd;
+  --gray-500: #9e9e9e;
+  --gray-600: #757575;
+  --gray-700: #616161;
+  --gray-800: #424242;
+  --gray-900: #212121;
+  
+  /* Layout Sizes */
+  --header-height: 48px;
+  --sidebar-width: 60px;
+  --sidebar-expanded-width: 240px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+  
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 1000;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+  --z-splash: 9999;
+}
+
+/* Light Theme (Default) */
+:root,
+[data-theme="light"] {
+  --bg-color: #ffffff;
+  --surface-color: #ffffff;
+  --text-color: #212121;
+  --text-secondary: #757575;
+  --text-tertiary: #9e9e9e;
+  --border-color: #e0e0e0;
+  --hover-bg: rgba(0, 0, 0, 0.05);
+  --active-bg: rgba(25, 118, 210, 0.1);
+  --disabled-bg: #f5f5f5;
+  --disabled-color: #bdbdbd;
+  
+  /* Component Specific */
+  --header-bg: #ffffff;
+  --sidebar-bg: #f5f5f5;
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --tooltip-bg: #616161;
+  --tooltip-color: #ffffff;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --bg-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-color: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
+  --border-color: #333333;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --active-bg: rgba(25, 118, 210, 0.2);
+  --disabled-bg: #2a2a2a;
+  --disabled-color: #666666;
+  
+  /* Component Specific */
+  --header-bg: #1e1e1e;
+  --sidebar-bg: #1a1a1a;
+  --modal-bg: #2a2a2a;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --tooltip-bg: #424242;
+  --tooltip-color: #ffffff;
+  
+  /* Adjusted shadows for dark theme */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* High Contrast Theme */
+[data-theme="high-contrast"] {
+  --bg-color: #000000;
+  --surface-color: #000000;
+  --text-color: #ffffff;
+  --text-secondary: #ffffff;
+  --text-tertiary: #cccccc;
+  --border-color: #ffffff;
+  --hover-bg: rgba(255, 255, 255, 0.1);
+  --active-bg: rgba(255, 255, 255, 0.2);
+  --primary-color: #00ff00;
+  --error-color: #ff0000;
+  --warning-color: #ffff00;
+  --success-color: #00ff00;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 56px;
+    --sidebar-width: 100%;
+    --sidebar-expanded-width: 100%;
+  }
+}
+
+/* Print Styles */
+@media print {
+  :root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --border-color: #000000;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0s;
+    --transition-normal: 0s;
+    --transition-slow: 0s;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

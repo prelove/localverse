@@ -1,76 +1,172 @@
 package services;
 
 import config.Config;
-import models.FileInfo;
 import utils.PathUtil;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * File system service
- * Handles file operations with security checks
+ * 文件系统服务
  */
 public class FileSystemService {
-    private final Config.FilesystemConfig config;
+    private final Config config;
+    private final List<String> allowedPaths;
 
-    public FileSystemService(Config.FilesystemConfig config) {
+    public FileSystemService(Config config) {
         this.config = config;
+        this.allowedPaths = config.filesystem().watchPaths();
     }
 
     /**
-     * List files in directory
+     * 文件信息记录
      */
-    public List<FileInfo> listDirectory(String pathStr, boolean recursive) throws IOException {
-        Path path = PathUtil.normalize(pathStr);
+    public record FileInfo(
+        String path,
+        String name,
+        String extension,
+        long size,
+        Instant createdAt,
+        Instant modifiedAt,
+        boolean isDirectory,
+        Map<String, Object> metadata
+    ) {}
+
+    /**
+     * 读取文件内容（字节）
+     */
+    public byte[] readFile(String path) throws IOException {
+        validatePath(path);
+        Path p = Paths.get(path);
         
-        // Security check
-        if (!PathUtil.isAllowed(path, config.allowedPaths())) {
-            throw new IOException("Access denied: " + pathStr);
+        if (!Files.exists(p)) {
+            throw new IOException("File not found: " + path);
         }
 
-        if (!Files.exists(path)) {
-            throw new IOException("Path does not exist: " + pathStr);
+        if (Files.isDirectory(p)) {
+            throw new IOException("Path is a directory: " + path);
         }
 
-        if (!Files.isDirectory(path)) {
-            throw new IOException("Path is not a directory: " + pathStr);
+        // 检查文件大小
+        long size = Files.size(p);
+        if (size > config.filesystem().maxFileSize()) {
+            throw new IOException("File too large: " + size + " bytes");
+        }
+
+        return Files.readAllBytes(p);
+    }
+
+    /**
+     * 读取文本文件
+     */
+    public String readText(String path, Charset charset) throws IOException {
+        byte[] bytes = readFile(path);
+        return new String(bytes, charset);
+    }
+
+    /**
+     * 读取文本文件（UTF-8）
+     */
+    public String readText(String path) throws IOException {
+        return readText(path, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 写入文件
+     */
+    public void writeFile(String path, byte[] content) throws IOException {
+        validatePath(path);
+        
+        if (content.length > config.filesystem().maxFileSize()) {
+            throw new IOException("Content too large: " + content.length + " bytes");
+        }
+
+        Path p = Paths.get(path);
+        
+        // 确保父目录存在
+        Path parent = p.getParent();
+        if (parent != null && !Files.exists(parent)) {
+            Files.createDirectories(parent);
+        }
+
+        Files.write(p, content);
+    }
+
+    /**
+     * 写入文本文件
+     */
+    public void writeText(String path, String content, Charset charset) throws IOException {
+        writeFile(path, content.getBytes(charset));
+    }
+
+    /**
+     * 写入文本文件（UTF-8）
+     */
+    public void writeText(String path, String content) throws IOException {
+        writeText(path, content, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 追加文本
+     */
+    public void appendText(String path, String content) throws IOException {
+        validatePath(path);
+        Path p = Paths.get(path);
+        Files.writeString(p, content, StandardCharsets.UTF_8, 
+                         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    /**
+     * 列出目录内容
+     */
+    public List<FileInfo> listDirectory(String path) throws IOException {
+        return listDirectory(path, false);
+    }
+
+    /**
+     * 列出目录内容（支持递归）
+     */
+    public List<FileInfo> listDirectory(String path, boolean recursive) throws IOException {
+        validatePath(path);
+        Path p = Paths.get(path);
+
+        if (!Files.exists(p)) {
+            throw new IOException("Directory not found: " + path);
+        }
+
+        if (!Files.isDirectory(p)) {
+            throw new IOException("Path is not a directory: " + path);
         }
 
         List<FileInfo> files = new ArrayList<>();
-        
-        if (recursive) {
-            Files.walkFileTree(path, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    if (!PathUtil.isExcluded(file, config.excludePatterns())) {
-                        files.add(FileInfo.from(file, attrs));
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
 
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    if (!dir.equals(path) && PathUtil.isExcluded(dir, config.excludePatterns())) {
-                        return FileVisitResult.SKIP_SUBTREE;
-                    }
-                    if (!dir.equals(path)) {
-                        files.add(FileInfo.from(dir, attrs));
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
+        if (recursive) {
+            try (Stream<Path> stream = Files.walk(p)) {
+                stream.filter(f -> !f.equals(p))
+                      .forEach(f -> {
+                          try {
+                              files.add(getFileInfo(f.toString()));
+                          } catch (IOException e) {
+                              System.err.println("Warning: Cannot access file: " + f + " - " + e.getMessage());
+                          }
+                      });
+            }
         } else {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-                for (Path entry : stream) {
-                    if (!PathUtil.isExcluded(entry, config.excludePatterns())) {
-                        BasicFileAttributes attrs = Files.readAttributes(entry, BasicFileAttributes.class);
-                        files.add(FileInfo.from(entry, attrs));
+            try (Stream<Path> stream = Files.list(p)) {
+                stream.forEach(f -> {
+                    try {
+                        files.add(getFileInfo(f.toString()));
+                    } catch (IOException e) {
+                        System.err.println("Warning: Cannot access file: " + f + " - " + e.getMessage());
                     }
-                }
+                });
             }
         }
 
@@ -78,109 +174,138 @@ public class FileSystemService {
     }
 
     /**
-     * Read file content as bytes
+     * 获取文件信息
      */
-    public byte[] readFile(String pathStr) throws IOException {
-        Path path = PathUtil.normalize(pathStr);
+    public FileInfo getFileInfo(String path) throws IOException {
+        Path p = Paths.get(path);
+
+        if (!Files.exists(p)) {
+            throw new IOException("File not found: " + path);
+        }
+
+        BasicFileAttributes attrs = Files.readAttributes(p, BasicFileAttributes.class);
         
-        // Security check
-        if (!PathUtil.isAllowed(path, config.allowedPaths())) {
-            throw new IOException("Access denied: " + pathStr);
-        }
-
-        if (!Files.exists(path)) {
-            throw new IOException("File does not exist: " + pathStr);
-        }
-
-        if (Files.isDirectory(path)) {
-            throw new IOException("Path is a directory: " + pathStr);
-        }
-
-        // Size check
-        long size = Files.size(path);
-        if (!PathUtil.isValidSize(size, config.maxFileSize())) {
-            throw new IOException("File too large: " + size + " bytes (max: " + config.maxFileSize() + ")");
-        }
-
-        return Files.readAllBytes(path);
+        return new FileInfo(
+            p.toAbsolutePath().toString(),
+            p.getFileName().toString(),
+            PathUtil.getExtension(p.getFileName().toString()),
+            attrs.size(),
+            attrs.creationTime().toInstant(),
+            attrs.lastModifiedTime().toInstant(),
+            attrs.isDirectory(),
+            Map.of()
+        );
     }
 
     /**
-     * Write file content
+     * 创建目录
      */
-    public void writeFile(String pathStr, byte[] content) throws IOException {
-        Path path = PathUtil.normalize(pathStr);
-        
-        // Security check
-        if (!PathUtil.isAllowed(path, config.allowedPaths())) {
-            throw new IOException("Access denied: " + pathStr);
-        }
-
-        // Size check
-        if (!PathUtil.isValidSize(content.length, config.maxFileSize())) {
-            throw new IOException("Content too large: " + content.length + " bytes (max: " + config.maxFileSize() + ")");
-        }
-
-        // Create parent directories if needed
-        Path parent = path.getParent();
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
-
-        Files.write(path, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    public void createDirectory(String path) throws IOException {
+        validatePath(path);
+        Path p = Paths.get(path);
+        Files.createDirectories(p);
     }
 
     /**
-     * Delete file or directory
+     * 删除文件或目录
      */
-    public void delete(String pathStr) throws IOException {
-        Path path = PathUtil.normalize(pathStr);
+    public void delete(String path) throws IOException {
+        validatePath(path);
+        Path p = Paths.get(path);
+
+        if (!Files.exists(p)) {
+            throw new IOException("File not found: " + path);
+        }
+
+        if (Files.isDirectory(p)) {
+            // 递归删除目录
+            try (Stream<Path> stream = Files.walk(p)) {
+                stream.sorted(Comparator.reverseOrder())
+                      .forEach(f -> {
+                          try {
+                              Files.delete(f);
+                          } catch (IOException e) {
+                              System.err.println("Warning: Cannot delete file: " + f + " - " + e.getMessage());
+                          }
+                      });
+            }
+        } else {
+            Files.delete(p);
+        }
+    }
+
+    /**
+     * 移动文件或目录
+     */
+    public void move(String src, String dest) throws IOException {
+        validatePath(src);
+        validatePath(dest);
         
-        // Security check
-        if (!PathUtil.isAllowed(path, config.allowedPaths())) {
-            throw new IOException("Access denied: " + pathStr);
+        Path srcPath = Paths.get(src);
+        Path destPath = Paths.get(dest);
+
+        if (!Files.exists(srcPath)) {
+            throw new IOException("Source not found: " + src);
         }
 
-        if (!Files.exists(path)) {
-            throw new IOException("Path does not exist: " + pathStr);
+        Files.move(srcPath, destPath, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * 复制文件或目录
+     */
+    public void copy(String src, String dest) throws IOException {
+        validatePath(src);
+        validatePath(dest);
+        
+        Path srcPath = Paths.get(src);
+        Path destPath = Paths.get(dest);
+
+        if (!Files.exists(srcPath)) {
+            throw new IOException("Source not found: " + src);
         }
 
-        if (Files.isDirectory(path)) {
-            // Delete directory recursively
-            Files.walkFileTree(path, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
+        if (Files.isDirectory(srcPath)) {
+            copyDirectory(srcPath, destPath);
+        } else {
+            Files.copy(srcPath, destPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
 
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
+    /**
+     * 递归复制目录
+     */
+    private void copyDirectory(Path src, Path dest) throws IOException {
+        try (Stream<Path> stream = Files.walk(src)) {
+            stream.forEach(source -> {
+                try {
+                    Path target = dest.resolve(src.relativize(source));
+                    if (Files.isDirectory(source)) {
+                        Files.createDirectories(target);
+                    } else {
+                        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             });
-        } else {
-            Files.delete(path);
         }
     }
 
     /**
-     * Get file info
+     * 验证路径安全性
      */
-    public FileInfo getFileInfo(String pathStr) throws IOException {
-        Path path = PathUtil.normalize(pathStr);
-        
-        // Security check
-        if (!PathUtil.isAllowed(path, config.allowedPaths())) {
-            throw new IOException("Access denied: " + pathStr);
+    private void validatePath(String path) throws IOException {
+        if (!PathUtil.isSafe(path)) {
+            throw new IOException("Unsafe path: " + path);
         }
 
-        if (!Files.exists(path)) {
-            throw new IOException("Path does not exist: " + pathStr);
+        if (PathUtil.isSystemPath(path)) {
+            throw new IOException("System path access denied: " + path);
         }
 
-        BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
-        return FileInfo.from(path, attrs);
+        if (!allowedPaths.isEmpty() && !PathUtil.isAllowed(path, allowedPaths)) {
+            throw new IOException("Path not in allowed list: " + path);
+        }
     }
 }

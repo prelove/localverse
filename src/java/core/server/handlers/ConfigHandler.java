@@ -3,98 +3,89 @@ package server.handlers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import config.Config;
-import config.ConfigLoader;
 import utils.JsonUtil;
+import utils.Version;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.util.Map;
 
 /**
- * Configuration handler
+ * 配置处理器
  */
 public class ConfigHandler implements HttpHandler {
-    private Config config;
-    private final String configPath;
+    private final Config config;
 
-    public ConfigHandler(Config config, String configPath) {
+    public ConfigHandler(Config config) {
         this.config = config;
-        this.configPath = configPath;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String method = exchange.getRequestMethod();
-        
-        if ("OPTIONS".equals(method)) {
-            addCorsHeaders(exchange);
+        // CORS 处理
+        addCorsHeaders(exchange);
+
+        // OPTIONS 请求直接返回
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(204, -1);
             return;
         }
 
-        addCorsHeaders(exchange);
+        String method = exchange.getRequestMethod();
 
-        if ("GET".equals(method)) {
-            handleGet(exchange);
-        } else if ("PUT".equals(method)) {
-            handlePut(exchange);
-        } else {
-            exchange.sendResponseHeaders(405, -1);
+        try {
+            switch (method) {
+                case "GET" -> handleGet(exchange);
+                case "PUT" -> handlePut(exchange);
+                default -> sendError(exchange, 405, "Method not allowed");
+            }
+        } catch (Exception e) {
+            sendError(exchange, 500, "Internal error: " + e.getMessage());
         }
     }
 
     private void handleGet(HttpExchange exchange) throws IOException {
-        String jsonResponse = JsonUtil.toPrettyJson(config);
-        byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+        // 返回配置（不包含敏感信息）
+        Map<String, Object> safeConfig = Map.of(
+            "mode", config.mode(),
+            "httpPort", config.isClientMode() ? config.client().httpPort() : config.server().httpPort(),
+            "wsPort", config.isClientMode() ? config.client().wsPort() : config.server().wsPort(),
+            "syncEnabled", config.isClientMode() ? config.client().syncEnabled() : false,
+            "version", Version.VERSION
+        );
 
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, bytes.length);
+        String response = JsonUtil.success(safeConfig);
+        sendResponse(exchange, 200, response);
+    }
 
+    private void handlePut(HttpExchange exchange) throws IOException {
+        // 配置更新暂不实现
+        sendError(exchange, 501, "Configuration update not implemented");
+    }
+
+    private void addCorsHeaders(HttpExchange exchange) {
+        if (config.security().enableCORS()) {
+            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", 
+                "GET, POST, PUT, DELETE, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", 
+                "Content-Type, Authorization");
+        }
+    }
+
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) 
+            throws IOException {
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        byte[] bytes = response.getBytes("UTF-8");
+        exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
     }
 
-    private void handlePut(HttpExchange exchange) throws IOException {
-        // Read request body
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        
-        try {
-            // Parse new config
-            Config newConfig = JsonUtil.fromJson(body, Config.class);
-            
-            // Save to file
-            ConfigLoader.save(newConfig, Paths.get(configPath));
-            
-            // Update in memory
-            this.config = newConfig;
-
-            String response = JsonUtil.toJson(java.util.Map.of("success", true, "message", "Configuration updated"));
-            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, bytes.length);
-
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(bytes);
-            }
-        } catch (Exception e) {
-            String errorResponse = JsonUtil.toJson(java.util.Map.of("error", e.getMessage()));
-            byte[] bytes = errorResponse.getBytes(StandardCharsets.UTF_8);
-
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(400, bytes.length);
-
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(bytes);
-            }
-        }
-    }
-
-    private void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    private void sendError(HttpExchange exchange, int statusCode, String message) 
+            throws IOException {
+        String response = JsonUtil.error(message);
+        sendResponse(exchange, statusCode, response);
     }
 }
