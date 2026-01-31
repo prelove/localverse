@@ -191,7 +191,9 @@ public class LocalWebSocketServer extends WebSocketServer {
         Map<WebSocket, Boolean> subscribers = channels.get(channel);
         if (subscribers != null) {
             String json = JsonUtil.toJson(message);
-            subscribers.keySet().forEach(conn -> {
+            // Create a snapshot to avoid ConcurrentModificationException
+            java.util.List<WebSocket> activeSubscribers = new java.util.ArrayList<>(subscribers.keySet());
+            activeSubscribers.forEach(conn -> {
                 if (conn.isOpen()) {
                     conn.send(json);
                 }

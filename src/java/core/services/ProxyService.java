@@ -137,7 +137,7 @@ public class ProxyService {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
-                .timeout(Duration.ofSeconds(5))
+                .timeout(Duration.ofMillis(config.timeout()))
                 .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

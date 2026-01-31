@@ -82,6 +82,11 @@ public class FileHandler implements HttpHandler {
         Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
 
         String filePath = (String) request.get("path");
+        if (filePath == null || filePath.isEmpty()) {
+            sendErrorResponse(exchange, 400, "Missing required parameter: path");
+            return;
+        }
+        
         String contentStr = (String) request.get("content");
         byte[] content = contentStr != null ? contentStr.getBytes(StandardCharsets.UTF_8) : new byte[0];
 

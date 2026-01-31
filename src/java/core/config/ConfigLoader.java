@@ -52,7 +52,11 @@ public class ConfigLoader {
      */
     public static void save(Config config, Path path) throws IOException {
         String json = gson.toJson(config);
-        Files.createDirectories(path.getParent() != null ? path.getParent() : Paths.get("."));
+        // Ensure parent directory exists (handle case where parent is null)
+        Path parentDir = path.getParent();
+        if (parentDir != null) {
+            Files.createDirectories(parentDir);
+        }
         Files.writeString(path, json);
     }
 

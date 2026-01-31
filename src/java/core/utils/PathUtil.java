@@ -18,13 +18,7 @@ public class PathUtil {
         }
         
         // Normalize the path
-        Path normalized = Paths.get(path).normalize();
-        
-        // Check for path traversal attempts
-        String normalizedStr = normalized.toString();
-        if (normalizedStr.contains("..")) {
-            throw new IOException("Path traversal not allowed: " + path);
-        }
+        Path normalized = Paths.get(path).normalize().toAbsolutePath();
         
         return normalized;
     }
@@ -59,8 +53,12 @@ public class PathUtil {
         
         String pathStr = path.toString();
         for (String pattern : excludePatterns) {
-            // Simple pattern matching (can be enhanced with glob patterns)
-            String regex = pattern.replace("**", ".*").replace("*", "[^/\\\\]*");
+            // Convert glob pattern to regex
+            // Replace * first (but not **), then replace **
+            String regex = pattern
+                .replace("**", "\0DOUBLESTAR\0")  // Temporary placeholder
+                .replace("*", "[^/\\\\]*")        // Single star
+                .replace("\0DOUBLESTAR\0", ".*"); // Double star
             if (pathStr.matches(regex)) {
                 return true;
             }
