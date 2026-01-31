@@ -272,7 +272,7 @@ export const migrations = [
     version: 5,
     name: 'add_plugin_installs',
     sql: `
-      -- 插件安装记录表
+      -- Plugin installation records table
       CREATE TABLE plugin_installs (
         plugin_id TEXT PRIMARY KEY,
         version TEXT NOT NULL,
