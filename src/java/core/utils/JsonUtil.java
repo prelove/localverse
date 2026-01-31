@@ -1,10 +1,9 @@
 package utils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 
 /**
  * JSON 工具类
@@ -12,9 +11,27 @@ import java.lang.reflect.Type;
 public class JsonUtil {
     private static final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
+            .registerTypeAdapter(Instant.class, new InstantAdapter())
             .create();
 
-    private static final Gson compactGson = new Gson();
+    private static final Gson compactGson = new GsonBuilder()
+            .registerTypeAdapter(Instant.class, new InstantAdapter())
+            .create();
+
+    /**
+     * Instant 类型适配器
+     */
+    private static class InstantAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
+        @Override
+        public JsonElement serialize(Instant src, Type typeOfSrc, JsonSerializationContext context) {
+            return new JsonPrimitive(src.toEpochMilli());
+        }
+
+        @Override
+        public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+            return Instant.ofEpochMilli(json.getAsLong());
+        }
+    }
 
     /**
      * 对象转 JSON 字符串
