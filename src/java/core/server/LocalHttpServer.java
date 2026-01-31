@@ -6,6 +6,7 @@ import server.handlers.*;
 import services.DatabaseService;
 import services.FileSystemService;
 import services.ProxyService;
+import services.SearchService;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,6 +20,7 @@ public class LocalHttpServer {
     private final FileSystemService fileSystemService;
     private final DatabaseService databaseService;
     private final ProxyService proxyService;
+    private final SearchService searchService;
     private HttpServer server;
 
     public LocalHttpServer(Config config, 
@@ -29,6 +31,13 @@ public class LocalHttpServer {
         this.fileSystemService = fileSystemService;
         this.databaseService = databaseService;
         this.proxyService = proxyService;
+        
+        // Initialize search service if database is available
+        if (databaseService != null && databaseService.getConnection() != null) {
+            this.searchService = new SearchService(databaseService.getConnection());
+        } else {
+            this.searchService = null;
+        }
     }
 
     /**
@@ -81,6 +90,13 @@ public class LocalHttpServer {
         // 数据库操作
         server.createContext("/api/local/db", 
             new DatabaseHandler(config, databaseService));
+
+        // 搜索操作 (if database is available)
+        if (searchService != null) {
+            server.createContext("/api/local/search", 
+                new SearchHandler(searchService));
+            System.out.println("✓ Search service enabled");
+        }
 
         // 代理转发
         server.createContext("/api/sync", 

@@ -25,10 +25,25 @@ public class DatabaseService {
         String dbPath = config.database().path();
         String url = "jdbc:sqlite:" + dbPath;
         
-        connection = DriverManager.getConnection(url);
-        connection.setAutoCommit(true);
-        
-        System.out.println("Database connected: " + dbPath);
+        Connection newConnection = null;
+        try {
+            newConnection = DriverManager.getConnection(url);
+            newConnection.setAutoCommit(true);
+            
+            // Only assign to connection field after successful initialization
+            connection = newConnection;
+            System.out.println("Database connected: " + dbPath);
+        } catch (SQLException e) {
+            // Close connection if initialization failed
+            if (newConnection != null) {
+                try {
+                    newConnection.close();
+                } catch (SQLException closeEx) {
+                    // Suppress close exception, throw original
+                }
+            }
+            throw e;
+        }
     }
 
     /**
@@ -43,6 +58,13 @@ public class DatabaseService {
                 System.err.println("Error closing database: " + e.getMessage());
             }
         }
+    }
+
+    /**
+     * Get database connection for search service and other services
+     */
+    public Connection getConnection() {
+        return connection;
     }
 
     /**
