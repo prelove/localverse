@@ -6,9 +6,11 @@ import server.handlers.*;
 import services.DatabaseService;
 import services.FileSystemService;
 import services.ProxyService;
+import services.SearchService;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.sql.SQLException;
 import java.util.concurrent.Executors;
 
 /**
@@ -21,6 +23,7 @@ public class LocalHttpServer {
     private final FileSystemService fileService;
     private final DatabaseService dbService;
     private final ProxyService proxyService;
+    private final SearchService searchService;
 
     public LocalHttpServer(Config config) throws IOException {
         this.config = config;
@@ -29,6 +32,22 @@ public class LocalHttpServer {
         this.fileService = new FileSystemService(config.filesystem());
         this.dbService = new DatabaseService();
         this.proxyService = new ProxyService(config.syncServer());
+        
+        // Initialize database connection if path is provided
+        if (config.database() != null && config.database().path() != null) {
+            try {
+                dbService.initialize(config.database().path());
+            } catch (SQLException e) {
+                System.err.println("⚠ Failed to initialize database: " + e.getMessage());
+            }
+        }
+        
+        // Initialize search service if database is available
+        if (dbService.getConnection() != null) {
+            this.searchService = new SearchService(dbService.getConnection());
+        } else {
+            this.searchService = null;
+        }
 
         // Create HTTP server
         int port = "client".equals(config.mode()) ? 
@@ -65,6 +84,13 @@ public class LocalHttpServer {
         server.createContext("/api/local/db/exec", 
             new DatabaseHandler(dbService));
 
+        // Search operations (if database is available)
+        if (searchService != null) {
+            server.createContext("/api/local/search", 
+                new SearchHandler(searchService));
+            System.out.println("✓ Search service enabled");
+        }
+
         // Proxy to sync server
         server.createContext("/api/sync", 
             new ProxyHandler(proxyService));
@@ -83,6 +109,9 @@ public class LocalHttpServer {
 
     public void stop() {
         server.stop(0);
+        if (dbService != null) {
+            dbService.close();
+        }
         System.out.println("✓ HTTP Server stopped");
     }
 
@@ -96,5 +125,9 @@ public class LocalHttpServer {
 
     public ProxyService getProxyService() {
         return proxyService;
+    }
+    
+    public SearchService getSearchService() {
+        return searchService;
     }
 }
