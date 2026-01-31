@@ -25,10 +25,25 @@ public class DatabaseService {
         String dbPath = config.database().path();
         String url = "jdbc:sqlite:" + dbPath;
         
-        connection = DriverManager.getConnection(url);
-        connection.setAutoCommit(true);
-        
-        System.out.println("Database connected: " + dbPath);
+        Connection newConnection = null;
+        try {
+            newConnection = DriverManager.getConnection(url);
+            newConnection.setAutoCommit(true);
+            
+            // Only assign to connection field after successful initialization
+            connection = newConnection;
+            System.out.println("Database connected: " + dbPath);
+        } catch (SQLException e) {
+            // Close connection if initialization failed
+            if (newConnection != null) {
+                try {
+                    newConnection.close();
+                } catch (SQLException closeEx) {
+                    // Suppress close exception, throw original
+                }
+            }
+            throw e;
+        }
     }
 
     /**
@@ -53,21 +68,6 @@ public class DatabaseService {
     }
 
     /**
-     * 执行查询
-     */
-    public List<List<Object>> query(String sql, Object[] params) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            setParameters(stmt, params);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                return resultSetToList(rs);
-            }
-        }
-    }
-
-    /**
-     * 执行单行查询
-     */
      * 执行查询
      */
     public List<List<Object>> query(String sql, Object[] params) throws SQLException {

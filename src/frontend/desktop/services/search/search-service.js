@@ -243,7 +243,6 @@ class SearchService {
 
   // Mock implementations
   _mockSearch(query, options = {}) {
-    const lowerQuery = query.toLowerCase();
     const types = options.types || ['card', 'task', 'file', 'chat'];
     const limit = options.limit || 50;
     const offset = options.offset || 0;

@@ -76,8 +76,10 @@ public class SearchHandler implements HttpHandler {
                 sendError(exchange, 404, "Endpoint not found");
             }
         } catch (Exception e) {
+            // Log full exception internally but only return generic error to client
+            System.err.println("Search error: " + e.getClass().getName());
             e.printStackTrace();
-            sendError(exchange, 500, "Internal server error: " + e.getMessage());
+            sendError(exchange, 500, "Internal server error occurred");
         }
     }
 
@@ -100,6 +102,12 @@ public class SearchHandler implements HttpHandler {
     private void handleSearchCards(HttpExchange exchange) throws IOException, SQLException {
         SearchRequest request = parseSearchRequest(exchange);
         
+        // Validate required parameter
+        if (request.query == null || request.query.trim().isEmpty()) {
+            sendError(exchange, 400, "Query parameter is required");
+            return;
+        }
+        
         SearchService.SearchOptions options = new SearchService.SearchOptions();
         options.dateRange = request.dateRange;
         options.tags = request.tags;
@@ -111,6 +119,12 @@ public class SearchHandler implements HttpHandler {
     private void handleSearchTasks(HttpExchange exchange) throws IOException, SQLException {
         SearchRequest request = parseSearchRequest(exchange);
         
+        // Validate required parameter
+        if (request.query == null || request.query.trim().isEmpty()) {
+            sendError(exchange, 400, "Query parameter is required");
+            return;
+        }
+        
         SearchService.SearchOptions options = new SearchService.SearchOptions();
         
         List<SearchService.SearchResultItem> results = searchService.searchTasks(request.query, options);
@@ -120,12 +134,24 @@ public class SearchHandler implements HttpHandler {
     private void handleSearchFiles(HttpExchange exchange) throws IOException, SQLException {
         SearchRequest request = parseSearchRequest(exchange);
         
+        // Validate required parameter
+        if (request.query == null || request.query.trim().isEmpty()) {
+            sendError(exchange, 400, "Query parameter is required");
+            return;
+        }
+        
         List<SearchService.SearchResultItem> results = searchService.searchFiles(request.query, null);
         sendJsonResponse(exchange, 200, Map.of("results", results));
     }
 
     private void handleSearchChat(HttpExchange exchange) throws IOException, SQLException {
         SearchRequest request = parseSearchRequest(exchange);
+        
+        // Validate required parameter
+        if (request.query == null || request.query.trim().isEmpty()) {
+            sendError(exchange, 400, "Query parameter is required");
+            return;
+        }
         
         List<SearchService.SearchResultItem> results = searchService.searchChat(request.query, null);
         sendJsonResponse(exchange, 200, Map.of("results", results));
@@ -240,7 +266,17 @@ public class SearchHandler implements HttpHandler {
     }
 
     private void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        // In production, configure allowed origins based on deployment
+        // For local development, allow localhost origins
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        String allowedOrigin = "*"; // Default for local development
+        
+        // If running in production mode, restrict to specific origins
+        if (origin != null && (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))) {
+            allowedOrigin = origin;
+        }
+        
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", allowedOrigin);
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }

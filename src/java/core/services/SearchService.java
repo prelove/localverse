@@ -34,6 +34,16 @@ public class SearchService {
         int limit = options.limit != null ? options.limit : 50;
         int offset = options.offset != null ? options.offset : 0;
         
+        // Enforce reasonable bounds on pagination parameters to prevent resource exhaustion
+        if (limit <= 0) {
+            limit = 50; // fall back to default page size for non-positive limits
+        } else if (limit > 1000) {
+            limit = 1000; // enforce maximum page size
+        }
+        if (offset < 0) {
+            offset = 0; // offsets must be non-negative
+        }
+        
         List<SearchResultItem> allResults = new ArrayList<>();
         
         // Search each type
@@ -108,11 +118,12 @@ public class SearchService {
             }
         }
         
-        // Tags filter
+        // Tags filter - use parameterized query to prevent SQL injection
         if (options != null && options.tags != null && !options.tags.isEmpty()) {
             for (String tag : options.tags) {
                 sql.append(" AND c.tags LIKE ?");
-                params.add("%\"" + tag + "\"%");
+                // Build the LIKE pattern safely without concatenation in SQL
+                params.add("%\"" + tag.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "\"%");
             }
         }
         
@@ -526,26 +537,47 @@ public class SearchService {
     }
 
     /**
-     * Build FTS query from user input
+     * Build FTS query from user input with proper sanitization
      */
     private String buildFtsQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return "";
+        }
+
         // Remove special characters, keep alphanumeric, CJK, and spaces
         String cleaned = query.replaceAll("[^\\w\\s\\u4e00-\\u9fa5\\u3040-\\u309f\\u30a0-\\u30ff]", " ").trim();
         
         // Split into words
-        String[] words = cleaned.split("\\s+");
+        String[] words = cleaned.isEmpty() ? new String[0] : cleaned.split("\\s+");
         
-        if (words.length == 0) {
-            return query;
+        // Filter out empty tokens and FTS5 boolean operator keywords to prevent query injection
+        List<String> safeTerms = new ArrayList<>();
+        for (String word : words) {
+            if (word == null || word.isEmpty()) {
+                continue;
+            }
+            String upper = word.toUpperCase(Locale.ROOT);
+            // Block FTS5 operators when they appear as standalone words
+            if ("AND".equals(upper) || "OR".equals(upper) || "NOT".equals(upper) || 
+                "NEAR".equals(upper) || "FTS5".equals(upper)) {
+                continue;
+            }
+            safeTerms.add(word);
+        }
+        
+        if (safeTerms.isEmpty()) {
+            // No usable search terms after sanitization
+            return "";
         }
         
         // For single word, use prefix matching (asterisk must be outside quotes)
-        if (words.length == 1 && words[0].length() > 1) {
-            return words[0] + "* OR " + words[0];
+        if (safeTerms.size() == 1 && safeTerms.get(0).length() > 1) {
+            String term = safeTerms.get(0);
+            return term + "* OR " + term;
         }
         
         // For multiple words, use AND to connect them
-        return String.join(" AND ", words);
+        return String.join(" AND ", safeTerms);
     }
 
     /**
@@ -586,13 +618,17 @@ public class SearchService {
         int multiplier = "asc".equals(sortOrder) ? 1 : -1;
         
         results.sort((a, b) -> {
-            int result = switch (sortBy) {
+            int baseResult = switch (sortBy) {
                 case "relevance" -> Double.compare(b.score, a.score);
                 case "date" -> Long.compare(b.updatedAt, a.updatedAt);
                 case "name" -> a.title.compareTo(b.title);
                 default -> 0;
             };
-            return result * multiplier;
+            // Relevance is always sorted by descending score; do not apply multiplier
+            if ("relevance".equals(sortBy)) {
+                return baseResult;
+            }
+            return baseResult * multiplier;
         });
     }
 
