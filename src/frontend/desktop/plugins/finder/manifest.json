@@ -1,0 +1,86 @@
+{
+  "id": "finder",
+  "name": {
+    "zh": "文件搜索",
+    "ja": "ファイル検索",
+    "en": "Finder"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "快速搜索本地文件，支持全文检索和实时预览",
+    "ja": "ローカルファイルを高速検索、全文検索とプレビュー対応",
+    "en": "Fast local file search with full-text and preview support"
+  },
+  "icon": "🔍",
+  "category": "productivity",
+  
+  "entry": "./index.js",
+  "style": "./style.css",
+  
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 1
+    },
+    "shortcut": {
+      "global": "Ctrl+Shift+F"
+    }
+  },
+  
+  "permissions": [
+    "filesystem:read",
+    "filesystem:watch",
+    "database:read",
+    "database:write",
+    "clipboard:write"
+  ],
+  
+  "dependencies": {
+    "services": ["FileSystemService", "SearchService", "DatabaseService"]
+  },
+  
+  "settings": {
+    "watchPaths": {
+      "type": "array",
+      "default": [],
+      "label": {
+        "zh": "监视路径",
+        "en": "Watch paths"
+      }
+    },
+    "maxResults": {
+      "type": "number",
+      "default": 100,
+      "min": 10,
+      "max": 1000,
+      "label": {
+        "zh": "最大结果数",
+        "en": "Max results"
+      }
+    },
+    "includeHidden": {
+      "type": "boolean",
+      "default": false,
+      "label": {
+        "zh": "包含隐藏文件",
+        "en": "Include hidden files"
+      }
+    },
+    "enableContentSearch": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "启用内容搜索",
+        "en": "Enable content search"
+      }
+    },
+    "indexExtensions": {
+      "type": "array",
+      "default": ["txt", "md", "json", "js", "java", "py", "html", "css"],
+      "label": {
+        "zh": "索引的扩展名",
+        "en": "Extensions to index"
+      }
+    }
+  }
+}
