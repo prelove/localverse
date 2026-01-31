@@ -42,6 +42,12 @@ export class PluginRegistry {
       return false;
     }
 
+    // Warn if instance is still active
+    const instance = this.instances.get(id);
+    if (instance && instance.activated) {
+      console.warn(`[Registry] Plugin ${id} is still activated. Deactivate before unregistering.`);
+    }
+
     // Remove instance if exists
     if (this.instances.has(id)) {
       this.instances.delete(id);

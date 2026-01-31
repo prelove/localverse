@@ -188,7 +188,7 @@ export class PluginLoader {
     }
 
     // Validate version format (semver)
-    if (!/^\d+\.\d+\.\d+/.test(manifest.version)) {
+    if (!/^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/.test(manifest.version)) {
       throw new Error(`Invalid version format: ${manifest.version}`);
     }
 

@@ -192,32 +192,37 @@ export class PluginContext {
       }
     }
 
+    // Bind storage to closure
+    const storage = this._storage;
+
     return {
       get: (key, defaultValue) => {
-        const settings = this._storage.get(settingsKey, defaultSettings);
+        const settings = storage.get(settingsKey, defaultSettings);
         return key ? (settings[key] ?? defaultValue ?? defaultSettings[key]) : settings;
       },
 
       set: (key, value) => {
-        const settings = this._storage.get(settingsKey, defaultSettings);
+        const settings = storage.get(settingsKey, defaultSettings);
         settings[key] = value;
-        return this._storage.set(settingsKey, settings);
+        return storage.set(settingsKey, settings);
       },
 
       reset: (key) => {
         if (key) {
-          return this.set(key, defaultSettings[key]);
+          const settings = storage.get(settingsKey, defaultSettings);
+          settings[key] = defaultSettings[key];
+          return storage.set(settingsKey, settings);
         } else {
-          return this._storage.set(settingsKey, defaultSettings);
+          return storage.set(settingsKey, defaultSettings);
         }
       },
 
       getAll: () => {
-        return this._storage.get(settingsKey, defaultSettings);
+        return storage.get(settingsKey, defaultSettings);
       },
 
       setAll: (settings) => {
-        return this._storage.set(settingsKey, { ...defaultSettings, ...settings });
+        return storage.set(settingsKey, { ...defaultSettings, ...settings });
       }
     };
   }
