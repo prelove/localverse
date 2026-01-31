@@ -267,5 +267,18 @@ export const migrations = [
       
       CREATE INDEX idx_search_history_time ON search_history(created_at DESC);
     `
+  },
+  {
+    version: 5,
+    name: 'add_plugin_installs',
+    sql: `
+      -- 插件安装记录表
+      CREATE TABLE plugin_installs (
+        plugin_id TEXT PRIMARY KEY,
+        version TEXT NOT NULL,
+        installed_at INTEGER NOT NULL,
+        updated_at INTEGER
+      );
+    `
   }
 ];
