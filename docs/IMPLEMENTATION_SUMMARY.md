@@ -253,7 +253,7 @@ Open in browser: `openspec/tests/unit/auth/test-runner.html`
 Open in browser: `src/frontend/desktop/demo-auth.html`
 
 ### 4. Verification
-Run: `node verify-auth.js`
+Run: `node src/scripts/verify-auth.js`
 
 ## Compliance with Specifications
 

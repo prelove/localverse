@@ -150,7 +150,7 @@ if (canAccessData(user, cardData)) {
 
 Run the verification script:
 ```bash
-node verify-auth.js
+node src/scripts/verify-auth.js
 ```
 
 You should see:

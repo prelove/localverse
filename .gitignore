@@ -1,5 +1,4 @@
 # Build artifacts
-build/
 target/
 *.class
 
@@ -21,6 +20,10 @@ update_pending.flag
 *.jar.bak
 temp/
 data/
+config.json
+
+# Maven
+dependency-reduced-pom.xml
 
 # Maven
 dependency-reduced-pom.xml

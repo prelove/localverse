@@ -35,7 +35,7 @@
 mvn clean package
 
 # 或使用构建脚本
-./build-core.sh
+./build/build-core.sh
 ```
 
 构建产物：

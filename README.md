@@ -29,6 +29,21 @@ cat README.md
 
 下载 localverse.jar，双击运行，浏览器访问 http://127.0.0.1:8765
 
+## 构建
+
+```bash
+# 构建核心服务
+./build/build-core.sh
+
+# 构建启动器
+./build/build-launcher.sh
+
+# 或使用完整构建脚本
+./build/build-localverse.sh
+```
+
+构建产物位于 `dist/` 目录。
+
 ## 文档
 
 - 🚀 [快速开发指南](./openspec/QUICK-START-GUIDE.md) - 5分钟快速入门
@@ -48,17 +63,36 @@ cat README.md
 
 ```
 localverse/
-├── openspec/       # 规格文档（AI 和人类都可读）
+├── README.md           # 项目说明
+├── AGENTS.md          # AI 开发指南
+├── LICENSE            # MIT 许可证
+├── pom.xml            # Maven 构建配置
+├── .gitignore         # Git 忽略规则
+├── openspec/          # 规格文档（AI 和人类都可读）
 │   ├── QUICK-START-GUIDE.md      # 快速开发指南
 │   ├── DEVELOPMENT-ROADMAP.md    # 完整开发路线图
-│   ├── specs/      # 技术规格
-│   └── tasks/      # 开发任务
-├── src/            # 源代码
-│   ├── java/       # Java 后端
-│   ├── frontend/   # 前端代码
-│   └── wasm/       # WASM 模块
-├── dist/           # 构建产物
-└── docs/           # 用户文档
+│   ├── specs/         # 技术规格
+│   └── tasks/         # 开发任务
+├── src/               # 源代码
+│   ├── java/          # Java 后端
+│   │   ├── core/      # 核心服务代码
+│   │   └── launcher/  # 启动器代码
+│   ├── frontend/      # 前端代码
+│   ├── wasm/          # WASM 模块
+│   ├── resources/     # 资源文件
+│   │   └── config/    # 配置模板
+│   └── scripts/       # 辅助脚本
+├── build/             # 构建脚本
+│   ├── build-core.sh
+│   ├── build-launcher.sh
+│   └── build-localverse.sh
+├── docs/              # 文档
+│   ├── QUICK_START.md
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   └── project.md
+├── tests/             # 测试文件
+│   └── unit/          # 单元测试
+└── dist/              # 构建产物（gitignored）
 ```
 
 ## License

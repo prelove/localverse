@@ -39,8 +39,8 @@ Successfully implemented the Local JAR service (`localverse.jar`), a core compon
 
 ### Build & Configuration
 - `pom.xml` - Maven build configuration
-- `build-localverse.sh` - Automated build script with Java 21 validation
-- `config.json.template` - Configuration template
+- `build/build-localverse.sh` - Automated build script with Java 21 validation
+- `src/resources/config/config.json.template` - Configuration template
 - `docs/local-jar.md` - User documentation
 
 ## Technical Implementation
@@ -182,7 +182,7 @@ POST /api/local/db/exec             # Execute SQL statement
 ## Build Output
 
 ```bash
-$ ./build-localverse.sh
+$ ./build/build-localverse.sh
 === Build Complete ===
 Output: dist/localverse.jar
 
