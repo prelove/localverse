@@ -8,8 +8,8 @@
  * 4. 支持 JSON 序列化对象
  */
 
-const DB_NAME = 'localverse_plugin_storage';
-const DB_VERSION = 1;
+const PLUGIN_DB_NAME = 'localverse_plugin_storage';
+const PLUGIN_DB_VERSION = 1;
 
 export class PluginStorage {
   constructor(pluginId) {
@@ -27,7 +27,7 @@ export class PluginStorage {
     if (this._initPromise) return this._initPromise;
 
     this._initPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(PLUGIN_DB_NAME, PLUGIN_DB_VERSION);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {

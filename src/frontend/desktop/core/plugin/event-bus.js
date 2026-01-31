@@ -210,9 +210,10 @@ export class EventBus {
    * @private
    */
   _matchWildcard(eventName, pattern) {
+    // Escape special regex characters except *
     const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*');
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')  // Escape all special chars including backslash
+      .replace(/\*/g, '.*');  // Convert * to .*
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(eventName);
   }

@@ -8,44 +8,44 @@
  */
 
 /**
- * 权限定义
+ * Permission Definitions
  */
 export const PERMISSIONS = {
-  // 数据库权限
-  'database:read': { level: 1, description: '读取数据库' },
-  'database:write': { level: 2, description: '写入数据库' },
-  'database:delete': { level: 3, description: '删除数据库数据' },
-  'database:*': { level: 4, description: '完全数据库访问' },
+  // Database permissions
+  'database:read': { level: 1, description: 'Read database' },
+  'database:write': { level: 2, description: 'Write database' },
+  'database:delete': { level: 3, description: 'Delete database data' },
+  'database:*': { level: 4, description: 'Full database access' },
 
-  // 文件系统权限
-  'filesystem:read': { level: 1, description: '读取文件' },
-  'filesystem:write': { level: 2, description: '写入文件' },
-  'filesystem:delete': { level: 3, description: '删除文件' },
-  'filesystem:watch': { level: 2, description: '监视文件变化' },
-  'filesystem:*': { level: 4, description: '完全文件系统访问' },
+  // Filesystem permissions
+  'filesystem:read': { level: 1, description: 'Read files' },
+  'filesystem:write': { level: 2, description: 'Write files' },
+  'filesystem:delete': { level: 3, description: 'Delete files' },
+  'filesystem:watch': { level: 2, description: 'Watch file changes' },
+  'filesystem:*': { level: 4, description: 'Full filesystem access' },
 
-  // 网络权限
-  'network:fetch': { level: 2, description: '网络请求' },
-  'network:websocket': { level: 2, description: 'WebSocket 连接' },
-  'network:*': { level: 3, description: '完全网络访问' },
+  // Network permissions
+  'network:fetch': { level: 2, description: 'Network requests' },
+  'network:websocket': { level: 2, description: 'WebSocket connections' },
+  'network:*': { level: 3, description: 'Full network access' },
 
-  // UI 权限
-  'ui:render': { level: 1, description: '渲染 UI' },
-  'ui:modal': { level: 2, description: '显示模态框' },
-  'ui:notification': { level: 1, description: '显示通知' },
-  'ui:*': { level: 2, description: '完全 UI 访问' },
+  // UI permissions
+  'ui:render': { level: 1, description: 'Render UI' },
+  'ui:modal': { level: 2, description: 'Show modals' },
+  'ui:notification': { level: 1, description: 'Show notifications' },
+  'ui:*': { level: 2, description: 'Full UI access' },
 
-  // 剪贴板权限
-  'clipboard:read': { level: 2, description: '读取剪贴板' },
-  'clipboard:write': { level: 1, description: '写入剪贴板' },
+  // Clipboard permissions
+  'clipboard:read': { level: 2, description: 'Read clipboard' },
+  'clipboard:write': { level: 1, description: 'Write clipboard' },
 
-  // 存储权限
-  'storage:read': { level: 1, description: '读取存储' },
-  'storage:write': { level: 1, description: '写入存储' },
+  // Storage permissions
+  'storage:read': { level: 1, description: 'Read storage' },
+  'storage:write': { level: 1, description: 'Write storage' },
 
-  // 系统权限
-  'system:shell': { level: 4, description: '执行系统命令' },
-  'system:process': { level: 4, description: '管理进程' },
+  // System permissions
+  'system:shell': { level: 4, description: 'Execute system commands' },
+  'system:process': { level: 4, description: 'Manage processes' },
 };
 
 export class PermissionManager {
