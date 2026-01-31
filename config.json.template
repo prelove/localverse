@@ -1,0 +1,52 @@
+{
+  "mode": "client",
+  "client": {
+    "httpPort": 8765,
+    "wsPort": 8766,
+    "bindAddress": "127.0.0.1",
+    "syncServer": "http://192.168.1.100:8080",
+    "syncEnabled": true,
+    "autoConnect": true,
+    "reconnectInterval": 5000
+  },
+  "server": {
+    "httpPort": 8080,
+    "wsPort": 8081,
+    "bindAddress": "0.0.0.0",
+    "maxConnections": 1000,
+    "sessionTimeout": 3600
+  },
+  "database": {
+    "path": "./data/localverse.db",
+    "maxConnections": 10
+  },
+  "filesystem": {
+    "watchPaths": [],
+    "excludePatterns": [
+      "*.tmp",
+      "node_modules/**",
+      ".git/**"
+    ],
+    "maxFileSize": 104857600
+  },
+  "security": {
+    "jwtSecret": "change-this-secret-in-production",
+    "tokenExpiry": 86400,
+    "enableCORS": true,
+    "allowedOrigins": [
+      "http://127.0.0.1:*",
+      "file://"
+    ]
+  },
+  "user": {
+    "id": "user_001",
+    "name": "Default User",
+    "department": "default"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "./logs/localverse.log",
+    "maxSize": "10MB",
+    "maxFiles": 5
+  }
+}

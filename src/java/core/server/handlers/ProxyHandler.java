@@ -2,115 +2,138 @@ package server.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import config.Config;
 import services.ProxyService;
+import services.ProxyService.ProxyResponse;
 import utils.JsonUtil;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Proxy handler for forwarding requests to Sync Server
+ * 代理处理器 - 转发到 Sync Server
  */
 public class ProxyHandler implements HttpHandler {
+    private final Config config;
     private final ProxyService proxyService;
 
-    public ProxyHandler(ProxyService proxyService) {
+    public ProxyHandler(Config config, ProxyService proxyService) {
+        this.config = config;
         this.proxyService = proxyService;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String method = exchange.getRequestMethod();
-        
-        if ("OPTIONS".equals(method)) {
-            addCorsHeaders(exchange);
+        // CORS 处理
+        addCorsHeaders(exchange);
+
+        // OPTIONS 请求直接返回
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
             exchange.sendResponseHeaders(204, -1);
             return;
         }
 
-        addCorsHeaders(exchange);
+        // 检查同步是否启用
+        if (!config.client().syncEnabled()) {
+            sendError(exchange, 503, "Sync is disabled");
+            return;
+        }
 
+        String method = exchange.getRequestMethod();
+        String path = exchange.getRequestURI().getPath();
+        
         try {
-            // Extract path after /api/sync/
-            String fullPath = exchange.getRequestURI().getPath();
-            String proxyPath = fullPath.substring("/api/sync".length());
+            // 提取请求头
+            Map<String, String> headers = extractHeaders(exchange);
             
-            // Get query string if present
-            String query = exchange.getRequestURI().getQuery();
-            if (query != null) {
-                proxyPath += "?" + query;
-            }
-
-            // Extract headers
-            Map<String, String> headers = new HashMap<>();
-            exchange.getRequestHeaders().forEach((key, values) -> {
-                if (!values.isEmpty()) {
-                    headers.put(key, values.get(0));
-                }
-            });
-
-            ProxyService.ProxyResponse response;
-
-            switch (method) {
-                case "GET" -> response = proxyService.forwardGet(proxyPath, headers);
+            // 转发请求
+            ProxyResponse response = switch (method) {
+                case "GET" -> proxyService.forwardGet(path, headers);
                 case "POST" -> {
-                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                    response = proxyService.forwardPost(proxyPath, body, headers);
+                    byte[] body = exchange.getRequestBody().readAllBytes();
+                    yield proxyService.forwardPost(path, headers, body);
                 }
                 case "PUT" -> {
-                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                    response = proxyService.forwardPut(proxyPath, body, headers);
+                    byte[] body = exchange.getRequestBody().readAllBytes();
+                    yield proxyService.forwardPut(path, headers, body);
                 }
-                case "DELETE" -> response = proxyService.forwardDelete(proxyPath, headers);
-                default -> {
-                    exchange.sendResponseHeaders(405, -1);
-                    return;
-                }
-            }
+                case "DELETE" -> proxyService.forwardDelete(path, headers);
+                default -> throw new IOException("Unsupported method: " + method);
+            };
 
-            // Forward response headers
-            response.headers().forEach((key, values) -> {
-                if (!key.equalsIgnoreCase("Transfer-Encoding") && 
-                    !key.equalsIgnoreCase("Content-Length")) {
-                    for (String value : values) {
-                        exchange.getResponseHeaders().add(key, value);
-                    }
-                }
-            });
+            // 返回响应
+            forwardResponse(exchange, response);
 
-            // Send response
-            byte[] responseBytes = response.body().getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(response.statusCode(), responseBytes.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(responseBytes);
-            }
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            sendErrorResponse(exchange, 500, "Request interrupted");
-        } catch (Exception e) {
-            sendErrorResponse(exchange, 502, "Sync server unavailable: " + e.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
+            sendError(exchange, 502, "Proxy error: " + e.getMessage());
         }
     }
 
-    private void sendErrorResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
-        String json = JsonUtil.toJson(Map.of("error", message));
-        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+    /**
+     * 提取请求头
+     */
+    private Map<String, String> extractHeaders(HttpExchange exchange) {
+        Map<String, String> headers = new HashMap<>();
         
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        exchange.sendResponseHeaders(statusCode, bytes.length);
+        exchange.getRequestHeaders().forEach((key, values) -> {
+            if (!values.isEmpty()) {
+                // 跳过某些不应转发的头
+                if (!key.equalsIgnoreCase("Host") && 
+                    !key.equalsIgnoreCase("Connection")) {
+                    headers.put(key, values.get(0));
+                }
+            }
+        });
+        
+        return headers;
+    }
+
+    /**
+     * 转发响应
+     */
+    private void forwardResponse(HttpExchange exchange, ProxyResponse response) 
+            throws IOException {
+        // 设置响应头
+        response.headers().forEach((key, values) -> {
+            if (!values.isEmpty()) {
+                // 跳过某些不应设置的头
+                if (!key.equalsIgnoreCase("Transfer-Encoding") &&
+                    !key.equalsIgnoreCase("Content-Length")) {
+                    exchange.getResponseHeaders().set(key, values.get(0));
+                }
+            }
+        });
+
+        // 发送响应
+        byte[] body = response.body();
+        exchange.sendResponseHeaders(response.statusCode(), body.length);
         try (OutputStream os = exchange.getResponseBody()) {
-            os.write(bytes);
+            os.write(body);
         }
     }
 
     private void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        if (config.security().enableCORS()) {
+            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", 
+                "GET, POST, PUT, DELETE, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", 
+                "Content-Type, Authorization");
+        }
+    }
+
+    private void sendError(HttpExchange exchange, int statusCode, String message) 
+            throws IOException {
+        String response = JsonUtil.error(message);
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        byte[] bytes = response.getBytes("UTF-8");
+        exchange.sendResponseHeaders(statusCode, bytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(bytes);
+        }
     }
 }

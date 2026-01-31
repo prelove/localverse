@@ -31,14 +31,6 @@ public class LocalHttpServer {
         this.fileSystemService = fileSystemService;
         this.databaseService = databaseService;
         this.proxyService = proxyService;
-        
-        // Initialize search service if database is available
-        if (databaseService != null && databaseService.getConnection() != null) {
-            this.searchService = new SearchService(databaseService.getConnection());
-        } else {
-            this.searchService = null;
-        }
-    }
 
     /**
      * 启动服务器
@@ -77,32 +69,23 @@ public class LocalHttpServer {
     private void registerHandlers() {
         // 健康检查
         server.createContext("/api/local/health", 
-            new HealthHandler("1.0.0", config.mode()));
+            new HealthHandler(config));
 
         // 配置管理
         server.createContext("/api/local/config", 
-            new ConfigHandler(config, "config.json"));
+            new ConfigHandler(config));
 
         // 文件操作
         server.createContext("/api/local/files", 
-            new FileHandler(fileSystemService));
+            new FileHandler(config, fileSystemService));
 
         // 数据库操作
-        server.createContext("/api/local/db/query", 
-            new DatabaseHandler(databaseService));
-        server.createContext("/api/local/db/exec", 
-            new DatabaseHandler(databaseService));
-
-        // 搜索操作 (if database is available)
-        if (searchService != null) {
-            server.createContext("/api/local/search", 
-                new SearchHandler(searchService));
-            System.out.println("✓ Search service enabled");
-        }
+        server.createContext("/api/local/db", 
+            new DatabaseHandler(config, databaseService));
 
         // 代理转发
         server.createContext("/api/sync", 
-            new ProxyHandler(proxyService));
+            new ProxyHandler(config, proxyService));
 
         System.out.println("Registered HTTP handlers");
     }

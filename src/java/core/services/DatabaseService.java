@@ -68,6 +68,21 @@ public class DatabaseService {
     /**
      * 执行单行查询
      */
+     * 执行查询
+     */
+    public List<List<Object>> query(String sql, Object[] params) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            setParameters(stmt, params);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                return resultSetToList(rs);
+            }
+        }
+    }
+
+    /**
+     * 执行单行查询
+     */
     public Optional<List<Object>> queryOne(String sql, Object[] params) throws SQLException {
         List<List<Object>> results = query(sql, params);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));

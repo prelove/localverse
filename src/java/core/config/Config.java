@@ -1,7 +1,10 @@
 package config;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * Configuration model for Localverse
+ * 配置类 - 使用 Java Record 定义配置结构
  */
 public record Config(
     String mode,
@@ -11,22 +14,27 @@ public record Config(
     FilesystemConfig filesystem,
     SecurityConfig security,
     UserConfig user,
-    LoggingConfig logging,
-    SyncServerConfig syncServer
+    LoggingConfig logging
 ) {
-    public Config() {
-        this("client", new ClientConfig(), new ServerConfig(), new DatabaseConfig(),
-             new FilesystemConfig(), new SecurityConfig(), new UserConfig(),
-             new LoggingConfig(), new SyncServerConfig());
-    }
-
     public record ClientConfig(
         int httpPort,
         int wsPort,
-        String bindAddress
+        String bindAddress,
+        String syncServer,
+        boolean syncEnabled,
+        boolean autoConnect,
+        int reconnectInterval
     ) {
-        public ClientConfig() {
-            this(8765, 8766, "127.0.0.1");
+        public static ClientConfig defaults() {
+            return new ClientConfig(
+                8765,
+                8766,
+                "127.0.0.1",
+                "http://192.168.1.100:8080",
+                true,
+                true,
+                5000
+            );
         }
     }
 
@@ -37,8 +45,14 @@ public record Config(
         int maxConnections,
         int sessionTimeout
     ) {
-        public ServerConfig() {
-            this(8080, 8081, "0.0.0.0", 1000, 3600);
+        public static ServerConfig defaults() {
+            return new ServerConfig(
+                8080,
+                8081,
+                "0.0.0.0",
+                1000,
+                3600
+            );
         }
     }
 
@@ -46,18 +60,25 @@ public record Config(
         String path,
         int maxConnections
     ) {
-        public DatabaseConfig() {
-            this("./data/localverse.db", 10);
+        public static DatabaseConfig defaults() {
+            return new DatabaseConfig(
+                "./data/localverse.db",
+                10
+            );
         }
     }
 
     public record FilesystemConfig(
-        String[] allowedPaths,
-        String[] excludePatterns,
+        List<String> watchPaths,
+        List<String> excludePatterns,
         long maxFileSize
     ) {
-        public FilesystemConfig() {
-            this(new String[0], new String[]{"*.tmp", "node_modules/**"}, 104857600L);
+        public static FilesystemConfig defaults() {
+            return new FilesystemConfig(
+                List.of(),
+                List.of("*.tmp", "node_modules/**", ".git/**"),
+                104857600L // 100MB
+            );
         }
     }
 
@@ -65,11 +86,15 @@ public record Config(
         String jwtSecret,
         int tokenExpiry,
         boolean enableCORS,
-        String[] allowedOrigins
+        List<String> allowedOrigins
     ) {
-        public SecurityConfig() {
-            this("change-me-in-production", 86400, true,
-                 new String[]{"http://127.0.0.1:*", "file://"});
+        public static SecurityConfig defaults() {
+            return new SecurityConfig(
+                "change-this-secret-in-production",
+                86400,
+                true,
+                List.of("http://127.0.0.1:*", "file://")
+            );
         }
     }
 
@@ -78,8 +103,12 @@ public record Config(
         String name,
         String department
     ) {
-        public UserConfig() {
-            this("user_001", "User", "default");
+        public static UserConfig defaults() {
+            return new UserConfig(
+                "user_001",
+                "Default User",
+                "default"
+            );
         }
     }
 
@@ -89,20 +118,54 @@ public record Config(
         String maxSize,
         int maxFiles
     ) {
-        public LoggingConfig() {
-            this("INFO", "./logs/localverse.log", "10MB", 5);
+        public static LoggingConfig defaults() {
+            return new LoggingConfig(
+                "INFO",
+                "./logs/localverse.log",
+                "10MB",
+                5
+            );
         }
     }
 
-    public record SyncServerConfig(
-        String url,
-        boolean enabled,
-        int timeout,
-        boolean autoConnect,
-        int reconnectInterval
-    ) {
-        public SyncServerConfig() {
-            this("http://192.168.1.100:8080", false, 30000, true, 5000);
-        }
+    /**
+     * 创建默认配置
+     */
+    public static Config defaults() {
+        return new Config(
+            "client",
+            ClientConfig.defaults(),
+            ServerConfig.defaults(),
+            DatabaseConfig.defaults(),
+            FilesystemConfig.defaults(),
+            SecurityConfig.defaults(),
+            UserConfig.defaults(),
+            LoggingConfig.defaults()
+        );
+    }
+
+    /**
+     * 获取当前模式的配置
+     */
+    public Object getModeConfig() {
+        return switch (mode) {
+            case "client" -> client;
+            case "server" -> server;
+            default -> client;
+        };
+    }
+
+    /**
+     * 是否为客户端模式
+     */
+    public boolean isClientMode() {
+        return "client".equals(mode);
+    }
+
+    /**
+     * 是否为服务器模式
+     */
+    public boolean isServerMode() {
+        return "server".equals(mode);
     }
 }
