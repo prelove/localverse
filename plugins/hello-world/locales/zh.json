@@ -1,0 +1,15 @@
+{
+  "installed": "Hello World 插件已安装",
+  "hello": "你好，{name}!",
+  "description": "这是一个示例插件，演示插件系统的基本功能。",
+  "greetCount": "问候次数：{count}",
+  "greetButton": "问候",
+  "changeNameButton": "更改名称",
+  "pluginInfo": "插件信息",
+  "id": "ID",
+  "version": "版本",
+  "author": "作者",
+  "greetMessage": "你好，{name}！",
+  "enterName": "请输入新名称",
+  "nameChanged": "名称已更改"
+}
