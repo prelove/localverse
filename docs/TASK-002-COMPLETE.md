@@ -126,7 +126,7 @@ src/java/core/
 mvn clean package
 
 # Build script
-./build-core.sh
+./build/build-core.sh
 
 # Manual compilation (if needed)
 export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
@@ -199,8 +199,8 @@ java -jar dist/localverse.jar --help
 
 ### Created Files
 - ✅ `docs/local-jar-service.md` - Complete API documentation
-- ✅ `config.example.json` - Example configuration
-- ✅ `build-core.sh` - Build script with validation
+- ✅ `src/resources/config/config.example.json` - Example configuration
+- ✅ `build/build-core.sh` - Build script with validation
 - ✅ `pom.xml` - Maven configuration
 
 ### Documentation Coverage

@@ -56,7 +56,7 @@ Local JAR (`localverse.jar`) 是 Localverse OS 的本地 Java 服务，提供 HT
 
 ```bash
 # 使用构建脚本
-./build-localverse.sh
+./build/build-localverse.sh
 
 # 或使用 Maven
 mvn clean package

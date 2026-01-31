@@ -124,7 +124,7 @@ localverse/
 
 ```bash
 # 编译和打包
-./build-launcher.sh
+./build/build-launcher.sh
 
 # 输出文件
 dist/launcher.jar
