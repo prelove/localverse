@@ -1,0 +1,159 @@
+/**
+ * Plugin Base Class
+ * 
+ * Base class for all Localverse plugins.
+ * Provides lifecycle hooks, state management, event handling, and UI utilities.
+ */
+
+export class Plugin {
+  static id = 'base';
+  
+  constructor(context) {
+    this.context = context;
+    this.id = this.constructor.id;
+    this.manifest = context.manifest;
+    this.services = context.services;
+    this.eventBus = context.eventBus;
+    this.storage = context.storage;
+    this.settings = context.settings;
+    this.i18n = context.i18n;
+    
+    this._state = {};
+    this._mounted = false;
+    this._shadowRoot = null;
+  }
+  
+  // ========== Lifecycle Hooks ==========
+  
+  async onInstall() {}
+  async onUninstall() {}
+  async onActivate() {}
+  async onDeactivate() {}
+  async onSettingsChange(key, value, oldValue) {}
+  
+  // ========== Rendering ==========
+  
+  render() {
+    return '<div>Plugin content</div>';
+  }
+  
+  styles() {
+    return '';
+  }
+  
+  mount(container) {
+    this._container = container;
+    
+    // Create Shadow DOM
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
+    
+    this._mounted = true;
+    this._render();
+    this.bindEvents();
+  }
+  
+  unmount() {
+    if (this._container && this._shadowRoot) {
+      this._shadowRoot.innerHTML = '';
+    }
+    this._mounted = false;
+  }
+  
+  _render() {
+    if (!this._shadowRoot) return;
+    
+    this._shadowRoot.innerHTML = `
+      <style>${this.styles()}</style>
+      ${this.render()}
+    `;
+  }
+  
+  // ========== State Management ==========
+  
+  get state() {
+    return this._state;
+  }
+  
+  setState(newState) {
+    this._state = { ...this._state, ...newState };
+    if (this._mounted) {
+      this._render();
+      this.bindEvents();
+    }
+  }
+  
+  // ========== DOM Utilities ==========
+  
+  $(selector) {
+    return this._shadowRoot?.querySelector(selector);
+  }
+  
+  $$(selector) {
+    return this._shadowRoot?.querySelectorAll(selector) || [];
+  }
+  
+  // ========== Event Handling ==========
+  
+  bindEvents() {}
+  
+  emit(event, data) {
+    this.eventBus.emit(`${this.id}:${event}`, data);
+  }
+  
+  on(event, handler) {
+    return this.eventBus.on(event, handler);
+  }
+  
+  // ========== Service Calls ==========
+  
+  async callService(serviceName, method, ...args) {
+    const service = this.services[serviceName];
+    if (!service) {
+      throw new Error(`Service not found: ${serviceName}`);
+    }
+    if (typeof service[method] !== 'function') {
+      throw new Error(`Method not found: ${serviceName}.${method}`);
+    }
+    return service[method](...args);
+  }
+  
+  // ========== Internationalization ==========
+  
+  t(key, params = {}) {
+    return this.i18n.t(key, params);
+  }
+  
+  // ========== Settings ==========
+  
+  getSetting(key) {
+    return this.settings.get(key);
+  }
+  
+  async setSetting(key, value) {
+    return this.settings.set(key, value);
+  }
+  
+  // ========== Utilities ==========
+  
+  generateId(prefix = '') {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    return prefix ? `${prefix}_${id}` : id;
+  }
+  
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  getCurrentUserId() {
+    return window.app?.user?.id || 'unknown';
+  }
+  
+  getCurrentUserName() {
+    return window.app?.user?.name || 'Unknown';
+  }
+}
+
+export default Plugin;
