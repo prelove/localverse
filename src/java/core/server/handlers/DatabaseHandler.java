@@ -58,21 +58,31 @@ public class DatabaseHandler implements HttpHandler {
     }
 
     private String handleQuery(String body) {
-        Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
-        String sql = (String) request.get("sql");
-        Object[] params = request.containsKey("params") ? 
-            ((java.util.List<?>) request.get("params")).toArray() : new Object[0];
-        
-        return dbService.query(sql, params);
+        try {
+            Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
+            String sql = (String) request.get("sql");
+            Object[] params = request.containsKey("params") ? 
+                ((java.util.List<?>) request.get("params")).toArray() : new Object[0];
+            
+            var results = dbService.query(sql, params);
+            return JsonUtil.toJson(Map.of("success", true, "data", results));
+        } catch (Exception e) {
+            return JsonUtil.toJson(Map.of("success", false, "error", e.getMessage()));
+        }
     }
 
     private String handleExec(String body) {
-        Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
-        String sql = (String) request.get("sql");
-        Object[] params = request.containsKey("params") ? 
-            ((java.util.List<?>) request.get("params")).toArray() : new Object[0];
-        
-        return dbService.execute(sql, params);
+        try {
+            Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
+            String sql = (String) request.get("sql");
+            Object[] params = request.containsKey("params") ? 
+                ((java.util.List<?>) request.get("params")).toArray() : new Object[0];
+            
+            int affected = dbService.execute(sql, params);
+            return JsonUtil.toJson(Map.of("success", true, "affected", affected));
+        } catch (Exception e) {
+            return JsonUtil.toJson(Map.of("success", false, "error", e.getMessage()));
+        }
     }
 
     private void sendJsonResponse(HttpExchange exchange, int statusCode, String json) throws IOException {

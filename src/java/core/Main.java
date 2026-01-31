@@ -2,6 +2,9 @@ import config.Config;
 import config.ConfigLoader;
 import server.LocalHttpServer;
 import server.LocalWebSocketServer;
+import services.DatabaseService;
+import services.FileSystemService;
+import services.ProxyService;
 
 import java.io.IOException;
 
@@ -12,6 +15,7 @@ import java.io.IOException;
 public class Main {
     private static LocalHttpServer httpServer;
     private static LocalWebSocketServer wsServer;
+    private static DatabaseService databaseService;
 
     public static void main(String[] args) {
         System.out.println("=== Localverse Starting ===");
@@ -36,13 +40,24 @@ public class Main {
 
             System.out.println("ℹ Mode: " + config.mode());
             
+            // Initialize services
+            FileSystemService fileSystemService = new FileSystemService(config.filesystem());
+            databaseService = new DatabaseService(config);
+            ProxyService proxyService = new ProxyService(config.syncServer());
+            
             // Initialize database if path is provided
             if (config.database() != null && config.database().path() != null) {
                 System.out.println("ℹ Database path: " + config.database().path());
+                try {
+                    databaseService.initialize();
+                    System.out.println("✓ Database initialized");
+                } catch (Exception e) {
+                    System.err.println("⚠ Database initialization failed: " + e.getMessage());
+                }
             }
 
             // Start HTTP server
-            httpServer = new LocalHttpServer(config);
+            httpServer = new LocalHttpServer(config, fileSystemService, databaseService, proxyService);
             httpServer.start();
 
             // Start WebSocket server
@@ -103,6 +118,9 @@ public class Main {
             }
             if (httpServer != null) {
                 httpServer.stop();
+            }
+            if (databaseService != null) {
+                databaseService.close();
             }
             System.out.println("✓ Shutdown complete");
         } catch (Exception e) {

@@ -10,124 +10,100 @@ import services.SearchService;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.sql.SQLException;
 import java.util.concurrent.Executors;
 
 /**
- * Local HTTP Server
- * Provides REST API for local operations and proxy to sync server
+ * HTTP 服务器
  */
 public class LocalHttpServer {
     private final Config config;
-    private final HttpServer server;
-    private final FileSystemService fileService;
-    private final DatabaseService dbService;
+    private final FileSystemService fileSystemService;
+    private final DatabaseService databaseService;
     private final ProxyService proxyService;
     private final SearchService searchService;
+    private HttpServer server;
 
-    public LocalHttpServer(Config config) throws IOException {
+    public LocalHttpServer(Config config, 
+                          FileSystemService fileSystemService,
+                          DatabaseService databaseService,
+                          ProxyService proxyService) {
         this.config = config;
-        
-        // Initialize services
-        this.fileService = new FileSystemService(config.filesystem());
-        this.dbService = new DatabaseService();
-        this.proxyService = new ProxyService(config.syncServer());
-        
-        // Initialize database connection if path is provided
-        if (config.database() != null && config.database().path() != null) {
-            try {
-                dbService.initialize(config.database().path());
-            } catch (SQLException e) {
-                System.err.println("⚠ Failed to initialize database: " + e.getMessage());
-            }
-        }
+        this.fileSystemService = fileSystemService;
+        this.databaseService = databaseService;
+        this.proxyService = proxyService;
         
         // Initialize search service if database is available
-        if (dbService.getConnection() != null) {
-            this.searchService = new SearchService(dbService.getConnection());
+        if (databaseService != null && databaseService.getConnection() != null) {
+            this.searchService = new SearchService(databaseService.getConnection());
         } else {
             this.searchService = null;
         }
-
-        // Create HTTP server
-        int port = "client".equals(config.mode()) ? 
-            config.client().httpPort() : config.server().httpPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-
-        InetSocketAddress addr = new InetSocketAddress(bindAddress, port);
-        this.server = HttpServer.create(addr, 0);
-
-        // Setup routes
-        setupRoutes();
-
-        // Use virtual thread executor for better concurrency (Java 21)
-        this.server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
     }
 
-    private void setupRoutes() {
-        // Health check
+    /**
+     * 启动服务器
+     */
+    public void start() throws IOException {
+        int port = config.client().httpPort();
+        String bindAddress = config.client().bindAddress();
+
+        server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
+
+        // 注册处理器
+        registerHandlers();
+
+        // 设置线程池
+        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+
+        // 启动服务器
+        server.start();
+
+        System.out.println("HTTP Server started on " + bindAddress + ":" + port);
+    }
+
+    /**
+     * 停止服务器
+     */
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+            System.out.println("HTTP Server stopped");
+        }
+    }
+
+    /**
+     * 注册所有处理器
+     */
+    private void registerHandlers() {
+        // 健康检查
         server.createContext("/api/local/health", 
             new HealthHandler("1.0.0", config.mode()));
 
-        // Configuration
+        // 配置管理
         server.createContext("/api/local/config", 
             new ConfigHandler(config, "config.json"));
 
-        // File operations
+        // 文件操作
         server.createContext("/api/local/files", 
-            new FileHandler(fileService));
+            new FileHandler(fileSystemService));
 
-        // Database operations
+        // 数据库操作
         server.createContext("/api/local/db/query", 
-            new DatabaseHandler(dbService));
+            new DatabaseHandler(databaseService));
         server.createContext("/api/local/db/exec", 
-            new DatabaseHandler(dbService));
+            new DatabaseHandler(databaseService));
 
-        // Search operations (if database is available)
+        // 搜索操作 (if database is available)
         if (searchService != null) {
             server.createContext("/api/local/search", 
                 new SearchHandler(searchService));
             System.out.println("✓ Search service enabled");
         }
 
-        // Proxy to sync server
+        // 代理转发
         server.createContext("/api/sync", 
             new ProxyHandler(proxyService));
 
-        System.out.println("✓ HTTP routes registered");
-    }
-
-    public void start() {
-        server.start();
-        int port = "client".equals(config.mode()) ? 
-            config.client().httpPort() : config.server().httpPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-        System.out.println("✓ HTTP Server started on " + bindAddress + ":" + port);
-    }
-
-    public void stop() {
-        server.stop(0);
-        if (dbService != null) {
-            dbService.close();
-        }
-        System.out.println("✓ HTTP Server stopped");
-    }
-
-    public FileSystemService getFileService() {
-        return fileService;
-    }
-
-    public DatabaseService getDbService() {
-        return dbService;
-    }
-
-    public ProxyService getProxyService() {
-        return proxyService;
-    }
-    
-    public SearchService getSearchService() {
-        return searchService;
+        System.out.println("Registered HTTP handlers");
     }
 }
