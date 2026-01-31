@@ -1,5 +1,9 @@
 # 开发任务索引
 
+> 🚀 **新手入门**：先阅读 [QUICK-START-GUIDE.md](../QUICK-START-GUIDE.md) 快速了解开发流程（5分钟）
+> 
+> 📘 **完整路线图**：参阅 [DEVELOPMENT-ROADMAP.md](../DEVELOPMENT-ROADMAP.md) 了解详细的任务依赖、并行策略、时间线规划和风险管理
+
 ## 开发阶段
 
 ### Phase 0: 基础设施 🔴 必须先完成
@@ -47,6 +51,8 @@
 | task-002-vote-plugin | 投票插件 | 8h | Phase 1 | 待创建 |
 | task-003-calendar-plugin | 日历插件 | 12h | Phase 1 | 待创建 |
 | task-004-announcement | 公告系统 | 8h | Phase 1 | 待创建 |
+
+**Phase 3 总计：约 44 小时**
 
 ## 依赖关系图
 
@@ -108,3 +114,11 @@ task-004-wiki-plugin        task-004-task-plugin
 1. 更新任务文档中的状态
 2. 更新本索引中的状态
 3. 在 `changes/current/` 记录变更
+
+---
+
+## 📖 延伸阅读
+
+- **[完整开发路线图](../DEVELOPMENT-ROADMAP.md)** - 详细的任务依赖分析、并行策略、时间线规划、风险管理和最佳实践
+- **[项目架构](../specs/00-architecture.md)** - 系统整体架构设计
+- **[技术规格](../specs/)** - 所有技术规格文档

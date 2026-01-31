@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Tests - Localverse</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f7fafc;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+    
+    h1 {
+      color: #1a202c;
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      color: #718096;
+      margin-bottom: 30px;
+    }
+    
+    .controls {
+      margin-bottom: 20px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .output {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 6px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 600px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .output.empty {
+      color: #718096;
+      font-style: italic;
+    }
+    
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+    
+    .status.running {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+    
+    .status.success {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .status.failure {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+    
+    .status.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Authentication Module Tests</h1>
+    <p class="description">Unit tests for the Localverse authentication system</p>
+    
+    <div class="controls">
+      <button id="runAllBtn">Run All Tests</button>
+      <button id="clearBtn">Clear Output</button>
+    </div>
+    
+    <div id="status" class="status hidden"></div>
+    
+    <div id="output" class="output empty">
+      Click "Run All Tests" to start testing...
+    </div>
+  </div>
+  
+  <script type="module">
+    import { runDeviceFingerprintTests } from './device-fingerprint.test.js';
+    import { runTokenManagerTests } from './token-manager.test.js';
+    import { runPermissionTests } from './permission.test.js';
+    import { runAuthServiceTests } from './auth-service.test.js';
+    
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    const runAllBtn = document.getElementById('runAllBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    
+    // Override console methods to capture output
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    
+    function captureConsole() {
+      output.classList.remove('empty');
+      output.textContent = '';
+      
+      console.log = (...args) => {
+        output.textContent += args.join(' ') + '\n';
+        originalConsoleLog(...args);
+      };
+      
+      console.error = (...args) => {
+        output.textContent += args.join(' ') + '\n';
+        originalConsoleError(...args);
+      };
+    }
+    
+    function restoreConsole() {
+      console.log = originalConsoleLog;
+      console.error = originalConsoleError;
+    }
+    
+    function setStatus(type, message) {
+      status.className = `status ${type}`;
+      status.textContent = message;
+    }
+    
+    async function runAllTests() {
+      runAllBtn.disabled = true;
+      captureConsole();
+      setStatus('running', '⏳ Running tests...');
+      
+      console.log('='.repeat(60));
+      console.log('LOCALVERSE AUTHENTICATION MODULE TESTS');
+      console.log('='.repeat(60));
+      console.log('');
+      
+      const results = [];
+      
+      try {
+        results.push(await runDeviceFingerprintTests());
+        results.push(await runTokenManagerTests());
+        results.push(await runPermissionTests());
+        results.push(await runAuthServiceTests());
+        
+        const allPassed = results.every(r => r);
+        
+        console.log('='.repeat(60));
+        if (allPassed) {
+          console.log('✓ ALL TESTS PASSED');
+          setStatus('success', '✅ All tests passed!');
+        } else {
+          console.log('✗ SOME TESTS FAILED');
+          setStatus('failure', '❌ Some tests failed. Check the output for details.');
+        }
+        console.log('='.repeat(60));
+        
+      } catch (error) {
+        console.error('Fatal error running tests:', error);
+        setStatus('failure', '❌ Fatal error: ' + error.message);
+      } finally {
+        restoreConsole();
+        runAllBtn.disabled = false;
+      }
+    }
+    
+    function clearOutput() {
+      output.textContent = 'Click "Run All Tests" to start testing...';
+      output.classList.add('empty');
+      status.className = 'status hidden';
+    }
+    
+    runAllBtn.addEventListener('click', runAllTests);
+    clearBtn.addEventListener('click', clearOutput);
+  </script>
+</body>
+</html>
