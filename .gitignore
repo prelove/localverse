@@ -3,6 +3,10 @@ build/
 target/
 *.class
 
+# Dist folder (built JARs)
+dist/*.jar
+dist/lib/
+
 # Test directories
 test-launcher/
 
