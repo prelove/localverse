@@ -1,4 +1,8 @@
 /**
+ * Event Bus
+ * 
+ * Central event system for plugin communication.
+ * Supports standard events, once events, wildcards, and async handling.
  * Event Bus for Plugin Communication
  * Provides publish-subscribe pattern for plugins
  * Provides publish-subscribe messaging between plugins and core system
@@ -8,6 +12,8 @@ export class EventBus {
   constructor() {
     this.handlers = new Map();
     this.onceHandlers = new Map();
+  }
+  
     this.listeners = new Map();
   }
 
@@ -25,6 +31,8 @@ export class EventBus {
     
     // Return unsubscribe function
     return () => this.off(event, handler);
+  }
+  
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context (plugin instance)
    * @returns {Function} Unsubscribe function
@@ -51,6 +59,8 @@ export class EventBus {
       this.onceHandlers.set(event, new Set());
     }
     this.onceHandlers.get(event).add(handler);
+  }
+  
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context
    * @returns {Function} Unsubscribe function
@@ -77,6 +87,9 @@ export class EventBus {
     const onceHandlers = this.onceHandlers.get(event);
     if (onceHandlers) {
       onceHandlers.delete(handler);
+    }
+  }
+  
    * @param {Function} callback - Event handler to remove
    */
   off(event, callback) {
@@ -138,6 +151,7 @@ export class EventBus {
       }
     }
   }
+  
 
   /**
    * Emit an event asynchronously
@@ -162,6 +176,7 @@ export class EventBus {
     
     this.onceHandlers.delete(event);
   }
+  
 
   /**
    * Wait for an event to be emitted
@@ -181,6 +196,7 @@ export class EventBus {
       });
     });
   }
+  
 
   /**
    * Clear all event handlers

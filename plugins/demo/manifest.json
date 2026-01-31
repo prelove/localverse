@@ -5,6 +5,57 @@
     "en": "Demo Plugin",
     "ja": "デモプラグイン"
   },
+  "description": {
+    "zh": "展示插件系统功能的演示插件",
+    "en": "Demo plugin showcasing plugin system features",
+    "ja": "プラグインシステムの機能を示すデモプラグイン"
+  },
+  "version": "1.0.0",
+  "author": "Localverse Team",
+  "entry": "./index.js",
+  "style": "./style.css",
+  "permissions": [
+    "database:read",
+    "database:write",
+    "search",
+    "notification"
+  ],
+  "dependencies": {
+    "services": [],
+    "plugins": []
+  },
+  "settings": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "name": {
+        "zh": "启用插件",
+        "en": "Enable Plugin"
+      }
+    },
+    "maxItems": {
+      "type": "number",
+      "min": 1,
+      "max": 100,
+      "default": 10,
+      "name": {
+        "zh": "最大项目数",
+        "en": "Max Items"
+      }
+    },
+    "theme": {
+      "type": "select",
+      "options": ["light", "dark", "auto"],
+      "default": "auto",
+      "name": {
+        "zh": "主题",
+        "en": "Theme"
+      }
+    }
+  },
+  "exports": {
+    "getInfo": "getPluginInfo",
+    "performAction": "doAction"
   "version": "1.0.0",
   "description": {
     "zh": "一个简单的演示插件，用于测试插件系统",

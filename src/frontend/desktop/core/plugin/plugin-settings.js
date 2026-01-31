@@ -1,4 +1,7 @@
 /**
+ * Plugin Settings
+ * 
+ * Manages plugin configuration with schema validation and persistence.
  * Plugin Settings Manager
  * Manages plugin configuration and preferences
  */
@@ -13,6 +16,7 @@ export class PluginSettings {
     this.loadDefaults();
     this.loadFromStorage();
   }
+  
 
   /**
    * Load default values from schema
@@ -22,6 +26,7 @@ export class PluginSettings {
       this.values[key] = config.default;
     }
   }
+  
 
   /**
    * Load saved settings from localStorage
@@ -37,6 +42,7 @@ export class PluginSettings {
       }
     }
   }
+  
 
   /**
    * Save settings to localStorage
@@ -47,6 +53,7 @@ export class PluginSettings {
       JSON.stringify(this.values)
     );
   }
+  
 
   /**
    * Get a setting value
@@ -61,6 +68,7 @@ export class PluginSettings {
     const config = this.schema[key];
     return config?.default;
   }
+  
 
   /**
    * Set a setting value
@@ -91,6 +99,7 @@ export class PluginSettings {
       }
     }
   }
+  
 
   /**
    * Validate a setting value
@@ -125,6 +134,11 @@ export class PluginSettings {
         return true;
     }
   }
+  
+  getAll() {
+    return { ...this.values };
+  }
+  
 
   /**
    * Get all settings
@@ -150,6 +164,7 @@ export class PluginSettings {
       this.saveToStorage();
     }
   }
+  
 
   /**
    * Subscribe to setting changes
@@ -165,6 +180,7 @@ export class PluginSettings {
       }
     };
   }
+  
 
   /**
    * Get settings schema

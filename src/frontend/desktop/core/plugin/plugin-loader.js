@@ -1,10 +1,13 @@
 /**
  * Plugin Loader
+ * 
+ * Manages plugin discovery, loading, lifecycle, and dependency resolution.
  * Manages plugin discovery, loading, and lifecycle
  */
 
 import { PluginStorage } from './plugin-storage.js';
 import { PluginSettings } from './plugin-settings.js';
+import { PluginI18n } from './plugin-i18n.js';
 import { I18n } from '../i18n.js';
 
 export class PluginLoader {
@@ -18,6 +21,8 @@ export class PluginLoader {
     this.manifests = new Map();
     this.instances = new Map();
     this.installedVersions = new Map();
+  }
+  
     
     this.initDatabase();
   }
@@ -57,6 +62,9 @@ export class PluginLoader {
     }
   }
   
+  async discoverPlugins() {
+    // Get plugin list from configuration or directory
+    // Assumes a plugins.json file exists
   /**
    * Discover available plugins
    * @returns {Promise<string[]>} Plugin IDs
@@ -68,6 +76,11 @@ export class PluginLoader {
       const data = await response.json();
       return data.plugins || [];
     } catch {
+      // Default plugin list
+      return ['finder', 'wiki', 'chat', 'task'];
+    }
+  }
+  
       // Return default plugins when plugins.json is not available
       // This allows the system to work in demo/development mode
       return ['demo'];
@@ -85,12 +98,14 @@ export class PluginLoader {
     // 1. Load manifest
     const manifest = await this.loadManifest(pluginDir);
     
+    // 2. Validate
     // 2. Validate manifest
     this.validateManifest(manifest);
     
     // 3. Check dependencies
     await this.checkDependencies(manifest);
     
+    // 4. Load style
     // 4. Load styles
     if (manifest.style) {
       await this.loadStyle(`${pluginDir}/${manifest.style}`, manifest.id);
@@ -101,6 +116,16 @@ export class PluginLoader {
     const PluginClass = module.default;
     
     // 6. Create context
+    const context = this.createContext(manifest);
+    
+    // 7. Instantiate
+    const instance = new PluginClass(context);
+    
+    // 8. Register
+    this.manifests.set(manifest.id, manifest);
+    this.instances.set(manifest.id, instance);
+    
+    // 9. Install/Activate
     const context = await this.createContext(manifest);
     
     // 7. Instantiate plugin
@@ -116,6 +141,17 @@ export class PluginLoader {
       await instance.onInstall();
       await this.markInstalled(manifest.id, manifest.version);
     } else {
+      // Check version update
+      const installedVersion = this.installedVersions.get(manifest.id);
+      if (installedVersion !== manifest.version) {
+        // Can trigger migration logic
+        console.log(`Plugin ${manifest.id} updated: ${installedVersion} → ${manifest.version}`);
+      }
+    }
+    
+    await instance.onActivate();
+    
+    // 10. Emit event
       // Check for version update
       const installedVersion = this.installedVersions.get(manifest.id);
       if (installedVersion !== manifest.version) {
@@ -143,6 +179,10 @@ export class PluginLoader {
     
     await instance.onDeactivate();
     
+    // Remove style
+    this.unloadStyle(pluginId);
+    
+    // Remove registration
     // Remove styles
     this.unloadStyle(pluginId);
     
@@ -200,12 +240,14 @@ export class PluginLoader {
     // Check plugin dependencies
     for (const pluginId of deps.plugins || []) {
       if (!this.instances.has(pluginId)) {
+        // Try to load dependency plugin
         // Try to load dependency
         await this.load(pluginId);
       }
     }
   }
   
+  createContext(manifest) {
   /**
    * Create plugin context
    * @param {Object} manifest - Plugin manifest
@@ -232,6 +274,13 @@ export class PluginLoader {
       manifest,
       services: allowedServices,
       eventBus: this.eventBus,
+      storage: new PluginStorage(manifest.id),
+      settings: new PluginSettings(manifest),
+      i18n: new PluginI18n(manifest),
+      ui: this.createUIHelper()
+    };
+  }
+  
       storage,
       settings,
       i18n,
@@ -255,6 +304,7 @@ export class PluginLoader {
       }
     }
     
+    // Add services based on permissions
     // Permission-based services
     const permissionServiceMap = {
       'database:read': 'DatabaseService',
@@ -273,6 +323,18 @@ export class PluginLoader {
     }
     
     return allowed;
+  }
+  
+  async loadStyle(stylePath, pluginId) {
+    const response = await fetch(stylePath);
+    if (!response.ok) return;
+    
+    const css = await response.text();
+    
+    const style = document.createElement('style');
+    style.id = `plugin-style-${pluginId}`;
+    style.textContent = css;
+    document.head.appendChild(style);
   }
   
   /**
@@ -307,6 +369,12 @@ export class PluginLoader {
     }
   }
   
+  async isInstalled(pluginId) {
+    try {
+      const db = this.services.DatabaseService;
+      if (!db) return false;
+      
+      const record = await db.queryOne(
   /**
    * Check if plugin is installed
    * @param {string} pluginId - Plugin ID
@@ -331,6 +399,15 @@ export class PluginLoader {
     }
   }
   
+  async markInstalled(pluginId, version) {
+    try {
+      const db = this.services.DatabaseService;
+      if (!db) return;
+      
+      await db.run(
+        `INSERT OR REPLACE INTO plugin_installs (plugin_id, version, installed_at)
+         VALUES (?, ?, ?)`,
+        [pluginId, version, Date.now()]
   /**
    * Mark plugin as installed
    * @param {string} pluginId - Plugin ID
@@ -351,6 +428,17 @@ export class PluginLoader {
       console.error('Failed to mark plugin installed:', error);
     }
   }
+  
+  createUIHelper() {
+    return {
+      showModal: (options) => window.app?.showModal(options),
+      showToast: (message, type) => window.app?.showToast(message, type),
+      showConfirm: (message) => window.app?.showConfirm(message),
+      showPrompt: (message, defaultValue) => window.app?.showPrompt(message, defaultValue)
+    };
+  }
+  
+  // ========== Public API ==========
   
   // ========== Public API ==========
   

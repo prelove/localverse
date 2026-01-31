@@ -1,4 +1,8 @@
 /**
+ * Plugin Storage
+ * 
+ * Isolated storage for each plugin using IndexedDB.
+ * Each plugin gets its own database namespace.
  * Plugin Storage using IndexedDB
  * Provides persistent storage for each plugin
  */
@@ -10,6 +14,7 @@ export class PluginStorage {
     this.storeName = 'data';
     this.db = null;
   }
+  
 
   /**
    * Initialize IndexedDB
@@ -33,6 +38,7 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+  
 
   /**
    * Ensure database is initialized
@@ -42,6 +48,7 @@ export class PluginStorage {
       await this.init();
     }
   }
+  
 
   /**
    * Get a value from storage
@@ -59,6 +66,7 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+  
 
   /**
    * Set a value in storage
@@ -76,6 +84,7 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+  
 
   /**
    * Remove a value from storage
@@ -92,6 +101,7 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+  
 
   /**
    * Clear all data from storage
@@ -107,6 +117,7 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+  
 
   /**
    * Get all keys from storage
@@ -123,6 +134,7 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+  
 
   /**
    * Get all data from storage

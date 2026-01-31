@@ -1,4 +1,8 @@
 /**
+ * Plugin System
+ * 
+ * Main entry point for the Localverse plugin system.
+ * Exports all public plugin APIs.
  * Plugin System Main Entry
  * Exports all plugin system components
  */
@@ -8,6 +12,8 @@ export { PluginLoader } from './plugin-loader.js';
 export { EventBus } from './event-bus.js';
 export { PluginStorage } from './plugin-storage.js';
 export { PluginSettings } from './plugin-settings.js';
+export { PluginI18n } from './plugin-i18n.js';
+export { PermissionManager } from './permission-manager.js';
  * Plugin System Main Export
  */
 

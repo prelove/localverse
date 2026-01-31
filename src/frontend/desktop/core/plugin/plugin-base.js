@@ -1,5 +1,8 @@
 /**
  * Plugin Base Class
+ * 
+ * Base class for all Localverse plugins.
+ * Provides lifecycle hooks, state management, event handling, and UI utilities.
  * All plugins should extend this class
  */
 
@@ -15,6 +18,10 @@ export class Plugin {
     this.storage = context.storage;
     this.settings = context.settings;
     this.i18n = context.i18n;
+    
+    this._state = {};
+    this._mounted = false;
+    this._shadowRoot = null;
     this.router = context.router;
     
     this._state = {};
@@ -24,6 +31,10 @@ export class Plugin {
   
   // ========== Lifecycle Hooks ==========
   
+  async onInstall() {}
+  async onUninstall() {}
+  async onActivate() {}
+  async onDeactivate() {}
   /**
    * Called when plugin is first installed
    */
@@ -54,6 +65,10 @@ export class Plugin {
   
   // ========== Rendering ==========
   
+  render() {
+    return '<div>Plugin content</div>';
+  }
+  
   /**
    * Render plugin content
    * @returns {string} HTML string
@@ -70,6 +85,12 @@ export class Plugin {
     return '';
   }
   
+  mount(container) {
+    this._container = container;
+    
+    // Create Shadow DOM
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
+    
   /**
    * Mount plugin to container
    * @param {HTMLElement} container - Container element
@@ -81,6 +102,9 @@ export class Plugin {
     this.bindEvents();
   }
   
+  unmount() {
+    if (this._container && this._shadowRoot) {
+      this._shadowRoot.innerHTML = '';
   /**
    * Unmount plugin from container
    */
@@ -91,6 +115,13 @@ export class Plugin {
     this._mounted = false;
   }
   
+  _render() {
+    if (!this._shadowRoot) return;
+    
+    this._shadowRoot.innerHTML = `
+      <style>${this.styles()}</style>
+      ${this.render()}
+    `;
   /**
    * Internal render method
    */
@@ -129,6 +160,12 @@ export class Plugin {
   
   // ========== DOM Utilities ==========
   
+  $(selector) {
+    return this._shadowRoot?.querySelector(selector);
+  }
+  
+  $$(selector) {
+    return this._shadowRoot?.querySelectorAll(selector) || [];
   /**
    * Query selector in container
    * @param {string} selector - CSS selector
@@ -148,6 +185,8 @@ export class Plugin {
   }
   
   // ========== Event Handling ==========
+  
+  bindEvents() {}
   
   /**
    * Bind event listeners
@@ -258,6 +297,12 @@ export class Plugin {
     return window.app?.user?.id || 'unknown';
   }
   
+  getCurrentUserName() {
+    return window.app?.user?.name || 'Unknown';
+  }
+}
+
+export default Plugin;
   /**
    * Get current user name
    * @returns {string} User name
