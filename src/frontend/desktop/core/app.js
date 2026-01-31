@@ -7,6 +7,7 @@ import { Router } from './router.js';
 import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
+import { PluginLoader, EventBus } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
@@ -20,6 +21,8 @@ class LocalverseApp {
     this.store = store;
     this.i18n = new I18n();
     this.theme = new ThemeManager();
+    this.eventBus = new EventBus();
+    this.pluginLoader = null;
   }
 
   /**
@@ -44,13 +47,21 @@ class LocalverseApp {
       // 4. Initialize theme
       this.theme.init();
       
-      // 5. Setup routes
+      // 5. Initialize services
+      await this.initServices();
+      this.updateSplash('Loading services...');
+      
+      // 6. Initialize plugins
+      await this.initPlugins();
+      this.updateSplash('Loading plugins...');
+      
+      // 7. Setup routes
       this.setupRoutes();
       
-      // 6. Render UI
+      // 8. Render UI
       this.render();
       
-      // 7. Hide splash
+      // 9. Hide splash
       setTimeout(() => this.hideSplash(), 500);
       
       this.ready = true;
@@ -132,6 +143,55 @@ class LocalverseApp {
   }
 
   /**
+   * Initialize services
+   */
+  async initServices() {
+    // Import services dynamically based on mode
+    try {
+      const { DatabaseService } = await import('../services/database/index.js');
+      const { SearchService } = await import('../services/search/index.js');
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      
+      this.services.DatabaseService = new DatabaseService({ mode: this.mode });
+      this.services.SearchService = new SearchService();
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Initialize database
+      await this.services.DatabaseService.init();
+      
+      console.log('Services initialized:', Object.keys(this.services));
+    } catch (error) {
+      console.error('Failed to initialize services:', error);
+    }
+  }
+
+  /**
+   * Initialize plugin system
+   */
+  async initPlugins() {
+    try {
+      this.pluginLoader = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus,
+        router: this.router,
+        databaseService: this.services.DatabaseService
+      });
+      
+      // Load all plugins
+      await this.pluginLoader.loadAll();
+      
+      // Store plugin loader reference
+      this.plugins = this.pluginLoader;
+      this.store.set('plugins', this.pluginLoader.getAllManifests());
+      
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugins:', error);
+    }
+  }
+
+  /**
    * Setup routing
    */
   setupRoutes() {
@@ -192,14 +252,53 @@ class LocalverseApp {
    * Show plugin page
    * @param {string} pluginId - Plugin ID
    */
+  /**
+   * Show plugin page
+   * @param {string} pluginId - Plugin ID
+   */
   showPlugin(pluginId) {
     const content = document.getElementById('content');
-    content.innerHTML = `
-      <div class="plugin-page">
-        <h1>Plugin: ${pluginId}</h1>
-        <p>Plugin functionality coming soon...</p>
-      </div>
-    `;
+    
+    // Check if plugin exists
+    if (!this.pluginLoader) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin System</h1>
+          <p>Plugin system is not initialized yet...</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const plugin = this.pluginLoader.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Not Found</h1>
+          <p>Plugin "${pluginId}" is not available.</p>
+          <p>Available plugins: ${this.pluginLoader.getAllManifests().map(m => m.id).join(', ')}</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Create plugin container
+    content.innerHTML = '<div id="plugin-container" class="plugin-container"></div>';
+    const container = document.getElementById('plugin-container');
+    
+    // Mount plugin
+    try {
+      plugin.mount(container);
+      this.store.set('activePlugin', pluginId);
+    } catch (error) {
+      console.error('Failed to mount plugin:', error);
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Error</h1>
+          <p>Failed to load plugin "${pluginId}": ${error.message}</p>
+        </div>
+      `;
+    }
   }
 
   /**
