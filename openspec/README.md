@@ -12,6 +12,8 @@
 
 ### 我要开始开发
 
+📘 **先阅读**: [DEVELOPMENT-ROADMAP.md](./DEVELOPMENT-ROADMAP.md) - 完整的开发路线图，包含任务依赖、并行策略和时间规划
+
 按阶段顺序开发：
 
 ```
