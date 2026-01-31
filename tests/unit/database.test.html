@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Service Tests</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    
+    #results {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+    }
+    
+    .test-pass {
+      color: #28a745;
+    }
+    
+    .test-fail {
+      color: #dc3545;
+    }
+    
+    .summary {
+      font-weight: bold;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #ccc;
+    }
+    
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background: #0056b3;
+    }
+    
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Database Service Unit Tests</h1>
+  
+  <p>此页面测试数据库服务的核心功能，包括 UUID 生成、Schema 工具和 Mock 数据库操作。</p>
+  
+  <button id="runTests" onclick="runTests()">运行测试</button>
+  
+  <div id="results">等待测试运行...</div>
+  
+  <script type="module">
+    import { MockDatabaseService } from '../../src/frontend/desktop/services/database/mock-database.js';
+    import { uuidv7, generateId, extractTimestamp } from '../../src/frontend/desktop/services/database/utils/uuid.js';
+    import { timestamps, updateTimestamp, softDelete, toJSON, fromJSON } from '../../src/frontend/desktop/services/database/utils/schema.js';
+    
+    // 简单的测试框架
+    class TestRunner {
+      constructor() {
+        this.tests = [];
+        this.passed = 0;
+        this.failed = 0;
+        this.output = [];
+      }
+      
+      test(name, fn) {
+        this.tests.push({ name, fn });
+      }
+      
+      log(message, className = '') {
+        this.output.push({ message, className });
+      }
+      
+      async run() {
+        this.output = [];
+        this.passed = 0;
+        this.failed = 0;
+        
+        this.log('运行数据库服务测试...\n');
+        
+        for (const { name, fn } of this.tests) {
+          try {
+            await fn();
+            this.passed++;
+            this.log(`✓ ${name}`, 'test-pass');
+          } catch (error) {
+            this.failed++;
+            this.log(`✗ ${name}`, 'test-fail');
+            this.log(`  ${error.message}`, 'test-fail');
+          }
+        }
+        
+        this.log(`\n测试: ${this.passed} 通过, ${this.failed} 失败`, 'summary');
+        return this.failed === 0;
+      }
+      
+      getOutput() {
+        return this.output.map(({ message, className }) => 
+          className ? `<span class="${className}">${message}</span>` : message
+        ).join('\n');
+      }
+    }
+    
+    const runner = new TestRunner();
+    
+    // UUID 测试
+    runner.test('UUID v7 生成有效格式', () => {
+      const uuid = uuidv7();
+      const pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      
+      if (!pattern.test(uuid)) {
+        throw new Error(`无效的 UUID 格式: ${uuid}`);
+      }
+    });
+    
+    runner.test('UUID v7 包含正确的时间戳', () => {
+      const before = Date.now();
+      const uuid = uuidv7();
+      const after = Date.now();
+      
+      const timestamp = extractTimestamp(uuid);
+      
+      if (timestamp < before || timestamp > after) {
+        throw new Error(`时间戳超出范围: ${timestamp} 不在 ${before} 和 ${after} 之间`);
+      }
+    });
+    
+    runner.test('generateId 带前缀', () => {
+      const id = generateId('card');
+      
+      if (!id.startsWith('card_')) {
+        throw new Error(`ID 应该以前缀开始: ${id}`);
+      }
+    });
+    
+    // Schema 工具测试
+    runner.test('timestamps() 生成有效的时间戳', () => {
+      const ts = timestamps();
+      
+      if (!ts.created_at || !ts.updated_at) {
+        throw new Error('缺少时间戳字段');
+      }
+      
+      if (typeof ts.created_at !== 'number' || typeof ts.updated_at !== 'number') {
+        throw new Error('时间戳应该是数字');
+      }
+    });
+    
+    runner.test('softDelete() 生成删除字段', () => {
+      const del = softDelete('user123');
+      
+      if (del.deleted !== 1) {
+        throw new Error('deleted 字段应该是 1');
+      }
+      
+      if (!del.deleted_at) {
+        throw new Error('deleted_at 是必需的');
+      }
+      
+      if (del.deleted_by !== 'user123') {
+        throw new Error('deleted_by 应该匹配用户 ID');
+      }
+    });
+    
+    runner.test('toJSON 和 fromJSON 处理对象', () => {
+      const obj = { name: 'Test', value: 123 };
+      const json = toJSON(obj);
+      const parsed = fromJSON(json);
+      
+      if (parsed.name !== obj.name || parsed.value !== obj.value) {
+        throw new Error('JSON 序列化失败');
+      }
+    });
+    
+    runner.test('fromJSON 处理无效的 JSON', () => {
+      const result = fromJSON('invalid json', { default: true });
+      
+      if (!result.default) {
+        throw new Error('应该返回默认值对于无效的 JSON');
+      }
+    });
+    
+    // MockDatabaseService 测试
+    runner.test('MockDatabaseService 初始化', async () => {
+      const db = new MockDatabaseService();
+      await db.init();
+      
+      if (!db.isReady()) {
+        throw new Error('数据库初始化后应该就绪');
+      }
+      
+      await db.close();
+    });
+    
+    runner.test('MockDatabaseService 运行迁移', async () => {
+      const db = new MockDatabaseService();
+      await db.init();
+      
+      const tables = Array.from(db.tables.keys());
+      
+      if (!tables.includes('modules')) {
+        throw new Error('迁移后应该存在 modules 表');
+      }
+      
+      if (!tables.includes('cards')) {
+        throw new Error('迁移后应该存在 cards 表');
+      }
+      
+      if (!tables.includes('tasks')) {
+        throw new Error('迁移后应该存在 tasks 表');
+      }
+      
+      await db.close();
+    });
+    
+    runner.test('MockDatabaseService 事务提交', async () => {
+      const db = new MockDatabaseService();
+      await db.init();
+      
+      db.exec('CREATE TABLE test_table (id TEXT PRIMARY KEY, name TEXT)');
+      
+      await db.transaction(async () => {
+        db.run('INSERT INTO test_table (id, name) VALUES (?, ?)', ['1', 'A']);
+        db.run('INSERT INTO test_table (id, name) VALUES (?, ?)', ['2', 'B']);
+      });
+      
+      const rows = db.query('SELECT * FROM test_table');
+      
+      if (rows.length !== 2) {
+        throw new Error('事务应该插入 2 行');
+      }
+      
+      await db.close();
+    });
+    
+    runner.test('MockDatabaseService getMode 返回 mock', async () => {
+      const db = new MockDatabaseService();
+      await db.init();
+      
+      if (db.getMode() !== 'mock') {
+        throw new Error('模式应该是 mock');
+      }
+      
+      await db.close();
+    });
+    
+    // 暴露到全局作用域
+    window.runTests = async function() {
+      const button = document.getElementById('runTests');
+      const resultsDiv = document.getElementById('results');
+      
+      button.disabled = true;
+      resultsDiv.innerHTML = '测试运行中...';
+      
+      try {
+        await runner.run();
+        resultsDiv.innerHTML = runner.getOutput();
+      } catch (error) {
+        resultsDiv.innerHTML = `<span class="test-fail">错误: ${error.message}</span>`;
+      } finally {
+        button.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
