@@ -1,5 +1,6 @@
 # Build artifacts
 build/
+target/
 *.class
 
 # Test directories
@@ -11,6 +12,10 @@ version.json
 update_pending.flag
 *.jar.bak
 temp/
+data/
+
+# Maven
+dependency-reduced-pom.xml
 
 # IDE
 .idea/
@@ -20,3 +25,6 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+
+# Config files (keep template)
+config.json
