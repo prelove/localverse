@@ -46,6 +46,7 @@ cat README.md
 
 ## 文档
 
+- 📊 **[项目状态评估](./READINESS-SUMMARY.md)** - 当前可运行状态分析（详细版：[完整评估报告](./openspec/PROJECT-READINESS-ASSESSMENT.md)）
 - 🚀 [快速开发指南](./openspec/QUICK-START-GUIDE.md) - 5分钟快速入门
 - 📘 [开发路线图](./openspec/DEVELOPMENT-ROADMAP.md) - 完整开发规划
 - 📖 [项目规格](./openspec/specs/) - 技术规格文档
