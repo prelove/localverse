@@ -6,6 +6,9 @@
 
 ### 我是新手，从哪里开始？
 
+**🚀 快速入门**: 阅读 [QUICK-START-GUIDE.md](./QUICK-START-GUIDE.md) (5分钟了解开发流程)
+
+**📚 深入学习**:
 1. 阅读 [project.md](./project.md) 了解项目背景
 2. 阅读 [specs/00-architecture.md](./specs/00-architecture.md) 了解整体架构
 3. 查看 [DOCUMENT-MAP.md](./DOCUMENT-MAP.md) 了解文档关系
