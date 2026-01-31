@@ -57,6 +57,27 @@ public class ConfigLoader {
             } else if (args[i].startsWith("--config=")) {
                 configPath = args[i].substring("--config=".length());
                 break;
+        if (Files.exists(path)) {
+            try {
+                String json = Files.readString(path);
+                Config config = gson.fromJson(json, Config.class);
+                System.out.println("✓ Configuration loaded from: " + path.toAbsolutePath());
+                return config;
+            } catch (IOException e) {
+                System.err.println("⚠ Failed to load config: " + e.getMessage());
+                System.err.println("  Using default configuration");
+                return Config.defaults();
+            }
+        } else {
+            System.out.println("ℹ Config file not found, using defaults");
+            Config defaultConfig = Config.defaults();
+            // Try to create default config file
+            try {
+                String json = gson.toJson(defaultConfig);
+                Files.writeString(path, json);
+                System.out.println("✓ Created default config file: " + path.toAbsolutePath());
+            } catch (IOException e) {
+                System.err.println("⚠ Could not create config file: " + e.getMessage());
             }
         }
 
@@ -78,6 +99,24 @@ public class ConfigLoader {
         Path parent = path.getParent();
         if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
+     * Merge command line arguments into configuration
+     */
+    public static Config merge(Config config, String[] args) {
+        // Command line arguments can override config file settings
+        // For now, just return the config as-is
+        // Future: Parse --mode, --port, etc.
+        return config;
+    }
+
+    /**
+     * Save configuration to file
+     */
+    public static void save(Config config, Path path) throws IOException {
+        String json = gson.toJson(config);
+        // Ensure parent directory exists
+        Path parentDir = path.getParent();
+        if (parentDir != null) {
+            Files.createDirectories(parentDir);
         }
 
         String json = gson.toJson(config);

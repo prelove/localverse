@@ -2,6 +2,9 @@
 build/
 target/
 *.class
+
+# Dist folder (built JARs)
+dist/*.jar
 dist/lib/
 
 # Dist folder (built JARs)
@@ -22,6 +25,10 @@ data/
 # Maven
 dependency-reduced-pom.xml
 
+# Maven
+dependency-reduced-pom.xml
+config.json
+
 # IDE
 .idea/
 .vscode/
@@ -33,3 +40,8 @@ Thumbs.db
 
 # Config files (keep template)
 config.json
+# Config files (keep template)
+config.json
+# Maven
+dependency-reduced-pom.xml
+
