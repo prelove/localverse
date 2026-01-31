@@ -25,6 +25,10 @@ public class DatabaseService {
         String dbPath = config.database().path();
         String url = "jdbc:sqlite:" + dbPath;
         
+        connection = DriverManager.getConnection(url);
+        connection.setAutoCommit(true);
+        
+        System.out.println("Database connected: " + dbPath);
         Connection newConnection = null;
         try {
             newConnection = DriverManager.getConnection(url);
@@ -61,6 +65,21 @@ public class DatabaseService {
     }
 
     /**
+     * 执行查询
+     */
+    public List<List<Object>> query(String sql, Object[] params) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            setParameters(stmt, params);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                return resultSetToList(rs);
+            }
+        }
+    }
+
+    /**
+     * 执行单行查询
+     */
      * Get database connection for search service and other services
      */
     public Connection getConnection() {
