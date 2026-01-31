@@ -28,7 +28,7 @@
 | [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | 待开发 |
 | task-002-search-service | 搜索服务 | 8h | 001 | 待创建 |
 | task-003-finder-plugin | 文件搜索插件 | 12h | 002 | 待创建 |
-| task-004-wiki-plugin | 知识库插件 | 16h | 001 | 待创建 |
+| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | 开发中 |
 
 **Phase 1 总计：约 52 小时**
 
