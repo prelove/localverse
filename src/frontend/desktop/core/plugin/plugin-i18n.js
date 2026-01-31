@@ -10,7 +10,28 @@ export class PluginI18n {
     this.fallbackLocale = 'en';
     this.messages = {};
     
+    // Sync with global language changes
+    this._syncLocale();
+    
     // Note: Locales are loaded asynchronously via loadLocales()
+  }
+  
+  /**
+   * Sync locale with document language
+   */
+  _syncLocale() {
+    // Update locale when document language changes
+    const observer = new MutationObserver(() => {
+      const newLocale = document.documentElement.lang;
+      if (newLocale && newLocale !== this.locale) {
+        this.locale = newLocale;
+      }
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['lang']
+    });
   }
 
   /**

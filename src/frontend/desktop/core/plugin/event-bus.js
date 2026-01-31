@@ -126,10 +126,10 @@ export class EventBus {
   /**
    * Wait for an event to be emitted
    * @param {string} event - Event name
-   * @param {number} timeout - Timeout in milliseconds
+   * @param {number} timeout - Timeout in milliseconds (default: 5000ms)
    * @returns {Promise<*>} Event data
    */
-  wait(event, timeout = 30000) {
+  wait(event, timeout = 5000) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`Event timeout: ${event}`));

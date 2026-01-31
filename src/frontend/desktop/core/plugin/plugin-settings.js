@@ -24,14 +24,20 @@ export class PluginSettings {
   }
 
   /**
-   * Load values from localStorage
+   * Load values from localStorage with validation
    */
   loadFromStorage() {
     const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        this.values = { ...this.values, ...parsed };
+        // Validate each loaded value against schema
+        for (const [key, value] of Object.entries(parsed)) {
+          const config = this.schema[key];
+          if (config && this.validate(key, value, config)) {
+            this.values[key] = value;
+          }
+        }
       } catch {
         // Ignore invalid data
       }

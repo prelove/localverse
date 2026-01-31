@@ -230,14 +230,6 @@ export class PluginLoader {
   filterServicesByPermissions(permissions) {
     const allowed = {};
     
-    // Base services always available
-    const baseServices = ['NotificationService'];
-    for (const name of baseServices) {
-      if (this.services[name]) {
-        allowed[name] = this.services[name];
-      }
-    }
-    
     // Permission to service mapping
     const permissionServiceMap = {
       'database:read': 'DatabaseService',
@@ -245,7 +237,8 @@ export class PluginLoader {
       'filesystem:read': 'FileSystemService',
       'filesystem:write': 'FileSystemService',
       'network:sync': 'CommunicationLayer',
-      'search': 'SearchService'
+      'search': 'SearchService',
+      'notification': 'NotificationService'
     };
     
     for (const permission of permissions) {

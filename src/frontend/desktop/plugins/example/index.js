@@ -139,7 +139,13 @@ export default class ExamplePlugin extends Plugin {
   // Exported method
   greet() {
     const message = this.getSetting('message');
-    alert(message);
+    // Use context UI helper instead of alert()
+    if (this.context.ui.showToast) {
+      this.context.ui.showToast(message, 'info');
+    } else {
+      // Fallback to console if UI helper not available
+      console.log('Greet:', message);
+    }
     this.emit('greeted', { message, timestamp: Date.now() });
   }
 }
