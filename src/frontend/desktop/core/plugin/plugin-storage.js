@@ -3,6 +3,8 @@
  * 
  * Isolated storage for each plugin using IndexedDB.
  * Each plugin gets its own database namespace.
+ * Plugin Storage using IndexedDB
+ * Provides persistent storage for each plugin
  */
 
 export class PluginStorage {
@@ -13,6 +15,10 @@ export class PluginStorage {
     this.db = null;
   }
   
+
+  /**
+   * Initialize IndexedDB
+   */
   async init() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
@@ -33,12 +39,22 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Ensure database is initialized
+   */
   async ensureDb() {
     if (!this.db) {
       await this.init();
     }
   }
   
+
+  /**
+   * Get a value from storage
+   * @param {string} key - Storage key
+   * @returns {Promise<*>} Value or null
+   */
   async get(key) {
     await this.ensureDb();
     
@@ -51,6 +67,12 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Set a value in storage
+   * @param {string} key - Storage key
+   * @param {*} value - Value to store
+   */
   async set(key, value) {
     await this.ensureDb();
     
@@ -63,6 +85,11 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Remove a value from storage
+   * @param {string} key - Storage key
+   */
   async remove(key) {
     await this.ensureDb();
     
@@ -75,6 +102,10 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Clear all data from storage
+   */
   async clear() {
     await this.ensureDb();
     
@@ -87,6 +118,11 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Get all keys from storage
+   * @returns {Promise<string[]>} Array of keys
+   */
   async keys() {
     await this.ensureDb();
     
@@ -99,6 +135,11 @@ export class PluginStorage {
     });
   }
   
+
+  /**
+   * Get all data from storage
+   * @returns {Promise<Object>} Object with all key-value pairs
+   */
   async getAll() {
     await this.ensureDb();
     

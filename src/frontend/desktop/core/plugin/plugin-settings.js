@@ -2,6 +2,8 @@
  * Plugin Settings
  * 
  * Manages plugin configuration with schema validation and persistence.
+ * Plugin Settings Manager
+ * Manages plugin configuration and preferences
  */
 
 export class PluginSettings {
@@ -15,12 +17,20 @@ export class PluginSettings {
     this.loadFromStorage();
   }
   
+
+  /**
+   * Load default values from schema
+   */
   loadDefaults() {
     for (const [key, config] of Object.entries(this.schema)) {
       this.values[key] = config.default;
     }
   }
   
+
+  /**
+   * Load saved settings from localStorage
+   */
   loadFromStorage() {
     const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
     if (stored) {
@@ -33,6 +43,10 @@ export class PluginSettings {
     }
   }
   
+
+  /**
+   * Save settings to localStorage
+   */
   saveToStorage() {
     localStorage.setItem(
       `plugin_settings_${this.pluginId}`,
@@ -40,6 +54,12 @@ export class PluginSettings {
     );
   }
   
+
+  /**
+   * Get a setting value
+   * @param {string} key - Setting key
+   * @returns {*} Setting value
+   */
   get(key) {
     if (key in this.values) {
       return this.values[key];
@@ -49,6 +69,12 @@ export class PluginSettings {
     return config?.default;
   }
   
+
+  /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   */
   async set(key, value) {
     const config = this.schema[key];
     if (!config) {
@@ -74,6 +100,14 @@ export class PluginSettings {
     }
   }
   
+
+  /**
+   * Validate a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting config
+   * @returns {boolean} Is valid
+   */
   validate(key, value, config) {
     switch (config.type) {
       case 'boolean':
@@ -105,6 +139,19 @@ export class PluginSettings {
     return { ...this.values };
   }
   
+
+  /**
+   * Get all settings
+   * @returns {Object} All settings
+   */
+  getAll() {
+    return { ...this.values };
+  }
+
+  /**
+   * Reset settings to defaults
+   * @param {string} [key] - Specific key to reset, or all if omitted
+   */
   async reset(key) {
     if (key) {
       const config = this.schema[key];
@@ -118,6 +165,12 @@ export class PluginSettings {
     }
   }
   
+
+  /**
+   * Subscribe to setting changes
+   * @param {Function} callback - Change callback
+   * @returns {Function} Unsubscribe function
+   */
   onChange(callback) {
     this.listeners.push(callback);
     return () => {
@@ -128,6 +181,11 @@ export class PluginSettings {
     };
   }
   
+
+  /**
+   * Get settings schema
+   * @returns {Object} Schema
+   */
   getSchema() {
     return this.schema;
   }

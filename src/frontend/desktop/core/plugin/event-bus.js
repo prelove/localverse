@@ -3,6 +3,9 @@
  * 
  * Central event system for plugin communication.
  * Supports standard events, once events, wildcards, and async handling.
+ * Event Bus for Plugin Communication
+ * Provides publish-subscribe pattern for plugins
+ * Provides publish-subscribe messaging between plugins and core system
  */
 
 export class EventBus {
@@ -11,6 +14,15 @@ export class EventBus {
     this.onceHandlers = new Map();
   }
   
+    this.listeners = new Map();
+  }
+
+  /**
+   * Subscribe to an event
+   * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   * @returns {Function} Unsubscribe function
+   */
   on(event, handler) {
     if (!this.handlers.has(event)) {
       this.handlers.set(event, new Set());
@@ -21,6 +33,27 @@ export class EventBus {
     return () => this.off(event, handler);
   }
   
+   * @param {Function} callback - Event handler
+   * @param {Object} context - Execution context (plugin instance)
+   * @returns {Function} Unsubscribe function
+   */
+  on(event, callback, context = null) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+
+    const listener = { callback, context };
+    this.listeners.get(event).push(listener);
+
+    // Return unsubscribe function
+    return () => this.off(event, callback);
+  }
+
+  /**
+   * Subscribe to an event once
+   * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   */
   once(event, handler) {
     if (!this.onceHandlers.has(event)) {
       this.onceHandlers.set(event, new Set());
@@ -28,6 +61,23 @@ export class EventBus {
     this.onceHandlers.get(event).add(handler);
   }
   
+   * @param {Function} callback - Event handler
+   * @param {Object} context - Execution context
+   * @returns {Function} Unsubscribe function
+   */
+  once(event, callback, context = null) {
+    const onceWrapper = (...args) => {
+      this.off(event, onceWrapper);
+      callback.apply(context, args);
+    };
+    return this.on(event, onceWrapper, context);
+  }
+
+  /**
+   * Unsubscribe from an event
+   * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   */
   off(event, handler) {
     const handlers = this.handlers.get(event);
     if (handlers) {
@@ -40,6 +90,29 @@ export class EventBus {
     }
   }
   
+   * @param {Function} callback - Event handler to remove
+   */
+  off(event, callback) {
+    if (!this.listeners.has(event)) return;
+
+    const eventListeners = this.listeners.get(event);
+    const index = eventListeners.findIndex(l => l.callback === callback);
+    
+    if (index !== -1) {
+      eventListeners.splice(index, 1);
+    }
+
+    // Clean up empty event arrays
+    if (eventListeners.length === 0) {
+      this.listeners.delete(event);
+    }
+  }
+
+  /**
+   * Emit an event
+   * @param {string} event - Event name
+   * @param {*} data - Event data
+   */
   emit(event, data) {
     // Regular handlers
     const handlers = this.handlers.get(event);
@@ -79,6 +152,12 @@ export class EventBus {
     }
   }
   
+
+  /**
+   * Emit an event asynchronously
+   * @param {string} event - Event name
+   * @param {*} data - Event data
+   */
   async emitAsync(event, data) {
     const handlers = this.handlers.get(event) || new Set();
     const onceHandlers = this.onceHandlers.get(event) || new Set();
@@ -98,6 +177,13 @@ export class EventBus {
     this.onceHandlers.delete(event);
   }
   
+
+  /**
+   * Wait for an event to be emitted
+   * @param {string} event - Event name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise<*>} Event data
+   */
   wait(event, timeout = 30000) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -111,6 +197,10 @@ export class EventBus {
     });
   }
   
+
+  /**
+   * Clear all event handlers
+   */
   clear() {
     this.handlers.clear();
     this.onceHandlers.clear();
@@ -118,3 +208,52 @@ export class EventBus {
 }
 
 export default EventBus;
+   * @param {...any} args - Arguments to pass to handlers
+   */
+  emit(event, ...args) {
+    if (!this.listeners.has(event)) return;
+
+    const eventListeners = this.listeners.get(event);
+    
+    // Call each listener in order
+    for (const { callback, context } of eventListeners) {
+      try {
+        callback.apply(context, args);
+      } catch (error) {
+        console.error(`Error in event listener for "${event}":`, error);
+      }
+    }
+  }
+
+  /**
+   * Remove all listeners for an event or all events
+   * @param {string} [event] - Event name (optional, removes all if not provided)
+   */
+  clear(event) {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
+  }
+
+  /**
+   * Get listener count for an event
+   * @param {string} event - Event name
+   * @returns {number} Number of listeners
+   */
+  listenerCount(event) {
+    return this.listeners.has(event) ? this.listeners.get(event).length : 0;
+  }
+
+  /**
+   * Get all event names
+   * @returns {string[]} Array of event names
+   */
+  eventNames() {
+    return Array.from(this.listeners.keys());
+  }
+}
+
+// Export singleton instance
+export default new EventBus();
