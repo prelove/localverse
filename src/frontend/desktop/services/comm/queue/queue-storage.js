@@ -217,10 +217,10 @@ export class QueueStorage {
 
   /**
    * Remove expired messages
-   * @param {number} maxAge - Maximum age in milliseconds
+   * @param {number} maxAge - Maximum age in milliseconds (default: 7 days)
    * @returns {Promise<number>} Number of items removed
    */
-  async cleanExpired(maxAge = 7 * 24 * 60 * 60 * 1000) {
+  async cleanExpired(maxAge = 7 * 24 * 60 * 60 * 1000) { // Default: 7 days in milliseconds
     await this.init();
 
     const cutoff = Date.now() - maxAge;

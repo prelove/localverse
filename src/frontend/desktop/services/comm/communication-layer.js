@@ -186,7 +186,7 @@ export class CommunicationLayer extends EventTarget {
   async sendAndWait(partial, timeout = this.options.messageTimeout) {
     const message = createMessage(partial);
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       // Set up response handler
       const timeoutId = setTimeout(() => {
         this.pendingResponses.delete(message.id);
@@ -196,13 +196,11 @@ export class CommunicationLayer extends EventTarget {
       this.pendingResponses.set(message.id, { resolve, reject, timeoutId });
 
       // Send message
-      try {
-        await this.sendDirect(message);
-      } catch (error) {
+      this.sendDirect(message).catch((error) => {
         clearTimeout(timeoutId);
         this.pendingResponses.delete(message.id);
         reject(error);
-      }
+      });
     });
   }
 
