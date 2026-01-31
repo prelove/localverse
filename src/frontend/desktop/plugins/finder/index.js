@@ -5,6 +5,7 @@
 
 import { getFileIcon, getFileCategory } from './utils/file-icons.js';
 import { formatSize, formatDate, escapeHtml, highlightMatch, buildFtsQuery } from './utils/formatters.js';
+import { t as translate, getTranslations } from './i18n.js';
 
 export default class FinderPlugin {
   static id = 'finder';
@@ -13,6 +14,9 @@ export default class FinderPlugin {
     this.context = context;
     this.services = context.services;
     this.settings = context.settings || {};
+    
+    // Detect locale from context or default to 'en'
+    this.locale = context.locale || (context.i18n && context.i18n.locale) || 'en';
     
     // Plugin state
     this.state = {
@@ -308,11 +312,11 @@ export default class FinderPlugin {
     // Simplified preview - just show file info for now
     return `
       <div class="preview-info">
-        <p><strong>Name:</strong> ${escapeHtml(file.name)}</p>
-        <p><strong>Path:</strong> ${escapeHtml(file.path)}</p>
-        <p><strong>Size:</strong> ${formatSize(file.size)}</p>
-        <p><strong>Modified:</strong> ${formatDate(file.modifiedAt)}</p>
-        <p><em>Preview functionality coming soon...</em></p>
+        <p><strong>${this.t('fileName')}:</strong> ${escapeHtml(file.name)}</p>
+        <p><strong>${this.t('filePath')}:</strong> ${escapeHtml(file.path)}</p>
+        <p><strong>${this.t('fileSize')}:</strong> ${formatSize(file.size)}</p>
+        <p><strong>${this.t('modified')}:</strong> ${formatDate(file.modifiedAt, this.locale)}</p>
+        <p><em>${this.t('previewNotAvailable')}</em></p>
       </div>
     `;
   }
@@ -638,28 +642,8 @@ export default class FinderPlugin {
   }
   
   t(key) {
-    // Translation helper - simplified
-    // Would integrate with i18n service in real implementation
-    const translations = {
-      searchPlaceholder: 'Search files...',
-      allTypes: 'All Types',
-      documents: 'Documents',
-      images: 'Images',
-      code: 'Code',
-      other: 'Other',
-      noResults: 'No files found',
-      searching: 'Searching...',
-      results: 'results',
-      navigate: 'navigate',
-      open: 'open',
-      copyPath: 'copy path',
-      searchError: 'Search failed',
-      openError: 'Failed to open file',
-      copyError: 'Failed to copy path',
-      pathCopied: 'Path copied to clipboard'
-    };
-    
-    return translations[key] || key;
+    // Translation helper using the i18n module
+    return translate(key, this.locale);
   }
   
   emit(event, data) {

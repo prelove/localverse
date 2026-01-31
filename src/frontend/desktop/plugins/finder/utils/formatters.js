@@ -21,9 +21,10 @@ export function formatSize(bytes) {
 /**
  * Format timestamp to relative time string
  * @param {number} timestamp - Unix timestamp in milliseconds
- * @returns {string} - Relative time string (e.g., "2天前", "1小时前")
+ * @param {string} locale - Locale for formatting (default: 'en')
+ * @returns {string} - Relative time string (e.g., "2 days ago", "1 hour ago")
  */
-export function formatDate(timestamp) {
+export function formatDate(timestamp, locale = 'en') {
   if (!timestamp) return '-';
   
   const now = Date.now();
@@ -36,18 +37,48 @@ export function formatDate(timestamp) {
   const months = Math.floor(days / 30);
   const years = Math.floor(months / 12);
   
+  // Localized time units
+  const timeUnits = {
+    en: {
+      year: (n) => `${n} year${n > 1 ? 's' : ''} ago`,
+      month: (n) => `${n} month${n > 1 ? 's' : ''} ago`,
+      day: (n) => `${n} day${n > 1 ? 's' : ''} ago`,
+      hour: (n) => `${n} hour${n > 1 ? 's' : ''} ago`,
+      minute: (n) => `${n} minute${n > 1 ? 's' : ''} ago`,
+      justNow: 'just now'
+    },
+    zh: {
+      year: (n) => `${n}年前`,
+      month: (n) => `${n}月前`,
+      day: (n) => `${n}天前`,
+      hour: (n) => `${n}小时前`,
+      minute: (n) => `${n}分钟前`,
+      justNow: '刚刚'
+    },
+    ja: {
+      year: (n) => `${n}年前`,
+      month: (n) => `${n}ヶ月前`,
+      day: (n) => `${n}日前`,
+      hour: (n) => `${n}時間前`,
+      minute: (n) => `${n}分前`,
+      justNow: 'たった今'
+    }
+  };
+  
+  const units = timeUnits[locale] || timeUnits.en;
+  
   if (years > 0) {
-    return `${years}年前`;
+    return units.year(years);
   } else if (months > 0) {
-    return `${months}月前`;
+    return units.month(months);
   } else if (days > 0) {
-    return `${days}天前`;
+    return units.day(days);
   } else if (hours > 0) {
-    return `${hours}小时前`;
+    return units.hour(hours);
   } else if (minutes > 0) {
-    return `${minutes}分钟前`;
+    return units.minute(minutes);
   } else {
-    return '刚刚';
+    return units.justNow;
   }
 }
 
