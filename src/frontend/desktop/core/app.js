@@ -7,13 +7,16 @@ import { Router } from './router.js';
 import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
+import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
     this.mode = null;
     this.user = null;
     this.services = {};
-    this.plugins = null;
+    this.pluginLoader = null;
+    this.eventBus = null;
+    this.permissionManager = null;
     this.ready = false;
     
     this.router = new Router();
@@ -44,13 +47,17 @@ class LocalverseApp {
       // 4. Initialize theme
       this.theme.init();
       
-      // 5. Setup routes
+      // 5. Initialize plugin system
+      await this.initPluginSystem();
+      this.updateSplash(this.i18n.t('splash.loading_plugins'));
+      
+      // 6. Setup routes
       this.setupRoutes();
       
-      // 6. Render UI
+      // 7. Render UI
       this.render();
       
-      // 7. Hide splash
+      // 8. Hide splash
       setTimeout(() => this.hideSplash(), 500);
       
       this.ready = true;
@@ -132,6 +139,44 @@ class LocalverseApp {
   }
 
   /**
+   * Initialize plugin system
+   */
+  async initPluginSystem() {
+    try {
+      // Create event bus
+      this.eventBus = new EventBus();
+      
+      // Create permission manager
+      this.permissionManager = new PermissionManager();
+      
+      // Create plugin loader
+      this.pluginLoader = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus,
+        permissionManager: this.permissionManager
+      });
+      
+      // Load all plugins
+      await this.pluginLoader.loadAll();
+      
+      console.log('Plugin system initialized:', this.pluginLoader.getAll().length, 'plugins loaded');
+      
+      // Listen to plugin events
+      this.eventBus.on('plugin:loaded', (data) => {
+        console.log('Plugin loaded:', data.id);
+      });
+      
+      this.eventBus.on('plugin:unloaded', (data) => {
+        console.log('Plugin unloaded:', data.id);
+      });
+      
+    } catch (error) {
+      console.error('Failed to initialize plugin system:', error);
+    }
+  }
+
+  /**
    * Setup routing
    */
   setupRoutes() {
@@ -194,12 +239,49 @@ class LocalverseApp {
    */
   showPlugin(pluginId) {
     const content = document.getElementById('content');
+    
+    if (!this.pluginLoader) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin system not initialized</h1>
+        </div>
+      `;
+      return;
+    }
+    
+    const plugin = this.pluginLoader.get(pluginId);
+    
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin not found: ${this.escapeHtml(pluginId)}</h1>
+          <p>Available plugins:</p>
+          <ul>
+            ${this.pluginLoader.getAllManifests().map(m => 
+              `<li><a href="#/plugin/${m.id}">${m.name.zh || m.name.en || m.id}</a></li>`
+            ).join('')}
+          </ul>
+        </div>
+      `;
+      return;
+    }
+    
+    // Create container for plugin
     content.innerHTML = `
       <div class="plugin-page">
-        <h1>Plugin: ${pluginId}</h1>
-        <p>Plugin functionality coming soon...</p>
+        <div class="plugin-header">
+          <h1>${plugin.manifest.name.zh || plugin.manifest.name.en || plugin.manifest.id}</h1>
+          <p class="plugin-description">${plugin.manifest.description?.zh || plugin.manifest.description?.en || ''}</p>
+        </div>
+        <div id="plugin-container-${pluginId}" class="plugin-container"></div>
       </div>
     `;
+    
+    // Mount plugin
+    const container = document.getElementById(`plugin-container-${pluginId}`);
+    if (container) {
+      plugin.mount(container);
+    }
   }
 
   /**
@@ -207,9 +289,14 @@ class LocalverseApp {
    */
   showSettings() {
     const content = document.getElementById('content');
+    
+    // Get loaded plugins
+    const plugins = this.pluginLoader ? this.pluginLoader.getAllManifests() : [];
+    
     content.innerHTML = `
       <div class="settings-page">
         <h1>Settings</h1>
+        
         <div class="settings-section">
           <h2>Theme</h2>
           <select id="themeSelect">
@@ -218,12 +305,28 @@ class LocalverseApp {
             <option value="high-contrast" ${this.theme.getTheme() === 'high-contrast' ? 'selected' : ''}>High Contrast</option>
           </select>
         </div>
+        
         <div class="settings-section">
           <h2>Language</h2>
           <select id="languageSelect">
             <option value="zh" ${this.i18n.getLocale() === 'zh' ? 'selected' : ''}>中文</option>
             <option value="en" ${this.i18n.getLocale() === 'en' ? 'selected' : ''}>English</option>
           </select>
+        </div>
+        
+        <div class="settings-section">
+          <h2>Plugins</h2>
+          ${plugins.length > 0 ? `
+            <ul class="plugin-list">
+              ${plugins.map(p => `
+                <li>
+                  <span class="plugin-name">${p.name.zh || p.name.en || p.id}</span>
+                  <span class="plugin-version">v${p.version}</span>
+                  <a href="#/plugin/${p.id}" class="plugin-link">Open</a>
+                </li>
+              `).join('')}
+            </ul>
+          ` : '<p>No plugins loaded</p>'}
         </div>
       </div>
     `;
@@ -300,6 +403,70 @@ class LocalverseApp {
    */
   dispatchEvent(event, detail = null) {
     window.dispatchEvent(new CustomEvent(event, { detail }));
+  }
+  
+  /**
+   * Escape HTML to prevent XSS
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  /**
+   * Show toast notification
+   * @param {string} message - Message text
+   * @param {string} type - Toast type (info, success, warning, error)
+   */
+  showToast(message, type = 'info') {
+    // This will be implemented by the toast component
+    window.dispatchEvent(new CustomEvent('show-toast', {
+      detail: { message, type }
+    }));
+  }
+  
+  /**
+   * Show modal dialog
+   * @param {Object} options - Modal options
+   * @returns {Promise<*>} Modal result
+   */
+  showModal(options) {
+    // This will be implemented by the modal component
+    return new Promise((resolve) => {
+      window.dispatchEvent(new CustomEvent('show-modal', {
+        detail: { options, resolve }
+      }));
+    });
+  }
+  
+  /**
+   * Show confirm dialog
+   * @param {string} message - Confirm message
+   * @returns {Promise<boolean>} True if confirmed
+   */
+  showConfirm(message) {
+    return this.showModal({
+      type: 'confirm',
+      message
+    });
+  }
+  
+  /**
+   * Show prompt dialog
+   * @param {string} message - Prompt message
+   * @param {string} defaultValue - Default input value
+   * @returns {Promise<string|null>} User input or null
+   */
+  showPrompt(message, defaultValue = '') {
+    return this.showModal({
+      type: 'prompt',
+      message,
+      defaultValue
+    });
   }
 }
 
