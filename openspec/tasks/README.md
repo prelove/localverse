@@ -52,6 +52,8 @@
 | task-003-calendar-plugin | 日历插件 | 12h | Phase 1 | 待创建 |
 | task-004-announcement | 公告系统 | 8h | Phase 1 | 待创建 |
 
+**Phase 3 总计：约 44 小时**
+
 ## 依赖关系图
 
 ```
