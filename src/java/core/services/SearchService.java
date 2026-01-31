@@ -539,9 +539,9 @@ public class SearchService {
             return query;
         }
         
-        // For single word, use prefix matching
+        // For single word, use prefix matching (asterisk must be outside quotes)
         if (words.length == 1 && words[0].length() > 1) {
-            return "\"" + words[0] + "\"* OR " + words[0];
+            return words[0] + "* OR " + words[0];
         }
         
         // For multiple words, use AND to connect them
@@ -641,8 +641,8 @@ public class SearchService {
         }
         
         try {
-            String id = "search_" + Long.toString(System.currentTimeMillis(), 36) + 
-                       Integer.toString((int)(Math.random() * 1000000), 36);
+            // Use UUID for better uniqueness
+            String id = "search_" + java.util.UUID.randomUUID().toString();
             
             String sql = """
                 INSERT INTO search_history (id, query, result_count, created_at)
@@ -669,8 +669,9 @@ public class SearchService {
                 stmt.execute(cleanupSql);
             }
         } catch (SQLException e) {
-            // Ignore errors in history recording
-            System.err.println("Failed to record search history: " + e.getMessage());
+            // Log error but don't fail the search operation
+            // In production, this should use a proper logging framework
+            System.err.println("⚠ Failed to record search history: " + e.getMessage());
         }
     }
 

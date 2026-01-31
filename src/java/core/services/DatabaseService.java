@@ -28,8 +28,15 @@ public class DatabaseService {
 
     /**
      * Initialize database connection
+     * Thread-safe initialization
      */
-    public void initialize(String dbPath) throws SQLException {
+    public synchronized void initialize(String dbPath) throws SQLException {
+        // Prevent re-initialization if already connected
+        if (this.connection != null && !this.connection.isClosed()) {
+            System.out.println("⚠ Database already initialized");
+            return;
+        }
+        
         this.dbPath = dbPath;
         if (dbPath != null && !dbPath.isEmpty()) {
             this.connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
