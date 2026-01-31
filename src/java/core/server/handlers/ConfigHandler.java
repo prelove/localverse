@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import config.Config;
 import utils.JsonUtil;
+import utils.Version;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -50,7 +51,7 @@ public class ConfigHandler implements HttpHandler {
             "httpPort", config.isClientMode() ? config.client().httpPort() : config.server().httpPort(),
             "wsPort", config.isClientMode() ? config.client().wsPort() : config.server().wsPort(),
             "syncEnabled", config.isClientMode() ? config.client().syncEnabled() : false,
-            "version", "1.0.0"
+            "version", Version.VERSION
         );
 
         String response = JsonUtil.success(safeConfig);

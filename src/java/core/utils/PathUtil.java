@@ -19,7 +19,7 @@ public class PathUtil {
     }
 
     /**
-     * 检查路径是否安全（不包含 ../ 等危险字符）
+     * 检查路径是否安全（不包含 .. 等危险字符）
      */
     public static boolean isSafe(String path) {
         if (path == null || path.isEmpty()) {

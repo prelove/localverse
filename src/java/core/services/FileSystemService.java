@@ -154,7 +154,7 @@ public class FileSystemService {
                           try {
                               files.add(getFileInfo(f.toString()));
                           } catch (IOException e) {
-                              // Skip files that can't be accessed
+                              System.err.println("Warning: Cannot access file: " + f + " - " + e.getMessage());
                           }
                       });
             }
@@ -164,7 +164,7 @@ public class FileSystemService {
                     try {
                         files.add(getFileInfo(f.toString()));
                     } catch (IOException e) {
-                        // Skip files that can't be accessed
+                        System.err.println("Warning: Cannot access file: " + f + " - " + e.getMessage());
                     }
                 });
             }
@@ -225,7 +225,7 @@ public class FileSystemService {
                           try {
                               Files.delete(f);
                           } catch (IOException e) {
-                              // Ignore
+                              System.err.println("Warning: Cannot delete file: " + f + " - " + e.getMessage());
                           }
                       });
             }

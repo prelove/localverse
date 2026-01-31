@@ -4,10 +4,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import config.Config;
 import utils.JsonUtil;
+import utils.Version;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 
 /**
@@ -45,7 +45,7 @@ public class HealthHandler implements HttpHandler {
 
             Map<String, Object> health = Map.of(
                 "status", "ok",
-                "version", "1.0.0",
+                "version", Version.VERSION,
                 "uptime", uptime,
                 "mode", config.mode(),
                 "timestamp", System.currentTimeMillis()

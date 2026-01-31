@@ -13,12 +13,31 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}=== Building Localverse JAR ===${NC}"
 
-# 设置 Java 21
-export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
-export PATH=$JAVA_HOME/bin:$PATH
+# 检查并设置 Java 21
+if [ -z "$JAVA_HOME" ]; then
+    # JAVA_HOME 未设置，尝试默认位置
+    if [ -d "/usr/lib/jvm/temurin-21-jdk-amd64" ]; then
+        export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
+        export PATH=$JAVA_HOME/bin:$PATH
+    else
+        echo -e "${RED}JAVA_HOME not set and default Java 21 location not found${NC}"
+        echo "Please set JAVA_HOME to Java 21 installation"
+        exit 1
+    fi
+else
+    # JAVA_HOME 已设置，使用它
+    export PATH=$JAVA_HOME/bin:$PATH
+fi
 
 # 验证 Java 版本
 echo -e "${BLUE}Checking Java version...${NC}"
+JAVA_VERSION=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}' | cut -d'.' -f1)
+if [ "$JAVA_VERSION" != "21" ]; then
+    echo -e "${RED}Java 21 is required, but found Java $JAVA_VERSION${NC}"
+    echo "Current JAVA_HOME: $JAVA_HOME"
+    echo "Please set JAVA_HOME to a Java 21 installation"
+    exit 1
+fi
 java -version
 
 # 验证 Maven

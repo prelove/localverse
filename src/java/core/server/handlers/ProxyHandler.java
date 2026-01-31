@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpHandler;
 import config.Config;
 import services.ProxyService;
 import services.ProxyService.ProxyResponse;
+import utils.JsonUtil;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -127,7 +128,7 @@ public class ProxyHandler implements HttpHandler {
 
     private void sendError(HttpExchange exchange, int statusCode, String message) 
             throws IOException {
-        String response = "{\"success\":false,\"message\":\"" + message + "\"}";
+        String response = JsonUtil.error(message);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         byte[] bytes = response.getBytes("UTF-8");
         exchange.sendResponseHeaders(statusCode, bytes.length);

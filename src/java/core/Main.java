@@ -5,6 +5,7 @@ import server.LocalWebSocketServer;
 import services.DatabaseService;
 import services.FileSystemService;
 import services.ProxyService;
+import utils.Version;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,8 +21,8 @@ public class Main {
     private static DatabaseService databaseService;
 
     public static void main(String[] args) {
-        System.out.println("=== Localverse OS ===");
-        System.out.println("Version: 1.0.0");
+        System.out.println("=== " + Version.NAME + " ===");
+        System.out.println("Version: " + Version.VERSION);
         System.out.println("Java Version: " + System.getProperty("java.version"));
         System.out.println();
 
@@ -157,7 +158,7 @@ public class Main {
      * 打印版本信息
      */
     private static void printVersion() {
-        System.out.println("Localverse OS version 1.0.0");
+        System.out.println(Version.getFullVersion());
         System.out.println("Java version: " + System.getProperty("java.version"));
     }
 

@@ -6,6 +6,7 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import utils.JsonUtil;
+import utils.Version;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class LocalWebSocketServer extends WebSocketServer {
         // 发送欢迎消息
         Message welcome = Message.event("connected", Map.of(
             "message", "Connected to Localverse",
-            "version", "1.0.0"
+            "version", Version.VERSION
         ));
         
         conn.send(JsonUtil.toJson(welcome));
