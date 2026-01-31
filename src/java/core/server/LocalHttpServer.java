@@ -21,6 +21,8 @@ public class LocalHttpServer {
     private final FileSystemService fileSystemService;
     private final DatabaseService databaseService;
     private final ProxyService proxyService;
+    // SearchService and ProcessService are initialized in registerHandlers()
+    // after the server is created, hence not final
     private SearchService searchService;
     private ProcessService processService;
     private HttpServer server;

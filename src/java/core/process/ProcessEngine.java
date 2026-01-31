@@ -192,7 +192,10 @@ public class ProcessEngine {
             
             TaskExecutor executor = executors.get(taskDef.type());
             if (executor == null) {
-                throw new IllegalStateException("No executor found for task type: " + taskDef.type());
+                throw new IllegalStateException(
+                    "No executor found for task type: " + taskDef.type() + 
+                    ". Available types: " + executors.keySet()
+                );
             }
             
             Object result = executor.execute(task, process);
