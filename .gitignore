@@ -6,6 +6,10 @@ target/
 dist/*.jar
 dist/lib/
 
+# Dist folder (built JARs)
+dist/*.jar
+dist/lib/
+
 # Test directories
 test-launcher/
 
@@ -21,6 +25,13 @@ config.json
 # Maven
 dependency-reduced-pom.xml
 
+# Maven
+dependency-reduced-pom.xml
+
+# Maven
+dependency-reduced-pom.xml
+config.json
+
 # IDE
 .idea/
 .vscode/
@@ -29,3 +40,11 @@ dependency-reduced-pom.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Config files (keep template)
+config.json
+# Config files (keep template)
+config.json
+# Maven
+dependency-reduced-pom.xml
+
