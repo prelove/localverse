@@ -242,15 +242,29 @@ public class VersionManager {
     
     // ========== JSON 解析（简单实现）==========
     
+    // 预编译的正则表达式模式（提高性能）
+    private static final java.util.regex.Pattern CURRENT_JAR_PATTERN = 
+        java.util.regex.Pattern.compile("\"current\"[^}]*\"jar\"\\s*:\\s*\"([^\"]+)\"");
+    private static final java.util.regex.Pattern CURRENT_HASH_PATTERN = 
+        java.util.regex.Pattern.compile("\"current\"[^}]*\"jarHash\"\\s*:\\s*\"([^\"]+)\"");
+    private static final java.util.regex.Pattern LASTGOOD_JAR_PATTERN = 
+        java.util.regex.Pattern.compile("\"lastGood\"[^}]*\"jar\"\\s*:\\s*\"([^\"]+)\"");
+    private static final java.util.regex.Pattern LASTGOOD_HASH_PATTERN = 
+        java.util.regex.Pattern.compile("\"lastGood\"[^}]*\"jarHash\"\\s*:\\s*\"([^\"]+)\"");
+    private static final java.util.regex.Pattern CRASH_COUNT_PATTERN = 
+        java.util.regex.Pattern.compile("\"crash\"[^}]*\"count\"\\s*:\\s*(\\d+)");
+    private static final java.util.regex.Pattern CRASH_MAX_PATTERN = 
+        java.util.regex.Pattern.compile("\"crash\"[^}]*\"maxBeforeRollback\"\\s*:\\s*(\\d+)");
+    
     private VersionInfo parseVersionJson(String json) {
         try {
-            // 简单的 JSON 解析（不使用外部库）
-            String currentJar = extractJsonValue(json, "\"current\".*?\"jar\"\\s*:\\s*\"([^\"]+)\"");
-            String currentHash = extractJsonValue(json, "\"current\".*?\"jarHash\"\\s*:\\s*\"([^\"]+)\"");
-            String lastGoodJar = extractJsonValue(json, "\"lastGood\".*?\"jar\"\\s*:\\s*\"([^\"]+)\"");
-            String lastGoodHash = extractJsonValue(json, "\"lastGood\".*?\"jarHash\"\\s*:\\s*\"([^\"]+)\"");
-            int crashCount = Integer.parseInt(extractJsonValue(json, "\"crash\".*?\"count\"\\s*:\\s*(\\d+)"));
-            int maxCrash = Integer.parseInt(extractJsonValue(json, "\"crash\".*?\"maxBeforeRollback\"\\s*:\\s*(\\d+)"));
+            // 使用预编译的模式进行解析
+            String currentJar = extractJsonValue(json, CURRENT_JAR_PATTERN);
+            String currentHash = extractJsonValue(json, CURRENT_HASH_PATTERN);
+            String lastGoodJar = extractJsonValue(json, LASTGOOD_JAR_PATTERN);
+            String lastGoodHash = extractJsonValue(json, LASTGOOD_HASH_PATTERN);
+            int crashCount = Integer.parseInt(extractJsonValue(json, CRASH_COUNT_PATTERN));
+            int maxCrash = Integer.parseInt(extractJsonValue(json, CRASH_MAX_PATTERN));
             
             VersionDetail current = new VersionDetail(currentJar, currentHash);
             VersionDetail lastGood = new VersionDetail(lastGoodJar, lastGoodHash);
@@ -263,9 +277,8 @@ public class VersionManager {
         }
     }
     
-    private String extractJsonValue(String json, String pattern) {
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern, java.util.regex.Pattern.DOTALL);
-        java.util.regex.Matcher m = p.matcher(json);
+    private String extractJsonValue(String json, java.util.regex.Pattern pattern) {
+        java.util.regex.Matcher m = pattern.matcher(json);
         if (m.find()) {
             return m.group(1);
         }

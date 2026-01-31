@@ -12,7 +12,7 @@ public class HashUtil {
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
     
     /**
-     * 计算文件的 SHA-256 哈希值
+     * 计算文件的 SHA-256 哈希值（使用流式处理，支持大文件）
      * 
      * @param filePath 文件路径
      * @return 格式为 "sha256:xxxxx" 的哈希字符串
@@ -21,8 +21,17 @@ public class HashUtil {
     public static String calculateSHA256(Path filePath) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(filePath);
-            byte[] hashBytes = digest.digest(fileBytes);
+            
+            // 使用流式处理，避免一次性读取整个文件到内存
+            try (var inputStream = Files.newInputStream(filePath)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    digest.update(buffer, 0, bytesRead);
+                }
+            }
+            
+            byte[] hashBytes = digest.digest();
             return "sha256:" + bytesToHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is always available in JDK
