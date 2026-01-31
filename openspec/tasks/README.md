@@ -12,14 +12,14 @@
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [task-001-launcher](./phase-0/task-001-launcher.md) | 启动器开发 | 8h | 无 | 待开发 |
-| [task-002-local-jar](./phase-0/task-002-local-jar.md) | 本地 JAR 服务 | 16h | 001 | 待开发 |
-| [task-003-communication](./phase-0/task-003-communication.md) | 通信层 | 12h | 002 | 待开发 |
-| [task-004-database](./phase-0/task-004-database.md) | 数据库服务 | 12h | 003 | 待开发 |
-| [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | 待开发 |
-| [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | 待开发 |
+| [task-001-launcher](./phase-0/task-001-launcher.md) | 启动器开发 | 8h | 无 | ✅ 已完成 |
+| [task-002-local-jar](./phase-0/task-002-local-jar.md) | 本地 JAR 服务 | 16h | 001 | ✅ 已完成 |
+| [task-003-communication](./phase-0/task-003-communication.md) | 通信层 | 12h | 002 | ✅ 已完成 |
+| [task-004-database](./phase-0/task-004-database.md) | 数据库服务 | 12h | 003 | ✅ 已完成 |
+| [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | ✅ 已完成 |
+| [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | ✅ 已完成 |
 
-**Phase 0 总计：约 68 小时**
+**Phase 0 总计：约 68 小时** ✅ **100% 已完成** (2026-01-31)
 
 ### Phase 1: 核心应用 🟡 优先完成
 
