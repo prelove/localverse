@@ -17,7 +17,7 @@
 | [task-003-communication](./phase-0/task-003-communication.md) | 通信层 | 12h | 002 | 待开发 |
 | [task-004-database](./phase-0/task-004-database.md) | 数据库服务 | 12h | 003 | 待开发 |
 | [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | 待开发 |
-| [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | 待开发 |
+| [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | ✅ 已完成 |
 
 **Phase 0 总计：约 68 小时**
 
