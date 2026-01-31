@@ -12,89 +12,80 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
 /**
- * Local HTTP Server
- * Provides REST API for local operations and proxy to sync server
+ * HTTP 服务器
  */
 public class LocalHttpServer {
     private final Config config;
-    private final HttpServer server;
-    private final FileSystemService fileService;
-    private final DatabaseService dbService;
+    private final FileSystemService fileSystemService;
+    private final DatabaseService databaseService;
     private final ProxyService proxyService;
+    private HttpServer server;
 
-    public LocalHttpServer(Config config) throws IOException {
+    public LocalHttpServer(Config config, 
+                          FileSystemService fileSystemService,
+                          DatabaseService databaseService,
+                          ProxyService proxyService) {
         this.config = config;
-        
-        // Initialize services
-        this.fileService = new FileSystemService(config.filesystem());
-        this.dbService = new DatabaseService();
-        this.proxyService = new ProxyService(config.syncServer());
-
-        // Create HTTP server
-        int port = "client".equals(config.mode()) ? 
-            config.client().httpPort() : config.server().httpPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-
-        InetSocketAddress addr = new InetSocketAddress(bindAddress, port);
-        this.server = HttpServer.create(addr, 0);
-
-        // Setup routes
-        setupRoutes();
-
-        // Use virtual thread executor for better concurrency (Java 21)
-        this.server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+        this.fileSystemService = fileSystemService;
+        this.databaseService = databaseService;
+        this.proxyService = proxyService;
     }
 
-    private void setupRoutes() {
-        // Health check
-        server.createContext("/api/local/health", 
-            new HealthHandler("1.0.0", config.mode()));
+    /**
+     * 启动服务器
+     */
+    public void start() throws IOException {
+        int port = config.client().httpPort();
+        String bindAddress = config.client().bindAddress();
 
-        // Configuration
-        server.createContext("/api/local/config", 
-            new ConfigHandler(config, "config.json"));
+        server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
 
-        // File operations
-        server.createContext("/api/local/files", 
-            new FileHandler(fileService));
+        // 注册处理器
+        registerHandlers();
 
-        // Database operations
-        server.createContext("/api/local/db/query", 
-            new DatabaseHandler(dbService));
-        server.createContext("/api/local/db/exec", 
-            new DatabaseHandler(dbService));
+        // 设置线程池
+        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
-        // Proxy to sync server
-        server.createContext("/api/sync", 
-            new ProxyHandler(proxyService));
-
-        System.out.println("✓ HTTP routes registered");
-    }
-
-    public void start() {
+        // 启动服务器
         server.start();
-        int port = "client".equals(config.mode()) ? 
-            config.client().httpPort() : config.server().httpPort();
-        String bindAddress = "client".equals(config.mode()) ? 
-            config.client().bindAddress() : config.server().bindAddress();
-        System.out.println("✓ HTTP Server started on " + bindAddress + ":" + port);
+
+        System.out.println("HTTP Server started on " + bindAddress + ":" + port);
     }
 
+    /**
+     * 停止服务器
+     */
     public void stop() {
-        server.stop(0);
-        System.out.println("✓ HTTP Server stopped");
+        if (server != null) {
+            server.stop(0);
+            System.out.println("HTTP Server stopped");
+        }
     }
 
-    public FileSystemService getFileService() {
-        return fileService;
-    }
+    /**
+     * 注册所有处理器
+     */
+    private void registerHandlers() {
+        // 健康检查
+        server.createContext("/api/local/health", 
+            new HealthHandler(config));
 
-    public DatabaseService getDbService() {
-        return dbService;
-    }
+        // 配置管理
+        server.createContext("/api/local/config", 
+            new ConfigHandler(config));
 
-    public ProxyService getProxyService() {
-        return proxyService;
+        // 文件操作
+        server.createContext("/api/local/files", 
+            new FileHandler(config, fileSystemService));
+
+        // 数据库操作
+        server.createContext("/api/local/db", 
+            new DatabaseHandler(config, databaseService));
+
+        // 代理转发
+        server.createContext("/api/sync", 
+            new ProxyHandler(config, proxyService));
+
+        System.out.println("Registered HTTP handlers");
     }
 }

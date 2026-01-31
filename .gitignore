@@ -4,6 +4,10 @@ target/
 *.class
 dist/lib/
 
+# Dist folder (built JARs)
+dist/*.jar
+dist/lib/
+
 # Test directories
 test-launcher/
 
@@ -14,7 +18,9 @@ update_pending.flag
 *.jar.bak
 temp/
 data/
-config.json
+
+# Maven
+dependency-reduced-pom.xml
 
 # IDE
 .idea/
@@ -25,5 +31,5 @@ config.json
 .DS_Store
 Thumbs.db
 
-# Maven
-dependency-reduced-pom.xml
+# Config files (keep template)
+config.json

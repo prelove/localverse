@@ -1,88 +1,135 @@
 package utils;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.io.IOException;
+import java.util.List;
 
 /**
- * Path utilities for validation and security
+ * 路径工具类 - 提供路径安全验证
  */
 public class PathUtil {
     
     /**
-     * Normalize and validate path
+     * 规范化路径
      */
-    public static Path normalize(String path) throws IOException {
+    public static Path normalize(String path) {
+        Path p = Paths.get(path).normalize();
+        return p.toAbsolutePath();
+    }
+
+    /**
+     * 检查路径是否安全（不包含 .. 等危险字符）
+     */
+    public static boolean isSafe(String path) {
         if (path == null || path.isEmpty()) {
-            throw new IOException("Path cannot be null or empty");
+            return false;
         }
-        
-        // Normalize the path
-        Path normalized = Paths.get(path).normalize().toAbsolutePath();
-        
-        return normalized;
+
+        // 检查危险字符
+        if (path.contains("..") || path.contains("~")) {
+            return false;
+        }
+
+        try {
+            Path p = Paths.get(path).normalize();
+            String normalized = p.toString();
+            
+            // 检查规范化后是否仍包含 ..
+            return !normalized.contains("..");
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
-     * Check if path is within allowed directories
+     * 检查路径是否在允许的目录内
      */
-    public static boolean isAllowed(Path path, String[] allowedPaths) {
-        if (allowedPaths == null || allowedPaths.length == 0) {
+    public static boolean isAllowed(String path, List<String> allowedPaths) {
+        if (allowedPaths == null || allowedPaths.isEmpty()) {
+            return true; // 如果没有限制，则允许所有
+        }
+
+        try {
+            Path target = normalize(path);
+            
+            for (String allowed : allowedPaths) {
+                Path allowedPath = normalize(allowed);
+                if (target.startsWith(allowedPath)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * 检查是否为系统目录
+     */
+    public static boolean isSystemPath(String path) {
+        String lower = path.toLowerCase();
         
-        Path absolutePath = path.toAbsolutePath().normalize();
-        
-        for (String allowedPath : allowedPaths) {
-            Path allowed = Paths.get(allowedPath).toAbsolutePath().normalize();
-            if (absolutePath.startsWith(allowed)) {
-                return true;
-            }
+        // Windows 系统目录
+        if (lower.startsWith("c:\\windows") || 
+            lower.startsWith("c:\\program files") ||
+            lower.startsWith("c:\\programdata")) {
+            return true;
         }
-        
+
+        // Unix/Linux 系统目录
+        if (lower.startsWith("/etc") || 
+            lower.startsWith("/sys") || 
+            lower.startsWith("/proc") ||
+            lower.startsWith("/dev")) {
+            return true;
+        }
+
         return false;
     }
 
     /**
-     * Check if path matches exclusion patterns
+     * 组合路径
      */
-    public static boolean isExcluded(Path path, String[] excludePatterns) {
-        if (excludePatterns == null || excludePatterns.length == 0) {
-            return false;
+    public static String join(String... parts) {
+        Path path = Paths.get(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            path = path.resolve(parts[i]);
         }
-        
-        String pathStr = path.toString();
-        for (String pattern : excludePatterns) {
-            // Convert glob pattern to regex
-            // Replace * first (but not **), then replace **
-            String regex = pattern
-                .replace("**", "\0DOUBLESTAR\0")  // Temporary placeholder
-                .replace("*", "[^/\\\\]*")        // Single star
-                .replace("\0DOUBLESTAR\0", ".*"); // Double star
-            if (pathStr.matches(regex)) {
-                return true;
-            }
-        }
-        
-        return false;
+        return path.toString();
     }
 
     /**
-     * Get file extension
+     * 获取文件扩展名
      */
-    public static String getExtension(Path path) {
-        String fileName = path.getFileName().toString();
-        int lastDot = fileName.lastIndexOf('.');
-        if (lastDot > 0 && lastDot < fileName.length() - 1) {
-            return fileName.substring(lastDot + 1);
+    public static String getExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "";
         }
-        return "";
+
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == filename.length() - 1) {
+            return "";
+        }
+
+        return filename.substring(lastDot + 1).toLowerCase();
     }
 
     /**
-     * Validate file size
+     * 获取文件名（不含扩展名）
      */
-    public static boolean isValidSize(long size, long maxSize) {
-        return size <= maxSize;
+    public static String getNameWithoutExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "";
+        }
+
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot == -1) {
+            return filename;
+        }
+
+        return filename.substring(0, lastDot);
     }
 }
