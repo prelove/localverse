@@ -1,5 +1,7 @@
 # Localverse 文档关系总览
 
+> 📘 **开发路线规划**：查看 [DEVELOPMENT-ROADMAP.md](./DEVELOPMENT-ROADMAP.md) 了解完整的任务依赖、并行策略和时间规划
+
 ## 核心基础设施（必须完整）
 
 ```
