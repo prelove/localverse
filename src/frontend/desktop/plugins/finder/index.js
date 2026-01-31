@@ -258,7 +258,7 @@ export default class FinderPlugin {
             </div>
             <div class="file-meta">
               <span class="file-size">${formatSize(result.size)}</span>
-              <span class="file-date">${formatDate(result.modifiedAt)}</span>
+              <span class="file-date">${formatDate(result.modifiedAt, this.locale)}</span>
             </div>
           </li>
         `).join('')}
