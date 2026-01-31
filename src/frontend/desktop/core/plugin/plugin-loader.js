@@ -68,7 +68,8 @@ export class PluginLoader {
       const data = await response.json();
       return data.plugins || [];
     } catch {
-      // Return default plugins
+      // Return default plugins when plugins.json is not available
+      // This allows the system to work in demo/development mode
       return ['demo'];
     }
   }

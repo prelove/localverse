@@ -252,10 +252,6 @@ class LocalverseApp {
    * Show plugin page
    * @param {string} pluginId - Plugin ID
    */
-  /**
-   * Show plugin page
-   * @param {string} pluginId - Plugin ID
-   */
   showPlugin(pluginId) {
     const content = document.getElementById('content');
     
