@@ -273,12 +273,26 @@ export const migrations = [
     name: 'add_plugin_installs',
     sql: `
       -- Plugin installation records table
+    name: 'add_plugin_system',
+    sql: `
+      -- 插件安装记录表
       CREATE TABLE plugin_installs (
         plugin_id TEXT PRIMARY KEY,
         version TEXT NOT NULL,
         installed_at INTEGER NOT NULL,
         updated_at INTEGER
       );
+      
+      -- 插件配置表（可选，供未来扩展）
+      CREATE TABLE plugin_config (
+        plugin_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (plugin_id, key)
+      );
+      
+      CREATE INDEX idx_plugin_installs_time ON plugin_installs(installed_at);
     `
   }
 ];

@@ -1,0 +1,40 @@
+{
+  "id": "hello-world",
+  "name": {
+    "zh": "Hello World 示例",
+    "en": "Hello World Example"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "一个简单的示例插件",
+    "en": "A simple example plugin"
+  },
+  "entry": "./index.js",
+  "style": "./style.css",
+  "permissions": [
+    "notification"
+  ],
+  "dependencies": {
+    "services": [],
+    "plugins": []
+  },
+  "settings": {
+    "greeting": {
+      "type": "string",
+      "default": "Hello",
+      "label": {
+        "zh": "问候语",
+        "en": "Greeting"
+      }
+    },
+    "showTime": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "显示时间",
+        "en": "Show Time"
+      }
+    }
+  },
+  "exports": {}
+}

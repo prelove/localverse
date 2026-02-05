@@ -1,3 +1,4 @@
 {
   "plugins": ["hello"]
+  "plugins": ["demo"]
 }

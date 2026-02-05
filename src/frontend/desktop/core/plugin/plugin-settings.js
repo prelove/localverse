@@ -1,6 +1,12 @@
 /**
  * Plugin Settings Manager
  * Manages plugin configuration with validation
+ * Plugin Settings
+ * 插件设置管理 - 处理插件配置项
+ * 
+ * Manages plugin configuration with schema validation and persistence.
+ * Plugin Settings Manager
+ * Manages plugin configuration and preferences
  */
 
 export class PluginSettings {
@@ -13,6 +19,7 @@ export class PluginSettings {
     this.loadDefaults();
     this.loadFromStorage();
   }
+  
 
   /**
    * Load default values from schema
@@ -25,6 +32,10 @@ export class PluginSettings {
 
   /**
    * Load settings from localStorage
+  
+
+  /**
+   * Load saved settings from localStorage
    */
   loadFromStorage() {
     const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
@@ -33,10 +44,16 @@ export class PluginSettings {
         const parsed = JSON.parse(stored);
         this.values = { ...this.values, ...parsed };
       } catch {
+        // 忽略无效数据
+      }
+    }
+  }
+  
         // Ignore invalid data
       }
     }
   }
+  
 
   /**
    * Save settings to localStorage
@@ -52,6 +69,12 @@ export class PluginSettings {
    * Get setting value
    * @param {string} key
    * @returns {any}
+  
+
+  /**
+   * Get a setting value
+   * @param {string} key - Setting key
+   * @returns {*} Setting value
    */
   get(key) {
     if (key in this.values) {
@@ -66,6 +89,12 @@ export class PluginSettings {
    * Set setting value
    * @param {string} key
    * @param {any} value
+  
+
+  /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
    */
   async set(key, value) {
     const config = this.schema[key];
@@ -73,6 +102,7 @@ export class PluginSettings {
       throw new Error(`Unknown setting: ${key}`);
     }
     
+    // 验证
     // Validate
     if (!this.validate(key, value, config)) {
       throw new Error(`Invalid value for setting: ${key}`);
@@ -82,6 +112,7 @@ export class PluginSettings {
     this.values[key] = value;
     this.saveToStorage();
     
+    // 通知监听器
     // Notify listeners
     for (const listener of this.listeners) {
       try {
@@ -98,6 +129,14 @@ export class PluginSettings {
    * @param {any} value
    * @param {Object} config
    * @returns {boolean}
+  
+
+  /**
+   * Validate a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting config
+   * @returns {boolean} Is valid
    */
   validate(key, value, config) {
     switch (config.type) {
@@ -129,6 +168,15 @@ export class PluginSettings {
   /**
    * Get all settings
    * @returns {Object}
+  
+  getAll() {
+    return { ...this.values };
+  }
+  
+
+  /**
+   * Get all settings
+   * @returns {Object} All settings
    */
   getAll() {
     return { ...this.values };
@@ -137,6 +185,8 @@ export class PluginSettings {
   /**
    * Reset setting to default
    * @param {string} key - Optional, if not provided resets all
+   * Reset settings to defaults
+   * @param {string} [key] - Specific key to reset, or all if omitted
    */
   async reset(key) {
     if (key) {
@@ -145,6 +195,7 @@ export class PluginSettings {
         await this.set(key, config.default);
       }
     } else {
+      // 重置所有
       // Reset all
       this.loadDefaults();
       this.saveToStorage();
@@ -154,6 +205,11 @@ export class PluginSettings {
   /**
    * Listen for setting changes
    * @param {Function} callback
+  
+
+  /**
+   * Subscribe to setting changes
+   * @param {Function} callback - Change callback
    * @returns {Function} Unsubscribe function
    */
   onChange(callback) {
@@ -169,6 +225,11 @@ export class PluginSettings {
   /**
    * Get settings schema
    * @returns {Object}
+  
+
+  /**
+   * Get settings schema
+   * @returns {Object} Schema
    */
   getSchema() {
     return this.schema;

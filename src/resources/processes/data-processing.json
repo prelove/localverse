@@ -1,0 +1,66 @@
+{
+  "id": "data-processing",
+  "name": "Data Processing Pipeline",
+  "description": "A sample data processing workflow",
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "id": "fetch",
+      "name": "Fetch Data",
+      "type": "mock",
+      "config": {
+        "duration": 500,
+        "result": {
+          "records": 100,
+          "source": "database"
+        }
+      },
+      "dependsOn": null,
+      "condition": null
+    },
+    {
+      "id": "validate",
+      "name": "Validate Data",
+      "type": "mock",
+      "config": {
+        "duration": 300,
+        "successRate": 0.95,
+        "result": {
+          "valid": 95,
+          "invalid": 5
+        }
+      },
+      "dependsOn": ["fetch"],
+      "condition": null
+    },
+    {
+      "id": "transform",
+      "name": "Transform Data",
+      "type": "mock",
+      "config": {
+        "duration": 700,
+        "result": {
+          "transformed": 95,
+          "format": "JSON"
+        }
+      },
+      "dependsOn": ["validate"],
+      "condition": null
+    },
+    {
+      "id": "save",
+      "name": "Save Results",
+      "type": "log",
+      "config": {
+        "message": "Data processing completed successfully",
+        "level": "INFO"
+      },
+      "dependsOn": ["transform"],
+      "condition": null
+    }
+  ],
+  "variables": {
+    "batchSize": 100,
+    "timeout": 30000
+  }
+}
