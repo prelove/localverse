@@ -64,6 +64,7 @@ class I18n {
         splash: {
           detecting: '检测环境完成...',
           loading_config: '加载配置完成...',
+          loading_services: '服务加载完成...',
           authenticating: '认证完成...',
           init_services: '服务初始化完成...',
           loading_plugins: '插件加载完成...'
@@ -92,6 +93,7 @@ class I18n {
         splash: {
           detecting: 'Environment detected...',
           loading_config: 'Configuration loaded...',
+          loading_services: 'Services loaded...',
           authenticating: 'Authenticated...',
           init_services: 'Services initialized...',
           loading_plugins: 'Plugins loaded...'

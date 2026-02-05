@@ -1,0 +1,66 @@
+{
+  "id": "user-onboarding",
+  "name": "User Onboarding Workflow",
+  "description": "Automate new user onboarding steps",
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "id": "create-account",
+      "name": "Create User Account",
+      "type": "log",
+      "config": {
+        "message": "Creating user account...",
+        "level": "INFO"
+      },
+      "dependsOn": null,
+      "condition": null
+    },
+    {
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "delay",
+      "config": {
+        "duration": 500
+      },
+      "dependsOn": ["create-account"],
+      "condition": null
+    },
+    {
+      "id": "setup-workspace",
+      "name": "Setup User Workspace",
+      "type": "mock",
+      "config": {
+        "duration": 800,
+        "result": "Workspace created"
+      },
+      "dependsOn": ["create-account"],
+      "condition": null
+    },
+    {
+      "id": "assign-permissions",
+      "name": "Assign Default Permissions",
+      "type": "mock",
+      "config": {
+        "duration": 300,
+        "result": "Permissions assigned"
+      },
+      "dependsOn": ["create-account"],
+      "condition": null
+    },
+    {
+      "id": "notify-admin",
+      "name": "Notify Administrator",
+      "type": "log",
+      "config": {
+        "message": "New user onboarded successfully",
+        "level": "INFO"
+      },
+      "dependsOn": ["send-welcome-email", "setup-workspace", "assign-permissions"],
+      "condition": null
+    }
+  ],
+  "variables": {
+    "autoApprove": true,
+    "sendNotifications": true
+  }
+}

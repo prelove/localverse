@@ -1,0 +1,15 @@
+{
+  "installed": "Hello World plugin installed",
+  "hello": "Hello, {name}!",
+  "description": "This is a sample plugin demonstrating basic plugin system features.",
+  "greetCount": "Greet count: {count}",
+  "greetButton": "Greet",
+  "changeNameButton": "Change Name",
+  "pluginInfo": "Plugin Information",
+  "id": "ID",
+  "version": "Version",
+  "author": "Author",
+  "greetMessage": "Hello, {name}!",
+  "enterName": "Please enter new name",
+  "nameChanged": "Name changed"
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://localverse.dev/schemas/plugin-manifest.json",
+  "id": "hello-world",
+  "name": {
+    "zh": "Hello World",
+    "ja": "Hello World",
+    "en": "Hello World"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "简单的示例插件，演示插件系统的基本功能",
+    "ja": "プラグインシステムの基本機能を示すシンプルなサンプルプラグイン",
+    "en": "Simple sample plugin demonstrating basic plugin system features"
+  },
+  "author": "Localverse Team",
+  "license": "MIT",
+  
+  "icon": "🌍",
+  "category": "sample",
+  "tags": ["sample", "demo", "hello-world"],
+  
+  "entry": "./index.js",
+  
+  "minAppVersion": "1.0.0",
+  
+  "permissions": [
+    "notification"
+  ],
+  
+  "dependencies": {
+    "services": [],
+    "plugins": []
+  },
+  
+  "settings": {
+    "showIcon": {
+      "type": "boolean",
+      "default": true,
+      "label": { 
+        "zh": "显示图标", 
+        "en": "Show Icon",
+        "ja": "アイコンを表示"
+      },
+      "description": {
+        "zh": "是否在问候语中显示图标",
+        "en": "Whether to show icon in greeting",
+        "ja": "挨拶にアイコンを表示するかどうか"
+      }
+    },
+    "userName": {
+      "type": "string",
+      "default": "World",
+      "label": {
+        "zh": "用户名",
+        "en": "User Name",
+        "ja": "ユーザー名"
+      },
+      "description": {
+        "zh": "用于问候的名称",
+        "en": "Name to greet",
+        "ja": "挨拶する名前"
+      }
+    }
+  },
+  
+  "exports": {
+    "greet": "greet"
+  }
+}

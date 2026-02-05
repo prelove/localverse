@@ -7,19 +7,30 @@ import { Router } from './router.js';
 import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
+import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
+import { PluginLoader, EventBus } from './plugin/index.js';
+import { PluginLoader, eventBus } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
     this.mode = null;
     this.user = null;
     this.services = {};
-    this.plugins = null;
+    this.pluginLoader = null;
+    this.eventBus = null;
+    this.permissionManager = null;
+    this.eventBus = new EventBus();
+    this.permissionManager = new PermissionManager();
     this.ready = false;
     
     this.router = new Router();
     this.store = store;
     this.i18n = new I18n();
     this.theme = new ThemeManager();
+    this.eventBus = new EventBus();
+    this.pluginLoader = null;
+    this.pluginLoader = new PluginLoader(this);
+    this.eventBus = eventBus;
   }
 
   /**
@@ -44,13 +55,43 @@ class LocalverseApp {
       // 4. Initialize theme
       this.theme.init();
       
-      // 5. Setup routes
+      // 5. Initialize plugin system
+      await this.initPluginSystem();
+      this.updateSplash(this.i18n.t('splash.loading_plugins'));
+      
+      // 6. Setup routes
       this.setupRoutes();
       
-      // 6. Render UI
+      // 7. Render UI
       this.render();
       
-      // 7. Hide splash
+      // 8. Hide splash
+      // 5. Initialize services
+      await this.initServices();
+      this.updateSplash(this.i18n.t('splash.loading_services'));
+      
+      // 6. Initialize plugin system
+      await this.initPluginSystem();
+      this.updateSplash('Loading services...');
+      
+      // 6. Initialize plugins
+      await this.initPlugins();
+      this.updateSplash('Loading plugins...');
+      // 5. Initialize services (mock for now)
+      await this.initServices();
+      this.updateSplash(this.i18n.t('splash.init_services'));
+      
+      // 6. Load plugins
+      await this.loadPlugins();
+      this.updateSplash(this.i18n.t('splash.loading_plugins'));
+      
+      // 7. Setup routes
+      this.setupRoutes();
+      
+      // 8. Render UI
+      this.render();
+      
+      // 9. Hide splash
       setTimeout(() => this.hideSplash(), 500);
       
       this.ready = true;
@@ -132,6 +173,135 @@ class LocalverseApp {
   }
 
   /**
+   * Initialize plugin system
+   */
+  async initPluginSystem() {
+    try {
+      // Create event bus
+      this.eventBus = new EventBus();
+      
+      // Create permission manager
+      this.permissionManager = new PermissionManager();
+      
+      // Create plugin loader
+      this.pluginLoader = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus,
+        permissionManager: this.permissionManager
+   * Initialize services
+   */
+  async initServices() {
+    // Import and initialize services based on mode
+    try {
+      // Always load communication layer
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Load database service
+      const { default: DatabaseService } = await import('../services/database/index.js');
+      this.services.DatabaseService = DatabaseService;
+      
+      // Load search service if available
+      try {
+        const { SearchService } = await import('../services/search/index.js');
+        this.services.SearchService = new SearchService();
+      } catch {
+        console.log('Search service not available');
+      }
+      
+      // Load auth service
+      try {
+        const { AuthService } = await import('../services/auth/index.js');
+        this.services.AuthService = new AuthService();
+      } catch {
+        console.log('Auth service not available');
+      }
+      
+    // Import services dynamically based on mode
+    try {
+      const { DatabaseService } = await import('../services/database/index.js');
+      const { SearchService } = await import('../services/search/index.js');
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      
+      this.services.DatabaseService = new DatabaseService({ mode: this.mode });
+      this.services.SearchService = new SearchService();
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Initialize database
+      await this.services.DatabaseService.init();
+      
+      console.log('Services initialized:', Object.keys(this.services));
+    } catch (error) {
+      console.error('Failed to initialize services:', error);
+    }
+  }
+
+  /**
+   * Initialize plugin system
+   */
+  async initPluginSystem() {
+  async initPlugins() {
+    try {
+      this.pluginLoader = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus
+        eventBus: this.eventBus,
+        router: this.router,
+        databaseService: this.services.DatabaseService
+      });
+      
+      // Load all plugins
+      await this.pluginLoader.loadAll();
+      
+      console.log('Plugin system initialized:', this.pluginLoader.getAll().length, 'plugins loaded');
+      
+      // Listen to plugin events
+      this.eventBus.on('plugin:loaded', (data) => {
+        console.log('Plugin loaded:', data.id);
+      });
+      
+      this.eventBus.on('plugin:unloaded', (data) => {
+        console.log('Plugin unloaded:', data.id);
+      });
+      
+    } catch (error) {
+      console.error('Failed to initialize plugin system:', error);
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugin system:', error);
+      // Store plugin loader reference
+      this.plugins = this.pluginLoader;
+      this.store.set('plugins', this.pluginLoader.getAllManifests());
+      
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugins:', error);
+    // Initialize mock services for now
+    // In full mode, these would connect to JAR backend
+    this.services = {
+      database: { query: () => Promise.resolve([]) },
+      filesystem: { list: () => Promise.resolve([]) },
+      search: { search: (query) => Promise.resolve([]) }
+    };
+  }
+
+  /**
+   * Load plugins
+   */
+  async loadPlugins() {
+    try {
+      const result = await this.pluginLoader.loadAll();
+      console.log(`[App] Plugins loaded: ${result.success}/${result.total}`);
+      this.store.set('plugins', this.pluginLoader.getAllPlugins());
+    } catch (error) {
+      console.error('[App] Failed to load plugins:', error);
+      // Continue without plugins
+    }
+  }
+
+  /**
    * Setup routing
    */
   setupRoutes() {
@@ -167,9 +337,29 @@ class LocalverseApp {
    */
   async initComponents() {
     // Import components dynamically
-    await import('./components/header.js');
-    await import('./components/sidebar.js');
-    await import('./components/toast.js');
+    await import('../components/header.js');
+    await import('../components/sidebar.js');
+    await import('../components/toast.js');
+    
+    // Initialize sidebar with plugins
+    const sidebar = document.querySelector('lv-sidebar');
+    if (sidebar) {
+      const pluginManifests = this.pluginLoader.getAllPlugins().map(id => {
+        const manifest = this.pluginLoader.getManifest(id);
+        return {
+          id: manifest.id,
+          name: manifest.name[this.i18n.currentLang] || manifest.name.en || manifest.id,
+          icon: manifest.icon || '📦'
+        };
+      });
+      sidebar.setPlugins(pluginManifests);
+      
+      // Handle plugin selection
+      sidebar.addEventListener('plugin-select', (event) => {
+        const { pluginId } = event.detail;
+        this.router.navigate(`/plugin/${pluginId}`);
+      });
+    }
   }
 
   /**
@@ -192,14 +382,147 @@ class LocalverseApp {
    * Show plugin page
    * @param {string} pluginId - Plugin ID
    */
-  showPlugin(pluginId) {
+  async showPlugin(pluginId) {
     const content = document.getElementById('content');
+    
+    if (!this.pluginLoader) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin system not initialized</h1>
+    // Check if plugin exists
+    const plugin = this.pluginLoader?.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin not found: ${pluginId}</h1>
+          <p>The requested plugin is not installed or could not be loaded.</p>
+    if (!this.pluginLoader) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin System</h1>
+          <p>Plugin system is not initialized yet...</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const plugin = this.pluginLoader.get(pluginId);
+    // Try to get plugin instance
+    const plugin = this.pluginLoader.getPlugin(pluginId);
+    
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin not found: ${this.escapeHtml(pluginId)}</h1>
+          <p>Available plugins:</p>
+          <ul>
+            ${this.pluginLoader.getAllManifests().map(m => 
+              `<li><a href="#/plugin/${m.id}">${m.name.zh || m.name.en || m.id}</a></li>`
+            ).join('')}
+          </ul>
+          <h1>Plugin Not Found</h1>
+          <p>Plugin "${pluginId}" is not available.</p>
+          <p>Available plugins: ${this.pluginLoader.getAllManifests().map(m => m.id).join(', ')}</p>
+          <p>Plugin "${pluginId}" is not loaded.</p>
+          <a href="#/">← Back to Home</a>
+        </div>
+      `;
+      return;
+    }
+    
+    // Create container for plugin
     content.innerHTML = `
       <div class="plugin-page">
-        <h1>Plugin: ${pluginId}</h1>
-        <p>Plugin functionality coming soon...</p>
+        <div class="plugin-header">
+          <h1>${plugin.manifest.name.zh || plugin.manifest.name.en || plugin.manifest.id}</h1>
+          <p class="plugin-description">${plugin.manifest.description?.zh || plugin.manifest.description?.en || ''}</p>
+        </div>
+        <div id="plugin-container-${pluginId}" class="plugin-container"></div>
+    // Create plugin container
+    content.innerHTML = `
+      <div class="plugin-page">
+        <div id="plugin-${pluginId}" class="plugin-container"></div>
       </div>
     `;
+    
+    // Mount plugin
+    const container = document.getElementById(`plugin-container-${pluginId}`);
+    if (container) {
+      plugin.mount(container);
+    }
+    const container = document.getElementById(`plugin-${pluginId}`);
+    if (container) {
+      plugin.mount(container);
+    }
+    content.innerHTML = '<div id="plugin-container" class="plugin-container"></div>';
+    const container = document.getElementById('plugin-container');
+    
+    // Mount plugin
+    try {
+      plugin.mount(container);
+      this.store.set('activePlugin', pluginId);
+    } catch (error) {
+      console.error('Failed to mount plugin:', error);
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Error</h1>
+          <p>Failed to load plugin "${pluginId}": ${error.message}</p>
+        </div>
+      `;
+    }
+
+    // Activate plugin if not already active
+    if (!plugin.activated) {
+      try {
+        await this.pluginLoader.activatePlugin(pluginId);
+      } catch (error) {
+        console.error(`Failed to activate plugin ${pluginId}:`, error);
+        content.innerHTML = `
+          <div class="plugin-page">
+            <h1>Plugin Activation Failed</h1>
+            <p>${error.message}</p>
+            <a href="#/">← Back to Home</a>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    // Load plugin CSS if available
+    const manifest = this.pluginLoader.getManifest(pluginId);
+    if (manifest.style) {
+      const styleId = `plugin-style-${pluginId}`;
+      if (!document.getElementById(styleId)) {
+        const link = document.createElement('link');
+        link.id = styleId;
+        link.rel = 'stylesheet';
+        link.href = `/plugins/${pluginId}/${manifest.style}`;
+        document.head.appendChild(link);
+      }
+    }
+
+    // Render plugin UI
+    content.innerHTML = '';
+    const pluginContainer = document.createElement('div');
+    pluginContainer.className = 'plugin-container';
+    pluginContainer.dataset.pluginId = pluginId;
+    
+    const rendered = plugin.render();
+    if (typeof rendered === 'string') {
+      pluginContainer.innerHTML = rendered;
+    } else {
+      pluginContainer.appendChild(rendered);
+    }
+    
+    content.appendChild(pluginContainer);
+
+    // Bind events if plugin has bindEvents method
+    if (typeof plugin.bindEvents === 'function') {
+      plugin.bindEvents(pluginContainer);
+    }
+    
+    // Update store
+    this.store.set('activePlugin', pluginId);
   }
 
   /**
@@ -207,9 +530,14 @@ class LocalverseApp {
    */
   showSettings() {
     const content = document.getElementById('content');
+    
+    // Get loaded plugins
+    const plugins = this.pluginLoader ? this.pluginLoader.getAllManifests() : [];
+    
     content.innerHTML = `
       <div class="settings-page">
         <h1>Settings</h1>
+        
         <div class="settings-section">
           <h2>Theme</h2>
           <select id="themeSelect">
@@ -218,12 +546,28 @@ class LocalverseApp {
             <option value="high-contrast" ${this.theme.getTheme() === 'high-contrast' ? 'selected' : ''}>High Contrast</option>
           </select>
         </div>
+        
         <div class="settings-section">
           <h2>Language</h2>
           <select id="languageSelect">
             <option value="zh" ${this.i18n.getLocale() === 'zh' ? 'selected' : ''}>中文</option>
             <option value="en" ${this.i18n.getLocale() === 'en' ? 'selected' : ''}>English</option>
           </select>
+        </div>
+        
+        <div class="settings-section">
+          <h2>Plugins</h2>
+          ${plugins.length > 0 ? `
+            <ul class="plugin-list">
+              ${plugins.map(p => `
+                <li>
+                  <span class="plugin-name">${p.name.zh || p.name.en || p.id}</span>
+                  <span class="plugin-version">v${p.version}</span>
+                  <a href="#/plugin/${p.id}" class="plugin-link">Open</a>
+                </li>
+              `).join('')}
+            </ul>
+          ` : '<p>No plugins loaded</p>'}
         </div>
       </div>
     `;
@@ -300,6 +644,70 @@ class LocalverseApp {
    */
   dispatchEvent(event, detail = null) {
     window.dispatchEvent(new CustomEvent(event, { detail }));
+  }
+  
+  /**
+   * Escape HTML to prevent XSS
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  /**
+   * Show toast notification
+   * @param {string} message - Message text
+   * @param {string} type - Toast type (info, success, warning, error)
+   */
+  showToast(message, type = 'info') {
+    // This will be implemented by the toast component
+    window.dispatchEvent(new CustomEvent('show-toast', {
+      detail: { message, type }
+    }));
+  }
+  
+  /**
+   * Show modal dialog
+   * @param {Object} options - Modal options
+   * @returns {Promise<*>} Modal result
+   */
+  showModal(options) {
+    // This will be implemented by the modal component
+    return new Promise((resolve) => {
+      window.dispatchEvent(new CustomEvent('show-modal', {
+        detail: { options, resolve }
+      }));
+    });
+  }
+  
+  /**
+   * Show confirm dialog
+   * @param {string} message - Confirm message
+   * @returns {Promise<boolean>} True if confirmed
+   */
+  showConfirm(message) {
+    return this.showModal({
+      type: 'confirm',
+      message
+    });
+  }
+  
+  /**
+   * Show prompt dialog
+   * @param {string} message - Prompt message
+   * @param {string} defaultValue - Default input value
+   * @returns {Promise<string|null>} User input or null
+   */
+  showPrompt(message, defaultValue = '') {
+    return this.showModal({
+      type: 'prompt',
+      message,
+      defaultValue
+    });
   }
 }
 
