@@ -1,6 +1,14 @@
 /**
  * Plugin Settings
  * Manages plugin settings with validation and persistence
+ * Plugin Settings Manager
+ * Manages plugin configuration with validation
+ * Plugin Settings
+ * 插件设置管理 - 处理插件配置项
+ * 
+ * Manages plugin configuration with schema validation and persistence.
+ * Plugin Settings Manager
+ * Manages plugin configuration and preferences
  */
 
 export class PluginSettings {
@@ -17,6 +25,10 @@ export class PluginSettings {
   /**
    * Load default values from schema
    * @private
+  
+
+  /**
+   * Load default values from schema
    */
   loadDefaults() {
     for (const [key, config] of Object.entries(this.schema)) {
@@ -27,6 +39,11 @@ export class PluginSettings {
   /**
    * Load values from localStorage
    * @private
+   * Load settings from localStorage
+  
+
+  /**
+   * Load saved settings from localStorage
    */
   loadFromStorage() {
     const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
@@ -35,6 +52,11 @@ export class PluginSettings {
         const parsed = JSON.parse(stored);
         this.values = { ...this.values, ...parsed };
       } catch {
+        // 忽略无效数据
+      }
+    }
+  }
+  
         // Ignore invalid data
       }
     }
@@ -43,6 +65,10 @@ export class PluginSettings {
   /**
    * Save values to localStorage
    * @private
+  
+
+  /**
+   * Save settings to localStorage
    */
   saveToStorage() {
     localStorage.setItem(
@@ -53,6 +79,12 @@ export class PluginSettings {
 
   /**
    * Get setting value
+   * @param {string} key
+   * @returns {any}
+  
+
+  /**
+   * Get a setting value
    * @param {string} key - Setting key
    * @returns {*} Setting value
    */
@@ -70,6 +102,14 @@ export class PluginSettings {
    * @param {string} key - Setting key
    * @param {*} value - New value
    * @returns {Promise<void>}
+   * @param {string} key
+   * @param {any} value
+  
+
+  /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
    */
   async set(key, value) {
     const config = this.schema[key];
@@ -77,6 +117,7 @@ export class PluginSettings {
       throw new Error(`Unknown setting: ${key}`);
     }
     
+    // 验证
     // Validate
     if (!this.validate(key, value, config)) {
       throw new Error(`Invalid value for setting: ${key}`);
@@ -86,6 +127,7 @@ export class PluginSettings {
     this.values[key] = value;
     this.saveToStorage();
     
+    // 通知监听器
     // Notify listeners
     for (const listener of this.listeners) {
       try {
@@ -103,6 +145,18 @@ export class PluginSettings {
    * @param {Object} config - Setting configuration
    * @returns {boolean} True if valid
    * @private
+   * @param {string} key
+   * @param {any} value
+   * @param {Object} config
+   * @returns {boolean}
+  
+
+  /**
+   * Validate a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting config
+   * @returns {boolean} Is valid
    */
   validate(key, value, config) {
     switch (config.type) {
@@ -134,6 +188,16 @@ export class PluginSettings {
   /**
    * Get all settings
    * @returns {Object} All setting values
+   * @returns {Object}
+  
+  getAll() {
+    return { ...this.values };
+  }
+  
+
+  /**
+   * Get all settings
+   * @returns {Object} All settings
    */
   getAll() {
     return { ...this.values };
@@ -143,6 +207,10 @@ export class PluginSettings {
    * Reset setting(s) to default
    * @param {string} [key] - Setting key to reset (resets all if omitted)
    * @returns {Promise<void>}
+   * Reset setting to default
+   * @param {string} key - Optional, if not provided resets all
+   * Reset settings to defaults
+   * @param {string} [key] - Specific key to reset, or all if omitted
    */
   async reset(key) {
     if (key) {
@@ -171,6 +239,21 @@ export class PluginSettings {
   /**
    * Register change listener
    * @param {Function} callback - Callback function (key, value, oldValue) => void
+      // 重置所有
+      // Reset all
+      this.loadDefaults();
+      this.saveToStorage();
+    }
+  }
+
+  /**
+   * Listen for setting changes
+   * @param {Function} callback
+  
+
+  /**
+   * Subscribe to setting changes
+   * @param {Function} callback - Change callback
    * @returns {Function} Unsubscribe function
    */
   onChange(callback) {
@@ -248,6 +331,15 @@ export class PluginSettings {
         ${description ? `<small>${description}</small>` : ''}
       </div>
     `;
+   * @returns {Object}
+  
+
+  /**
+   * Get settings schema
+   * @returns {Object} Schema
+   */
+  getSchema() {
+    return this.schema;
   }
 }
 

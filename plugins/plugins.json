@@ -2,4 +2,6 @@
   "plugins": [
     "hello-world"
   ]
+  "plugins": ["hello"]
+  "plugins": ["demo"]
 }

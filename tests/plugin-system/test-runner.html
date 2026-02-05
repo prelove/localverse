@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin System Tests</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+    }
+    .test-case {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .test-case.pass {
+      border-left: 4px solid #4caf50;
+      background: #f1f8f4;
+    }
+    .test-case.fail {
+      border-left: 4px solid #f44336;
+      background: #fef1f0;
+    }
+    button {
+      padding: 12px 24px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Plugin System Tests</h1>
+    <button id="run-tests">Run Tests</button>
+    <div id="test-results"></div>
+    <div id="summary" style="display:none;margin-top:20px;padding:20px;background:#e3f2fd;border-radius:8px;">
+      <h2>Summary</h2>
+      <div>Total: <span id="total-tests">0</span></div>
+      <div>Passed: <span style="color:#4caf50" id="passed-tests">0</span></div>
+      <div>Failed: <span style="color:#f44336" id="failed-tests">0</span></div>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { EventBus, PluginStorage, PluginSettings, PermissionManager } from '../../src/frontend/desktop/core/plugin/index.js';
+    
+    const tests = [];
+    const results = [];
+    
+    function test(name, fn) {
+      tests.push({ name, fn });
+    }
+    
+    function assert(condition, message) {
+      if (!condition) throw new Error(message || 'Assertion failed');
+    }
+    
+    // EventBus Tests
+    test('EventBus: emit and receive', async () => {
+      const bus = new EventBus();
+      let received = null;
+      bus.on('test', (data) => { received = data; });
+      bus.emit('test', { value: 42 });
+      assert(received && received.value === 42, 'Event not received');
+    });
+    
+    test('EventBus: once handler', async () => {
+      const bus = new EventBus();
+      let count = 0;
+      bus.once('test', () => { count++; });
+      bus.emit('test');
+      bus.emit('test');
+      assert(count === 1, 'Once called multiple times');
+    });
+    
+    // PluginStorage Tests
+    test('PluginStorage: set and get', async () => {
+      const storage = new PluginStorage('test-1');
+      await storage.set('key', 'value');
+      const value = await storage.get('key');
+      assert(value === 'value', 'Value not retrieved');
+    });
+    
+    test('PluginStorage: complex objects', async () => {
+      const storage = new PluginStorage('test-2');
+      const obj = { nested: { val: 42 } };
+      await storage.set('obj', obj);
+      const retrieved = await storage.get('obj');
+      assert(JSON.stringify(retrieved) === JSON.stringify(obj), 'Object not stored');
+    });
+    
+    // PluginSettings Tests
+    test('PluginSettings: default values', async () => {
+      const settings = new PluginSettings({
+        id: 'test',
+        settings: {
+          enabled: { type: 'boolean', default: true }
+        }
+      });
+      assert(settings.get('enabled') === true, 'Default not loaded');
+    });
+    
+    test('PluginSettings: validation', async () => {
+      const settings = new PluginSettings({
+        id: 'test',
+        settings: {
+          flag: { type: 'boolean', default: false }
+        }
+      });
+      
+      let threw = false;
+      try {
+        await settings.set('flag', 'not-bool');
+      } catch (e) {
+        threw = true;
+      }
+      assert(threw, 'Validation not working');
+    });
+    
+    // PermissionManager Tests
+    test('PermissionManager: grant and check', async () => {
+      const pm = new PermissionManager();
+      pm.grant('plugin-1', ['database:read']);
+      assert(pm.hasPermission('plugin-1', 'database:read'), 'Permission not granted');
+      assert(!pm.hasPermission('plugin-1', 'database:write'), 'Wrong permission granted');
+    });
+    
+    test('PermissionManager: wildcard', async () => {
+      const pm = new PermissionManager();
+      pm.grant('plugin-2', ['database:*']);
+      assert(pm.hasPermission('plugin-2', 'database:read'), 'Wildcard not working');
+      assert(pm.hasPermission('plugin-2', 'database:write'), 'Wildcard not working');
+    });
+    
+    async function runTests() {
+      results.length = 0;
+      const container = document.getElementById('test-results');
+      container.innerHTML = '';
+      
+      for (const t of tests) {
+        try {
+          await t.fn();
+          results.push({ name: t.name, passed: true });
+          container.innerHTML += `<div class="test-case pass">✓ ${t.name}</div>`;
+        } catch (error) {
+          results.push({ name: t.name, passed: false, error: error.message });
+          container.innerHTML += `<div class="test-case fail">✗ ${t.name}<br><small>${error.message}</small></div>`;
+        }
+      }
+      
+      const passed = results.filter(r => r.passed).length;
+      document.getElementById('total-tests').textContent = results.length;
+      document.getElementById('passed-tests').textContent = passed;
+      document.getElementById('failed-tests').textContent = results.length - passed;
+      document.getElementById('summary').style.display = 'block';
+    }
+    
+    document.getElementById('run-tests').onclick = runTests;
+    runTests();
+  </script>
+</body>
+</html>

@@ -1,6 +1,13 @@
 /**
  * Plugin I18n
  * Provides internationalization for plugins
+ * Plugin Internationalization
+ * Manages plugin localization
+ * Plugin I18n
+ * 插件国际化支持
+ * 
+ * Internationalization support for plugins.
+ * Loads locale files and provides translation functions.
  */
 
 export class PluginI18n {
@@ -18,6 +25,19 @@ export class PluginI18n {
    * @param {Object} manifest - Plugin manifest
    * @private
    */
+    // Load locales asynchronously
+    this.loadLocales(manifest).catch(err => {
+      console.warn(`Failed to load locales for plugin ${this.pluginId}:`, err);
+    });
+  }
+
+  /**
+   * Load locale messages
+   * @param {Object} manifest
+   */
+    this.loadLocales(manifest);
+  }
+  
   async loadLocales(manifest) {
     const locales = ['zh', 'ja', 'en'];
     
@@ -38,6 +58,7 @@ export class PluginI18n {
   /**
    * Set current locale
    * @param {string} locale - Locale code (e.g., 'zh', 'en')
+   * @param {string} locale
    */
   setLocale(locale) {
     this.locale = locale;
@@ -48,22 +69,46 @@ export class PluginI18n {
    * @param {string} key - Translation key (dot notation supported)
    * @param {Object} params - Parameters to replace in template
    * @returns {string} Translated text
+   * @param {string} key - Translation key
+   * @param {Object} params - Parameters for interpolation
+   * @returns {string}
    */
   t(key, params = {}) {
     // Try current locale
     let text = this.getNestedValue(this.messages[this.locale], key);
     
     // Fallback to default locale
+        // 忽略加载失败
+        // Ignore loading failures
+      }
+    }
+  }
+  
+  setLocale(locale) {
+    this.locale = locale;
+  }
+  
+  t(key, params = {}) {
+    // 尝试当前语言
+    let text = this.getNestedValue(this.messages[this.locale], key);
+    
+    // 回退到默认语言
+    // Try current language
+    let text = this.getNestedValue(this.messages[this.locale], key);
+    
+    // Fallback to default language
     if (text === undefined) {
       text = this.getNestedValue(this.messages[this.fallbackLocale], key);
     }
     
+    // 找不到返回 key
     // Return key if not found
     if (text === undefined) {
       console.warn(`Missing translation: ${this.pluginId}.${key}`);
       return key;
     }
     
+    // 替换参数
     // Replace parameters
     for (const [param, value] of Object.entries(params)) {
       text = text.replace(new RegExp(`{${param}}`, 'g'), String(value));
@@ -79,6 +124,12 @@ export class PluginI18n {
    * @returns {*} Value at path
    * @private
    */
+   * Get nested value from object using dot notation
+   * @param {Object} obj
+   * @param {string} key
+   * @returns {any}
+   */
+  
   getNestedValue(obj, key) {
     if (!obj) return undefined;
     
@@ -92,6 +143,10 @@ export class PluginI18n {
    * @param {string} key - Translation key
    * @returns {boolean} True if translation exists
    */
+   * @param {string} key
+   * @returns {boolean}
+   */
+  
   has(key) {
     return this.getNestedValue(this.messages[this.locale], key) !== undefined ||
            this.getNestedValue(this.messages[this.fallbackLocale], key) !== undefined;

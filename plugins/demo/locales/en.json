@@ -1,0 +1,33 @@
+{
+  "title": "Demo Plugin",
+  "description": "Demonstrates plugin system features",
+  "yes": "Yes",
+  "no": "No",
+  "info": {
+    "title": "Plugin Information",
+    "id": "ID",
+    "version": "Version",
+    "user": "User"
+  },
+  "settings": {
+    "title": "Settings",
+    "enabled": "Enabled",
+    "maxItems": "Max Items",
+    "theme": "Theme"
+  },
+  "actions": {
+    "title": "Actions",
+    "counter": "Counter",
+    "increment": "Increment",
+    "decrement": "Decrement",
+    "reset": "Reset",
+    "save": "Save State",
+    "load": "Load State",
+    "clear": "Clear Messages",
+    "emit": "Emit Event"
+  },
+  "messages": {
+    "title": "Messages",
+    "empty": "No messages yet"
+  }
+}

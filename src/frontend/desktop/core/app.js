@@ -8,6 +8,8 @@ import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
 import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
+import { PluginLoader, EventBus } from './plugin/index.js';
+import { PluginLoader, eventBus } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
@@ -17,12 +19,18 @@ class LocalverseApp {
     this.pluginLoader = null;
     this.eventBus = null;
     this.permissionManager = null;
+    this.eventBus = new EventBus();
+    this.permissionManager = new PermissionManager();
     this.ready = false;
     
     this.router = new Router();
     this.store = store;
     this.i18n = new I18n();
     this.theme = new ThemeManager();
+    this.eventBus = new EventBus();
+    this.pluginLoader = null;
+    this.pluginLoader = new PluginLoader(this);
+    this.eventBus = eventBus;
   }
 
   /**
@@ -58,6 +66,32 @@ class LocalverseApp {
       this.render();
       
       // 8. Hide splash
+      // 5. Initialize services
+      await this.initServices();
+      this.updateSplash(this.i18n.t('splash.loading_services'));
+      
+      // 6. Initialize plugin system
+      await this.initPluginSystem();
+      this.updateSplash('Loading services...');
+      
+      // 6. Initialize plugins
+      await this.initPlugins();
+      this.updateSplash('Loading plugins...');
+      // 5. Initialize services (mock for now)
+      await this.initServices();
+      this.updateSplash(this.i18n.t('splash.init_services'));
+      
+      // 6. Load plugins
+      await this.loadPlugins();
+      this.updateSplash(this.i18n.t('splash.loading_plugins'));
+      
+      // 7. Setup routes
+      this.setupRoutes();
+      
+      // 8. Render UI
+      this.render();
+      
+      // 9. Hide splash
       setTimeout(() => this.hideSplash(), 500);
       
       this.ready = true;
@@ -155,6 +189,67 @@ class LocalverseApp {
         services: this.services,
         eventBus: this.eventBus,
         permissionManager: this.permissionManager
+   * Initialize services
+   */
+  async initServices() {
+    // Import and initialize services based on mode
+    try {
+      // Always load communication layer
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Load database service
+      const { default: DatabaseService } = await import('../services/database/index.js');
+      this.services.DatabaseService = DatabaseService;
+      
+      // Load search service if available
+      try {
+        const { SearchService } = await import('../services/search/index.js');
+        this.services.SearchService = new SearchService();
+      } catch {
+        console.log('Search service not available');
+      }
+      
+      // Load auth service
+      try {
+        const { AuthService } = await import('../services/auth/index.js');
+        this.services.AuthService = new AuthService();
+      } catch {
+        console.log('Auth service not available');
+      }
+      
+    // Import services dynamically based on mode
+    try {
+      const { DatabaseService } = await import('../services/database/index.js');
+      const { SearchService } = await import('../services/search/index.js');
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      
+      this.services.DatabaseService = new DatabaseService({ mode: this.mode });
+      this.services.SearchService = new SearchService();
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Initialize database
+      await this.services.DatabaseService.init();
+      
+      console.log('Services initialized:', Object.keys(this.services));
+    } catch (error) {
+      console.error('Failed to initialize services:', error);
+    }
+  }
+
+  /**
+   * Initialize plugin system
+   */
+  async initPluginSystem() {
+  async initPlugins() {
+    try {
+      this.pluginLoader = new PluginLoader({
+        pluginsDir: '/plugins',
+        services: this.services,
+        eventBus: this.eventBus
+        eventBus: this.eventBus,
+        router: this.router,
+        databaseService: this.services.DatabaseService
       });
       
       // Load all plugins
@@ -173,6 +268,36 @@ class LocalverseApp {
       
     } catch (error) {
       console.error('Failed to initialize plugin system:', error);
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugin system:', error);
+      // Store plugin loader reference
+      this.plugins = this.pluginLoader;
+      this.store.set('plugins', this.pluginLoader.getAllManifests());
+      
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugins:', error);
+    // Initialize mock services for now
+    // In full mode, these would connect to JAR backend
+    this.services = {
+      database: { query: () => Promise.resolve([]) },
+      filesystem: { list: () => Promise.resolve([]) },
+      search: { search: (query) => Promise.resolve([]) }
+    };
+  }
+
+  /**
+   * Load plugins
+   */
+  async loadPlugins() {
+    try {
+      const result = await this.pluginLoader.loadAll();
+      console.log(`[App] Plugins loaded: ${result.success}/${result.total}`);
+      this.store.set('plugins', this.pluginLoader.getAllPlugins());
+    } catch (error) {
+      console.error('[App] Failed to load plugins:', error);
+      // Continue without plugins
     }
   }
 
@@ -212,9 +337,29 @@ class LocalverseApp {
    */
   async initComponents() {
     // Import components dynamically
-    await import('./components/header.js');
-    await import('./components/sidebar.js');
-    await import('./components/toast.js');
+    await import('../components/header.js');
+    await import('../components/sidebar.js');
+    await import('../components/toast.js');
+    
+    // Initialize sidebar with plugins
+    const sidebar = document.querySelector('lv-sidebar');
+    if (sidebar) {
+      const pluginManifests = this.pluginLoader.getAllPlugins().map(id => {
+        const manifest = this.pluginLoader.getManifest(id);
+        return {
+          id: manifest.id,
+          name: manifest.name[this.i18n.currentLang] || manifest.name.en || manifest.id,
+          icon: manifest.icon || '📦'
+        };
+      });
+      sidebar.setPlugins(pluginManifests);
+      
+      // Handle plugin selection
+      sidebar.addEventListener('plugin-select', (event) => {
+        const { pluginId } = event.detail;
+        this.router.navigate(`/plugin/${pluginId}`);
+      });
+    }
   }
 
   /**
@@ -237,19 +382,33 @@ class LocalverseApp {
    * Show plugin page
    * @param {string} pluginId - Plugin ID
    */
-  showPlugin(pluginId) {
+  async showPlugin(pluginId) {
     const content = document.getElementById('content');
     
     if (!this.pluginLoader) {
       content.innerHTML = `
         <div class="plugin-page">
           <h1>Plugin system not initialized</h1>
+    // Check if plugin exists
+    const plugin = this.pluginLoader?.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin not found: ${pluginId}</h1>
+          <p>The requested plugin is not installed or could not be loaded.</p>
+    if (!this.pluginLoader) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin System</h1>
+          <p>Plugin system is not initialized yet...</p>
         </div>
       `;
       return;
     }
     
     const plugin = this.pluginLoader.get(pluginId);
+    // Try to get plugin instance
+    const plugin = this.pluginLoader.getPlugin(pluginId);
     
     if (!plugin) {
       content.innerHTML = `
@@ -261,6 +420,11 @@ class LocalverseApp {
               `<li><a href="#/plugin/${m.id}">${m.name.zh || m.name.en || m.id}</a></li>`
             ).join('')}
           </ul>
+          <h1>Plugin Not Found</h1>
+          <p>Plugin "${pluginId}" is not available.</p>
+          <p>Available plugins: ${this.pluginLoader.getAllManifests().map(m => m.id).join(', ')}</p>
+          <p>Plugin "${pluginId}" is not loaded.</p>
+          <a href="#/">← Back to Home</a>
         </div>
       `;
       return;
@@ -274,6 +438,10 @@ class LocalverseApp {
           <p class="plugin-description">${plugin.manifest.description?.zh || plugin.manifest.description?.en || ''}</p>
         </div>
         <div id="plugin-container-${pluginId}" class="plugin-container"></div>
+    // Create plugin container
+    content.innerHTML = `
+      <div class="plugin-page">
+        <div id="plugin-${pluginId}" class="plugin-container"></div>
       </div>
     `;
     
@@ -282,6 +450,79 @@ class LocalverseApp {
     if (container) {
       plugin.mount(container);
     }
+    const container = document.getElementById(`plugin-${pluginId}`);
+    if (container) {
+      plugin.mount(container);
+    }
+    content.innerHTML = '<div id="plugin-container" class="plugin-container"></div>';
+    const container = document.getElementById('plugin-container');
+    
+    // Mount plugin
+    try {
+      plugin.mount(container);
+      this.store.set('activePlugin', pluginId);
+    } catch (error) {
+      console.error('Failed to mount plugin:', error);
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Error</h1>
+          <p>Failed to load plugin "${pluginId}": ${error.message}</p>
+        </div>
+      `;
+    }
+
+    // Activate plugin if not already active
+    if (!plugin.activated) {
+      try {
+        await this.pluginLoader.activatePlugin(pluginId);
+      } catch (error) {
+        console.error(`Failed to activate plugin ${pluginId}:`, error);
+        content.innerHTML = `
+          <div class="plugin-page">
+            <h1>Plugin Activation Failed</h1>
+            <p>${error.message}</p>
+            <a href="#/">← Back to Home</a>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    // Load plugin CSS if available
+    const manifest = this.pluginLoader.getManifest(pluginId);
+    if (manifest.style) {
+      const styleId = `plugin-style-${pluginId}`;
+      if (!document.getElementById(styleId)) {
+        const link = document.createElement('link');
+        link.id = styleId;
+        link.rel = 'stylesheet';
+        link.href = `/plugins/${pluginId}/${manifest.style}`;
+        document.head.appendChild(link);
+      }
+    }
+
+    // Render plugin UI
+    content.innerHTML = '';
+    const pluginContainer = document.createElement('div');
+    pluginContainer.className = 'plugin-container';
+    pluginContainer.dataset.pluginId = pluginId;
+    
+    const rendered = plugin.render();
+    if (typeof rendered === 'string') {
+      pluginContainer.innerHTML = rendered;
+    } else {
+      pluginContainer.appendChild(rendered);
+    }
+    
+    content.appendChild(pluginContainer);
+
+    // Bind events if plugin has bindEvents method
+    if (typeof plugin.bindEvents === 'function') {
+      plugin.bindEvents(pluginContainer);
+    }
+    
+    // Update store
+    this.store.set('activePlugin', pluginId);
   }
 
   /**
