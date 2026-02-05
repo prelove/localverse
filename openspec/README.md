@@ -19,6 +19,12 @@
 
 ## 快速导航
 
+### 📊 项目状态评估
+
+**🎯 最新评估**: [PROJECT-READINESS-ASSESSMENT.md](./PROJECT-READINESS-ASSESSMENT.md) - 详细的项目可运行状态分析
+
+**📋 快速总结**: [../READINESS-SUMMARY.md](../READINESS-SUMMARY.md) - 一页纸项目状态摘要
+
 ### 我是新手，从哪里开始？
 
 **🚀 快速入门**: 阅读 [QUICK-START-GUIDE.md](./QUICK-START-GUIDE.md) (5分钟了解开发流程)
