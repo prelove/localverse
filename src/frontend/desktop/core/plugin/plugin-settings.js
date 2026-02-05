@@ -1,22 +1,11 @@
 /**
- * PluginSettings - Manages plugin configuration
- * Validates settings against schema and persists to localStorage
- * Plugin Settings
- * Manages plugin settings with validation and persistence
- * Plugin Settings Manager
- * Manages plugin configuration with validation
- * Plugin Settings
- * 插件设置管理 - 处理插件配置项
- * 
- * Manages plugin configuration with schema validation and persistence.
- * Plugin Settings Manager
- * Manages plugin configuration and preferences
+ * PluginSettings - Manages plugin configuration with validation
  */
 
 export class PluginSettings {
   constructor(manifest) {
-    this.pluginId = manifest.id;
-    this.schema = manifest.settings || {};
+    this.pluginId = manifest?.id || 'unknown';
+    this.schema = manifest?.settings || {};
     this.values = {};
     this.listeners = [];
     
@@ -26,32 +15,20 @@ export class PluginSettings {
 
   /**
    * Load default values from schema
-   * @private
-  
-
-  /**
-   * Load default values from schema
    */
   loadDefaults() {
     for (const [key, config] of Object.entries(this.schema)) {
-      this.values[key] = config.default;
+      this.values[key] = config?.default;
     }
   }
-
-  /**
-   * Load values from localStorage with validation
-   * Load values from localStorage
-   * @private
-   * Load settings from localStorage
-  
 
   /**
    * Load saved settings from localStorage
    */
   loadFromStorage() {
-    const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
-    if (stored) {
-      try {
+    try {
+      const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
+      if (stored) {
         const parsed = JSON.parse(stored);
         // Validate each loaded value against schema
         for (const [key, value] of Object.entries(parsed)) {
@@ -60,316 +37,164 @@ export class PluginSettings {
             this.values[key] = value;
           }
         }
-      } catch {
-        this.values = { ...this.values, ...parsed };
-      } catch {
-        // 忽略无效数据
       }
+    } catch {
+      // Ignore invalid data
     }
   }
-  
-        // Ignore invalid data
-      }
-    }
-  }
-
-  /**
-   * Save values to localStorage
-   * @private
-  
 
   /**
    * Save settings to localStorage
    */
   saveToStorage() {
-    localStorage.setItem(
-      `plugin_settings_${this.pluginId}`,
-      JSON.stringify(this.values)
-    );
+    try {
+      localStorage.setItem(
+        `plugin_settings_${this.pluginId}`,
+        JSON.stringify(this.values)
+      );
+    } catch (e) {
+      console.error(`Failed to save settings for plugin ${this.pluginId}:`, e);
+    }
   }
-
-  /**
-   * Get setting value
-   * @param {string} key
-   * @returns {any}
-  
 
   /**
    * Get a setting value
-   * @param {string} key - Setting key
-   * @returns {*} Setting value
    */
-  get(key) {
-    if (key in this.values) {
-      return this.values[key];
-    }
-    
-    const config = this.schema[key];
-    return config?.default;
+  get(key, defaultValue = null) {
+    return this.values.hasOwnProperty(key) ? this.values[key] : defaultValue;
   }
 
   /**
    * Set a setting value
-   * @param {string} key - Setting key
-   * @param {*} value - New value
-   * @returns {Promise<void>}
-   * Set setting value
-   * @param {string} key - Setting key
-   * @param {*} value - New value
-   * @returns {Promise<void>}
-   * @param {string} key
-   * @param {any} value
-  
-
-  /**
-   * Set a setting value
-   * @param {string} key - Setting key
-   * @param {*} value - New value
    */
-  async set(key, value) {
+  set(key, value) {
     const config = this.schema[key];
-    if (!config) {
-      throw new Error(`Unknown setting: ${key}`);
+    if (config && !this.validate(key, value, config)) {
+      throw new Error(`Invalid value for setting ${key}: ${value}`);
     }
     
-    // 验证
-    // Validate
-    if (!this.validate(key, value, config)) {
-      throw new Error(`Invalid value for setting: ${key}`);
-    }
-    
-    const oldValue = this.values[key];
     this.values[key] = value;
     this.saveToStorage();
-    
-    // 通知监听器
-    // Notify listeners
-    for (const listener of this.listeners) {
-      try {
-        await listener(key, value, oldValue);
-      } catch (error) {
-        console.error('Settings listener error:', error);
-      }
+    this.notify(key, value);
+  }
+
+  /**
+   * Get all settings
+   */
+  getAll() {
+    return { ...this.values };
+  }
+
+  /**
+   * Set multiple settings
+   */
+  setMultiple(values) {
+    for (const [key, value] of Object.entries(values)) {
+      this.set(key, value);
     }
   }
 
   /**
-   * Validate a setting value
-   * @param {string} key - Setting key
-   * @param {*} value - Value to validate
-   * @param {Object} config - Setting configuration
-   * @returns {boolean} Whether value is valid
-   * Validate setting value
-   * @param {string} key - Setting key
-   * @param {*} value - Value to validate
-   * @param {Object} config - Setting configuration
-   * @returns {boolean} True if valid
-   * @private
-   * @param {string} key
-   * @param {any} value
-   * @param {Object} config
-   * @returns {boolean}
-  
+   * Reset to defaults
+   */
+  reset() {
+    this.values = {};
+    this.loadDefaults();
+    this.saveToStorage();
+    this.notifyAll();
+  }
 
   /**
-   * Validate a setting value
-   * @param {string} key - Setting key
-   * @param {*} value - Value to validate
-   * @param {Object} config - Setting config
-   * @returns {boolean} Is valid
+   * Validate a value against schema
    */
   validate(key, value, config) {
-    switch (config.type) {
-      case 'boolean':
-        return typeof value === 'boolean';
-        
-      case 'number':
-        if (typeof value !== 'number') return false;
-        if (config.min !== undefined && value < config.min) return false;
-        if (config.max !== undefined && value > config.max) return false;
-        return true;
-        
-      case 'string':
-        if (typeof value !== 'string') return false;
-        if (config.pattern && !new RegExp(config.pattern).test(value)) return false;
-        return true;
-        
-      case 'select':
-        return config.options?.includes(value);
-        
-      case 'array':
-        return Array.isArray(value);
-        
-      default:
-        return true;
+    if (!config) return true;
+    
+    // Type validation
+    if (config.type && typeof value !== config.type) {
+      return false;
     }
-  }
-
-  /**
-   * Get all settings
-   * @returns {Object} All setting values
-   * @returns {Object}
-  
-  getAll() {
-    return { ...this.values };
-  }
-  
-
-  /**
-   * Get all settings
-   * @returns {Object} All settings
-   */
-  getAll() {
-    return { ...this.values };
-  }
-
-  /**
-   * Reset a setting to default
-   * @param {string} key - Setting key (optional, resets all if omitted)
-   * @returns {Promise<void>}
-   * Reset setting(s) to default
-   * @param {string} [key] - Setting key to reset (resets all if omitted)
-   * @returns {Promise<void>}
-   * Reset setting to default
-   * @param {string} key - Optional, if not provided resets all
-   * Reset settings to defaults
-   * @param {string} [key] - Specific key to reset, or all if omitted
-   */
-  async reset(key) {
-    if (key) {
-      const config = this.schema[key];
-      if (config) {
-        await this.set(key, config.default);
-      }
-    } else {
-      // Reset all
-      this.loadDefaults();
-      this.saveToStorage();
+    
+    // Enum validation
+    if (config.enum && !config.enum.includes(value)) {
+      return false;
     }
-  }
-
-  /**
-   * Register a change listener
-   * @param {Function} callback - Callback function
-      
-      // Notify listeners for all settings
-      for (const [settingKey, value] of Object.entries(this.values)) {
-        for (const listener of this.listeners) {
-          try {
-            await listener(settingKey, value, undefined);
-          } catch (error) {
-            console.error('Settings listener error:', error);
-          }
-        }
-      }
+    
+    // Number range
+    if (config.type === 'number') {
+      if (config.min !== undefined && value < config.min) return false;
+      if (config.max !== undefined && value > config.max) return false;
     }
-  }
-
-  /**
-   * Register change listener
-   * @param {Function} callback - Callback function (key, value, oldValue) => void
-      // 重置所有
-      // Reset all
-      this.loadDefaults();
-      this.saveToStorage();
+    
+    // String pattern
+    if (config.type === 'string' && config.pattern) {
+      const regex = new RegExp(config.pattern);
+      if (!regex.test(value)) return false;
     }
+    
+    return true;
   }
-
-  /**
-   * Listen for setting changes
-   * @param {Function} callback
-  
 
   /**
    * Subscribe to setting changes
-   * @param {Function} callback - Change callback
-   * @returns {Function} Unsubscribe function
    */
   onChange(callback) {
     this.listeners.push(callback);
     return () => {
       const index = this.listeners.indexOf(callback);
-      if (index >= 0) {
+      if (index > -1) {
         this.listeners.splice(index, 1);
       }
     };
   }
 
   /**
-   * Get the settings schema
-   * Get settings schema
-   * @returns {Object} Settings schema
+   * Notify listeners of a change
    */
-  getSchema() {
-    return this.schema;
+  notify(key, value) {
+    for (const listener of this.listeners) {
+      try {
+        listener(key, value, this.values);
+      } catch (e) {
+        console.error('Settings change listener error:', e);
+      }
+    }
   }
 
   /**
-   * Generate settings form HTML
-   * @returns {string} HTML form
+   * Notify listeners of all changes
    */
-  generateForm() {
-    const entries = Object.entries(this.schema);
-    if (entries.length === 0) {
-      return '<p>此插件无可配置项</p>';
+  notifyAll() {
+    for (const listener of this.listeners) {
+      try {
+        listener(null, null, this.values);
+      } catch (e) {
+        console.error('Settings change listener error:', e);
+      }
     }
-
-    return `
-      <div class="plugin-settings-form">
-        ${entries.map(([key, config]) => this.generateField(key, config)).join('')}
-      </div>
-    `;
   }
 
   /**
-   * Generate form field HTML
-   * @param {string} key - Setting key
-   * @param {Object} config - Setting configuration
-   * @returns {string} HTML field
-   * @private
-   */
-  generateField(key, config) {
-    const value = this.get(key);
-    const label = config.label?.zh || config.label?.en || key;
-    const description = config.description?.zh || config.description?.en || '';
-
-    let input = '';
-    switch (config.type) {
-      case 'boolean':
-        input = `<input type="checkbox" id="setting-${key}" ${value ? 'checked' : ''}>`;
-        break;
-      case 'number':
-        input = `<input type="number" id="setting-${key}" value="${value}" 
-                  min="${config.min || ''}" max="${config.max || ''}">`;
-        break;
-      case 'select':
-        input = `<select id="setting-${key}">
-          ${config.options.map(opt => 
-            `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
-          ).join('')}
-        </select>`;
-        break;
-      case 'string':
-      default:
-        input = `<input type="text" id="setting-${key}" value="${value}">`;
-    }
-
-    return `
-      <div class="setting-field">
-        <label for="setting-${key}">${label}</label>
-        ${input}
-        ${description ? `<small>${description}</small>` : ''}
-      </div>
-    `;
-   * @returns {Object}
-  
-
-  /**
-   * Get settings schema
-   * @returns {Object} Schema
+   * Get setting schema
    */
   getSchema() {
-    return this.schema;
+    return { ...this.schema };
+  }
+
+  /**
+   * Check if setting exists
+   */
+  has(key) {
+    return this.schema.hasOwnProperty(key);
+  }
+
+  /**
+   * Remove a setting
+   */
+  remove(key) {
+    delete this.values[key];
+    this.saveToStorage();
+    this.notify(key, undefined);
   }
 }
 

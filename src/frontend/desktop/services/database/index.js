@@ -41,7 +41,23 @@ export class DatabaseServiceFactory {
       await service.init();
       return service;
     }
-    
+
+    // Full 模式（JAR + WASM 都可用，优先使用 JAR）
+    if (mode === 'full') {
+      try {
+        service = new JarDatabaseService(options.baseUrl);
+        await service.init();
+        console.log('✓ Database mode: JAR (full mode)');
+        return service;
+      } catch (error) {
+        console.warn('JAR database unavailable in full mode, falling back to WASM:', error.message);
+        service = new WasmDatabaseService();
+        await service.init();
+        console.log('✓ Database mode: WASM (full mode fallback)');
+        return service;
+      }
+    }
+
     // 自动模式：先尝试 JAR，失败则降级到 WASM
     if (mode === 'auto') {
       try {

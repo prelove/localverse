@@ -1,4 +1,4 @@
-package core.process;
+package process;
 
 import java.util.*;
 import java.util.concurrent.*;

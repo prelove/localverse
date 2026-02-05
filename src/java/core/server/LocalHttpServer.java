@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 
 /**
  * HTTP 服务器
+ * 提供前端静态文件服务和 API 接口
  */
 public class LocalHttpServer {
     private final Config config;
@@ -24,9 +25,6 @@ public class LocalHttpServer {
     private final ProxyService proxyService;
     private SearchService searchService;
     private BackupService backupService;
-    // SearchService and ProcessService are initialized in registerHandlers()
-    // after the server is created, hence not final
-    private SearchService searchService;
     private ProcessService processService;
     private HttpServer server;
 
@@ -39,13 +37,10 @@ public class LocalHttpServer {
         this.databaseService = databaseService;
         this.proxyService = proxyService;
         
-        // Initialize search service if database is available
+        // Initialize search and backup services if database is available
         if (databaseService != null && databaseService.getConnection() != null) {
             this.searchService = new SearchService(databaseService.getConnection());
             this.backupService = new BackupService(config, databaseService);
-        } else {
-            this.searchService = null;
-            this.backupService = null;
         }
     }
 
@@ -67,37 +62,8 @@ public class LocalHttpServer {
         // 启动服务器
         server.start();
 
-        System.out.println("HTTP Server started on " + bindAddress + ":" + port);
-    }
-
-    /**
-     * 停止服务器
-     */
-    public void stop() {
-        if (server != null) {
-            server.stop(0);
-            System.out.println("HTTP Server stopped");
-    }
-
-    /**
-     * 启动服务器
-     */
-    public void start() throws IOException {
-        int port = config.client().httpPort();
-        String bindAddress = config.client().bindAddress();
-
-        server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
-
-        // 注册处理器
-        registerHandlers();
-
-        // 设置线程池
-        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-
-        // 启动服务器
-        server.start();
-
-        System.out.println("HTTP Server started on " + bindAddress + ":" + port);
+        System.out.println("✓ HTTP Server started on http://" + bindAddress + ":" + port);
+        System.out.println("  → Open http://" + bindAddress + ":" + port + " in your browser");
     }
 
     /**
@@ -119,13 +85,14 @@ public class LocalHttpServer {
      * 注册所有处理器
      */
     private void registerHandlers() {
-        // Initialize search service if database is available
-        if (databaseService != null && databaseService.getConnection() != null) {
-            this.searchService = new SearchService(databaseService.getConnection());
-        }
-        
         // Initialize process service
         this.processService = new ProcessService();
+        
+        // ========== 静态文件服务 (必须放在最前面，根路径) ==========
+        server.createContext("/", new StaticHandler(config));
+        System.out.println("✓ Static file server enabled");
+
+        // ========== API 接口 ==========
         
         // 健康检查
         server.createContext("/api/local/health", 
@@ -166,7 +133,7 @@ public class LocalHttpServer {
         server.createContext("/api/sync", 
             new ProxyHandler(config, proxyService));
 
-        System.out.println("Registered HTTP handlers");
+        System.out.println("✓ All HTTP handlers registered");
     }
     
     /**

@@ -44,7 +44,7 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src/java/core</sourceDirectory>
+        <sourceDirectory>src/java</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

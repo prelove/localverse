@@ -129,6 +129,15 @@ export class WasmDatabaseService {
     this.ensureReady();
     this.db.exec(sql);
   }
+
+  /**
+   * 执行 SQL（execute 别名）
+   * @param {string} sql - SQL 语句
+   * @param {Array} params - 参数
+   */
+  execute(sql, params = []) {
+    return this.run(sql, params);
+  }
   
   /**
    * 事务执行

@@ -14,15 +14,23 @@ class I18n {
    * Initialize i18n system
    */
   async init() {
+    // Load default messages first
+    this.messages['zh'] = this.getEmbeddedMessages('zh');
+    this.messages['en'] = this.getEmbeddedMessages('en');
+    
     // Try to load user's preferred locale from localStorage
     const savedLocale = localStorage.getItem('localverse_locale');
-    if (savedLocale) {
-      await this.setLocale(savedLocale);
+    if (savedLocale && this.messages[savedLocale]) {
+      this.locale = savedLocale;
     } else {
-      // Use browser's language
+      // Use browser's language if supported
       const browserLang = navigator.language.split('-')[0];
-      await this.setLocale(browserLang);
+      if (this.messages[browserLang]) {
+        this.locale = browserLang;
+      }
     }
+    
+    document.documentElement.lang = this.locale;
   }
 
   /**

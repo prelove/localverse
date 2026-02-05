@@ -1,4 +1,4 @@
-package core.process;
+package process;
 
 /**
  * Mock task executor that simulates work

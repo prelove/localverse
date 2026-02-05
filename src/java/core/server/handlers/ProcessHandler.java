@@ -1,10 +1,10 @@
-package core.server.handlers;
+package server.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import core.process.ProcessInstance;
-import core.services.ProcessService;
-import core.utils.JsonUtil;
+import process.ProcessInstance;
+import services.ProcessService;
+import utils.JsonUtil;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -55,7 +55,8 @@ public class ProcessHandler implements HttpHandler {
     
     private void handleStartProcess(HttpExchange exchange) throws IOException {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        Map<String, Object> request = JsonUtil.fromJson(body);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> request = JsonUtil.fromJson(body, Map.class);
         
         String definitionId = (String) request.get("definitionId");
         @SuppressWarnings("unchecked")

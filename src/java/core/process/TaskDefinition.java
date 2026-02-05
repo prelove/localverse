@@ -1,4 +1,4 @@
-package core.process;
+package process;
 
 import java.util.List;
 import java.util.Map;

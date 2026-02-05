@@ -1,4 +1,4 @@
-package core.process;
+package process;
 
 /**
  * Interface for task execution

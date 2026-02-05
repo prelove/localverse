@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "Localverse",
+    "title": "Localverse OS"
+  },
+  "splash": {
+    "detecting": "Detecting environment...",
+    "loading_config": "Loading configuration...",
+    "init_services": "Initializing services...",
+    "loading_plugins": "Loading plugins...",
+    "ready": "Ready"
+  },
+  "home": {
+    "welcome": "Welcome to Localverse",
+    "subtitle": "Please select a module from the sidebar to start"
+  },
+  "mode": {
+    "full": "Full Mode",
+    "light": "Light Mode",
+    "pure": "Pure Mode"
+  },
+  "error": {
+    "startup_failed": "Startup Failed",
+    "not_found": "Page Not Found",
+    "retry": "Retry"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "plugins": "Plugins"
+  }
+}

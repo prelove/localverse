@@ -1,4 +1,4 @@
-package core.process;
+package process;
 
 /**
  * Script task executor that evaluates simple expressions

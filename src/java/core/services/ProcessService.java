@@ -1,7 +1,7 @@
-package core.services;
+package services;
 
-import core.process.*;
-import core.utils.JsonUtil;
+import process.*;
+import utils.JsonUtil;
 
 import java.util.List;
 import java.util.Map;

@@ -109,6 +109,15 @@ export class JarDatabaseService {
   async exec(sql) {
     await this.run(sql, []);
   }
+
+  /**
+   * 执行 SQL（execute 别名）
+   * @param {string} sql - SQL 语句
+   * @param {Array} params - 参数
+   */
+  async execute(sql, params = []) {
+    return this.run(sql, params);
+  }
   
   /**
    * 事务执行
