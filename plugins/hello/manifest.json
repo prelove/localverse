@@ -1,0 +1,65 @@
+{
+  "id": "hello",
+  "name": {
+    "zh": "示例插件",
+    "ja": "サンプルプラグイン",
+    "en": "Hello Plugin"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "一个简单的示例插件，演示插件系统功能",
+    "ja": "プラグインシステムのデモ",
+    "en": "A simple example plugin to demonstrate the plugin system"
+  },
+  "author": "Localverse Team",
+  "license": "MIT",
+  
+  "icon": "./icon.svg",
+  "category": "productivity",
+  "tags": ["example", "demo"],
+  
+  "entry": "./index.js",
+  "style": "./style.css",
+  
+  "minAppVersion": "1.0.0",
+  
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 999,
+      "icon": "star"
+    }
+  },
+  
+  "permissions": [
+    "notification"
+  ],
+  
+  "dependencies": {
+    "services": [],
+    "plugins": []
+  },
+  
+  "settings": {
+    "showWelcome": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "显示欢迎消息",
+        "en": "Show welcome message"
+      }
+    },
+    "userName": {
+      "type": "string",
+      "default": "User",
+      "label": {
+        "zh": "用户名称",
+        "en": "User name"
+      }
+    }
+  },
+  
+  "exports": {
+    "greet": "greet"
+  }
+}

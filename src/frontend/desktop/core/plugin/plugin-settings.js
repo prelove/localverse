@@ -1,6 +1,16 @@
 /**
  * PluginSettings - Manages plugin configuration
  * Validates settings against schema and persists to localStorage
+ * Plugin Settings
+ * Manages plugin settings with validation and persistence
+ * Plugin Settings Manager
+ * Manages plugin configuration with validation
+ * Plugin Settings
+ * 插件设置管理 - 处理插件配置项
+ * 
+ * Manages plugin configuration with schema validation and persistence.
+ * Plugin Settings Manager
+ * Manages plugin configuration and preferences
  */
 
 export class PluginSettings {
@@ -16,6 +26,11 @@ export class PluginSettings {
 
   /**
    * Load default values from schema
+   * @private
+  
+
+  /**
+   * Load default values from schema
    */
   loadDefaults() {
     for (const [key, config] of Object.entries(this.schema)) {
@@ -25,6 +40,13 @@ export class PluginSettings {
 
   /**
    * Load values from localStorage with validation
+   * Load values from localStorage
+   * @private
+   * Load settings from localStorage
+  
+
+  /**
+   * Load saved settings from localStorage
    */
   loadFromStorage() {
     const stored = localStorage.getItem(`plugin_settings_${this.pluginId}`);
@@ -39,6 +61,13 @@ export class PluginSettings {
           }
         }
       } catch {
+        this.values = { ...this.values, ...parsed };
+      } catch {
+        // 忽略无效数据
+      }
+    }
+  }
+  
         // Ignore invalid data
       }
     }
@@ -46,6 +75,11 @@ export class PluginSettings {
 
   /**
    * Save values to localStorage
+   * @private
+  
+
+  /**
+   * Save settings to localStorage
    */
   saveToStorage() {
     localStorage.setItem(
@@ -53,6 +87,12 @@ export class PluginSettings {
       JSON.stringify(this.values)
     );
   }
+
+  /**
+   * Get setting value
+   * @param {string} key
+   * @returns {any}
+  
 
   /**
    * Get a setting value
@@ -73,6 +113,18 @@ export class PluginSettings {
    * @param {string} key - Setting key
    * @param {*} value - New value
    * @returns {Promise<void>}
+   * Set setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   * @returns {Promise<void>}
+   * @param {string} key
+   * @param {any} value
+  
+
+  /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
    */
   async set(key, value) {
     const config = this.schema[key];
@@ -80,6 +132,7 @@ export class PluginSettings {
       throw new Error(`Unknown setting: ${key}`);
     }
     
+    // 验证
     // Validate
     if (!this.validate(key, value, config)) {
       throw new Error(`Invalid value for setting: ${key}`);
@@ -89,6 +142,7 @@ export class PluginSettings {
     this.values[key] = value;
     this.saveToStorage();
     
+    // 通知监听器
     // Notify listeners
     for (const listener of this.listeners) {
       try {
@@ -105,6 +159,24 @@ export class PluginSettings {
    * @param {*} value - Value to validate
    * @param {Object} config - Setting configuration
    * @returns {boolean} Whether value is valid
+   * Validate setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting configuration
+   * @returns {boolean} True if valid
+   * @private
+   * @param {string} key
+   * @param {any} value
+   * @param {Object} config
+   * @returns {boolean}
+  
+
+  /**
+   * Validate a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting config
+   * @returns {boolean} Is valid
    */
   validate(key, value, config) {
     switch (config.type) {
@@ -135,6 +207,16 @@ export class PluginSettings {
 
   /**
    * Get all settings
+   * @returns {Object} All setting values
+   * @returns {Object}
+  
+  getAll() {
+    return { ...this.values };
+  }
+  
+
+  /**
+   * Get all settings
    * @returns {Object} All settings
    */
   getAll() {
@@ -145,6 +227,13 @@ export class PluginSettings {
    * Reset a setting to default
    * @param {string} key - Setting key (optional, resets all if omitted)
    * @returns {Promise<void>}
+   * Reset setting(s) to default
+   * @param {string} [key] - Setting key to reset (resets all if omitted)
+   * @returns {Promise<void>}
+   * Reset setting to default
+   * @param {string} key - Optional, if not provided resets all
+   * Reset settings to defaults
+   * @param {string} [key] - Specific key to reset, or all if omitted
    */
   async reset(key) {
     if (key) {
@@ -162,6 +251,38 @@ export class PluginSettings {
   /**
    * Register a change listener
    * @param {Function} callback - Callback function
+      
+      // Notify listeners for all settings
+      for (const [settingKey, value] of Object.entries(this.values)) {
+        for (const listener of this.listeners) {
+          try {
+            await listener(settingKey, value, undefined);
+          } catch (error) {
+            console.error('Settings listener error:', error);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Register change listener
+   * @param {Function} callback - Callback function (key, value, oldValue) => void
+      // 重置所有
+      // Reset all
+      this.loadDefaults();
+      this.saveToStorage();
+    }
+  }
+
+  /**
+   * Listen for setting changes
+   * @param {Function} callback
+  
+
+  /**
+   * Subscribe to setting changes
+   * @param {Function} callback - Change callback
    * @returns {Function} Unsubscribe function
    */
   onChange(callback) {
@@ -176,7 +297,76 @@ export class PluginSettings {
 
   /**
    * Get the settings schema
+   * Get settings schema
    * @returns {Object} Settings schema
+   */
+  getSchema() {
+    return this.schema;
+  }
+
+  /**
+   * Generate settings form HTML
+   * @returns {string} HTML form
+   */
+  generateForm() {
+    const entries = Object.entries(this.schema);
+    if (entries.length === 0) {
+      return '<p>此插件无可配置项</p>';
+    }
+
+    return `
+      <div class="plugin-settings-form">
+        ${entries.map(([key, config]) => this.generateField(key, config)).join('')}
+      </div>
+    `;
+  }
+
+  /**
+   * Generate form field HTML
+   * @param {string} key - Setting key
+   * @param {Object} config - Setting configuration
+   * @returns {string} HTML field
+   * @private
+   */
+  generateField(key, config) {
+    const value = this.get(key);
+    const label = config.label?.zh || config.label?.en || key;
+    const description = config.description?.zh || config.description?.en || '';
+
+    let input = '';
+    switch (config.type) {
+      case 'boolean':
+        input = `<input type="checkbox" id="setting-${key}" ${value ? 'checked' : ''}>`;
+        break;
+      case 'number':
+        input = `<input type="number" id="setting-${key}" value="${value}" 
+                  min="${config.min || ''}" max="${config.max || ''}">`;
+        break;
+      case 'select':
+        input = `<select id="setting-${key}">
+          ${config.options.map(opt => 
+            `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
+          ).join('')}
+        </select>`;
+        break;
+      case 'string':
+      default:
+        input = `<input type="text" id="setting-${key}" value="${value}">`;
+    }
+
+    return `
+      <div class="setting-field">
+        <label for="setting-${key}">${label}</label>
+        ${input}
+        ${description ? `<small>${description}</small>` : ''}
+      </div>
+    `;
+   * @returns {Object}
+  
+
+  /**
+   * Get settings schema
+   * @returns {Object} Schema
    */
   getSchema() {
     return this.schema;

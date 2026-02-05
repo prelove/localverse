@@ -50,32 +50,6 @@ public class Main {
             Config config = ConfigLoader.loadFromArgs(args);
             System.out.println("Mode: " + config.mode());
             System.out.println();
-            // Load configuration
-            String configPath = getConfigPath(args);
-            Config config = ConfigLoader.load(configPath);
-            config = ConfigLoader.merge(config, args);
-
-            System.out.println("ℹ Mode: " + config.mode());
-            
-            // Initialize services
-            FileSystemService fileSystemService = new FileSystemService(config);
-            databaseService = new DatabaseService(config);
-            ProxyService proxyService = new ProxyService(config);
-            
-            // Initialize database if path is provided
-            if (config.database() != null && config.database().path() != null) {
-                System.out.println("ℹ Database path: " + config.database().path());
-                try {
-                    databaseService.initialize();
-                    System.out.println("✓ Database initialized");
-                } catch (Exception e) {
-                    System.err.println("⚠ Database initialization failed: " + e.getMessage());
-                }
-            }
-
-            // Start HTTP server
-            httpServer = new LocalHttpServer(config, fileSystemService, databaseService, proxyService);
-            httpServer.start();
 
             // 初始化服务
             initializeServices(config);
@@ -186,13 +160,6 @@ public class Main {
     private static void printVersion() {
         System.out.println(Version.getFullVersion());
         System.out.println("Java version: " + System.getProperty("java.version"));
-            if (databaseService != null) {
-                databaseService.close();
-            }
-            System.out.println("✓ Shutdown complete");
-        } catch (Exception e) {
-            System.err.println("⚠ Error during shutdown: " + e.getMessage());
-        }
     }
 
     /**
@@ -231,24 +198,10 @@ public class Main {
 
         try {
             ConfigLoader.createDefaultConfig(configPath);
-            System.out.println("Default configuration created successfully");
+            System.out.println("Default configuration created successfully at: " + configPath);
         } catch (IOException e) {
             System.err.println("Failed to create config: " + e.getMessage());
             System.exit(1);
         }
-        System.out.println("Localverse - Browser-based Enterprise OS");
-        System.out.println();
-        System.out.println("Usage: java -jar localverse.jar [options]");
-        System.out.println();
-        System.out.println("Options:");
-        System.out.println("  --help, -h       Show this help message");
-        System.out.println("  --version, -v    Show version information");
-        System.out.println("  --config <path>  Specify config file path (default: config.json)");
-        System.out.println();
-    }
-
-    private static void printVersion() {
-        System.out.println("Localverse 1.0.0");
-        System.out.println("Java version: " + System.getProperty("java.version"));
     }
 }
