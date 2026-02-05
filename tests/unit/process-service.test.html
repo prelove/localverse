@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Process Service Tests</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    
+    .test {
+      margin: 20px 0;
+      padding: 10px;
+      border-left: 3px solid #4a4a4a;
+    }
+    
+    .test.running {
+      border-left-color: #ffa500;
+    }
+    
+    .test.passed {
+      border-left-color: #00ff00;
+    }
+    
+    .test.failed {
+      border-left-color: #ff0000;
+    }
+    
+    .test-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .test-result {
+      margin-left: 20px;
+      font-size: 14px;
+    }
+    
+    #summary {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #2d2d2d;
+      padding: 15px;
+      border-radius: 5px;
+      min-width: 200px;
+    }
+    
+    #summary div {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Process Service Integration Tests</h1>
+  
+  <div id="summary">
+    <div><strong>Test Summary</strong></div>
+    <div>Total: <span id="total">0</span></div>
+    <div>Passed: <span id="passed">0</span></div>
+    <div>Failed: <span id="failed">0</span></div>
+    <div>Running: <span id="running">0</span></div>
+  </div>
+  
+  <div id="tests"></div>
+  
+  <script src="./process-service.js"></script>
+  <script>
+    const testsContainer = document.getElementById('tests');
+    const stats = {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      running: 0
+    };
+    
+    function updateSummary() {
+      document.getElementById('total').textContent = stats.total;
+      document.getElementById('passed').textContent = stats.passed;
+      document.getElementById('failed').textContent = stats.failed;
+      document.getElementById('running').textContent = stats.running;
+    }
+    
+    class TestRunner {
+      constructor(name) {
+        this.name = name;
+        this.element = document.createElement('div');
+        this.element.className = 'test running';
+        this.element.innerHTML = `
+          <div class="test-name">${name}</div>
+          <div class="test-result" id="result-${stats.total}">Running...</div>
+        `;
+        testsContainer.appendChild(this.element);
+        
+        this.resultEl = document.getElementById(`result-${stats.total}`);
+        stats.total++;
+        stats.running++;
+        updateSummary();
+      }
+      
+      pass(message) {
+        this.element.className = 'test passed';
+        this.resultEl.textContent = '✓ ' + message;
+        stats.running--;
+        stats.passed++;
+        updateSummary();
+      }
+      
+      fail(message) {
+        this.element.className = 'test failed';
+        this.resultEl.textContent = '✗ ' + message;
+        stats.running--;
+        stats.failed++;
+        updateSummary();
+      }
+      
+      log(message) {
+        this.resultEl.textContent += '\n  ' + message;
+      }
+    }
+    
+    async function runTests() {
+      const processService = new ProcessService();
+      
+      // Test 1: Start a process
+      {
+        const test = new TestRunner('Start simple sequential process');
+        try {
+          const instanceId = await processService.startProcess('simple-sequential');
+          if (instanceId && typeof instanceId === 'string') {
+            test.pass(`Process started with ID: ${instanceId.slice(0, 8)}...`);
+          } else {
+            test.fail('Invalid instance ID returned');
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 2: Get process status
+      {
+        const test = new TestRunner('Get process status');
+        try {
+          const instanceId = await processService.startProcess('simple-sequential');
+          test.log(`Started process ${instanceId.slice(0, 8)}...`);
+          
+          const process = await processService.getStatus(instanceId);
+          test.log(`Status: ${process.status}`);
+          test.log(`Tasks: ${process.tasks.length}`);
+          
+          if (process && process.instanceId === instanceId) {
+            test.pass('Status retrieved successfully');
+          } else {
+            test.fail('Invalid status response');
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 3: Wait for completion
+      {
+        const test = new TestRunner('Wait for process completion');
+        try {
+          const instanceId = await processService.startProcess('simple-sequential');
+          test.log(`Started process ${instanceId.slice(0, 8)}...`);
+          
+          const process = await processService.pollUntilComplete(instanceId, 200, (p) => {
+            const progress = ProcessService.calculateProgress(p);
+            test.log(`Progress: ${progress}%`);
+          });
+          
+          test.log(`Final status: ${process.status}`);
+          
+          if (process.status === 'COMPLETED') {
+            test.pass('Process completed successfully');
+          } else {
+            test.fail(`Process ended with status: ${process.status}`);
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 4: Start and wait (convenience method)
+      {
+        const test = new TestRunner('Start and wait for completion');
+        try {
+          const process = await processService.startAndWait('parallel-tasks', {}, (p) => {
+            const progress = ProcessService.calculateProgress(p);
+            test.log(`Progress: ${progress}%`);
+          });
+          
+          test.log(`Final status: ${process.status}`);
+          test.log(`Tasks completed: ${process.tasks.filter(t => t.status === 'COMPLETED').length}/${process.tasks.length}`);
+          
+          if (process.status === 'COMPLETED') {
+            test.pass('Process completed successfully');
+          } else {
+            test.fail(`Process ended with status: ${process.status}`);
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 5: Cancel a process
+      {
+        const test = new TestRunner('Cancel a running process');
+        try {
+          const instanceId = await processService.startProcess('parallel-tasks');
+          test.log(`Started process ${instanceId.slice(0, 8)}...`);
+          
+          // Wait a bit for it to start
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const cancelled = await processService.cancelProcess(instanceId);
+          test.log(`Cancel result: ${cancelled}`);
+          
+          if (cancelled) {
+            test.pass('Process cancelled successfully');
+          } else {
+            test.fail('Failed to cancel process');
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 6: List processes
+      {
+        const test = new TestRunner('List all processes');
+        try {
+          // Start a few processes
+          await processService.startProcess('simple-sequential');
+          await processService.startProcess('parallel-tasks');
+          
+          const processes = await processService.listProcesses();
+          test.log(`Found ${processes.length} processes`);
+          
+          if (processes.length > 0) {
+            test.pass(`Listed ${processes.length} processes`);
+          } else {
+            test.fail('No processes found');
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 7: Progress calculation
+      {
+        const test = new TestRunner('Calculate progress percentage');
+        try {
+          const mockProcess = {
+            tasks: [
+              { status: 'COMPLETED' },
+              { status: 'COMPLETED' },
+              { status: 'RUNNING' },
+              { status: 'PENDING' }
+            ]
+          };
+          
+          const progress = ProcessService.calculateProgress(mockProcess);
+          test.log(`Progress: ${progress}%`);
+          
+          if (progress === 50) {
+            test.pass('Progress calculated correctly (50%)');
+          } else {
+            test.fail(`Expected 50%, got ${progress}%`);
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+      
+      // Test 8: Conditional flow
+      {
+        const test = new TestRunner('Conditional workflow execution');
+        try {
+          const process = await processService.startAndWait('conditional-flow', 
+            { shouldExecute: true }, 
+            (p) => {
+              test.log(`Progress: ${ProcessService.calculateProgress(p)}%`);
+            }
+          );
+          
+          const conditionalTask = process.tasks.find(t => t.id === 'conditionalTask');
+          test.log(`Conditional task status: ${conditionalTask.status}`);
+          
+          if (conditionalTask.status === 'COMPLETED' || conditionalTask.status === 'SKIPPED') {
+            test.pass('Conditional flow executed correctly');
+          } else {
+            test.fail(`Unexpected conditional task status: ${conditionalTask.status}`);
+          }
+        } catch (error) {
+          test.fail(error.message);
+        }
+      }
+    }
+    
+    // Run tests when page loads
+    window.addEventListener('load', () => {
+      setTimeout(runTests, 500);
+    });
+  </script>
+</body>
+</html>

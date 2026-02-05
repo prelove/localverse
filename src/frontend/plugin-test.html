@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin System Test - Localverse</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    header {
+      background: #2196F3;
+      color: white;
+      padding: 20px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .controls {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      background: #2196F3;
+      color: white;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #1976D2;
+    }
+
+    .btn.secondary {
+      background: #757575;
+    }
+
+    .btn.secondary:hover {
+      background: #616161;
+    }
+
+    .status {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .status-label {
+      font-weight: 500;
+      color: #666;
+    }
+
+    .status-value {
+      font-family: 'Courier New', monospace;
+      color: #333;
+    }
+
+    .status-value.success {
+      color: #4CAF50;
+    }
+
+    .status-value.error {
+      color: #f44336;
+    }
+
+    .plugin-area {
+      padding: 20px;
+      min-height: 400px;
+    }
+
+    .log {
+      padding: 20px;
+      background: #f5f5f5;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .log h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .log-entries {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+    }
+
+    .log-entry.error {
+      color: #ff5252;
+    }
+
+    .log-entry.warn {
+      color: #ffc107;
+    }
+
+    .log-entry.info {
+      color: #64b5f6;
+    }
+
+    .plugin-container {
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔌 Plugin System Test</h1>
+      <p>Testing Localverse plugin loading and lifecycle management</p>
+    </header>
+
+    <div class="controls">
+      <button id="loadPlugins" class="btn">Load Plugins</button>
+      <button id="showDemo" class="btn secondary">Show Demo Plugin</button>
+      <button id="clearLog" class="btn secondary">Clear Log</button>
+    </div>
+
+    <div class="status">
+      <div class="status-item">
+        <span class="status-label">Plugin Loader:</span>
+        <span id="loaderStatus" class="status-value">Not initialized</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Plugins Loaded:</span>
+        <span id="pluginCount" class="status-value">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Active Plugin:</span>
+        <span id="activePlugin" class="status-value">None</span>
+      </div>
+    </div>
+
+    <div class="plugin-area">
+      <div id="pluginContainer" class="plugin-container"></div>
+    </div>
+
+    <div class="log">
+      <h3>Console Log</h3>
+      <div id="logEntries" class="log-entries"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { PluginLoader, EventBus } from './desktop/core/plugin/index.js';
+
+    // Logging
+    const logEntries = document.getElementById('logEntries');
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEntries.appendChild(entry);
+      logEntries.scrollTop = logEntries.scrollHeight;
+    }
+
+    // Override console methods
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = (...args) => {
+      originalLog(...args);
+      log(args.join(' '), 'info');
+    };
+
+    console.error = (...args) => {
+      originalError(...args);
+      log(args.join(' '), 'error');
+    };
+
+    console.warn = (...args) => {
+      originalWarn(...args);
+      log(args.join(' '), 'warn');
+    };
+
+    // Status updates
+    function updateStatus() {
+      document.getElementById('loaderStatus').textContent = pluginLoader ? 'Initialized' : 'Not initialized';
+      document.getElementById('loaderStatus').className = pluginLoader ? 'status-value success' : 'status-value error';
+      
+      if (pluginLoader) {
+        const manifests = pluginLoader.getAllManifests();
+        document.getElementById('pluginCount').textContent = manifests.length;
+        document.getElementById('pluginCount').className = manifests.length > 0 ? 'status-value success' : 'status-value';
+      }
+    }
+
+    // Mock services
+    class MockDatabaseService {
+      constructor() {
+        this.tables = {};
+      }
+
+      async init() {
+        console.log('MockDatabaseService initialized');
+      }
+
+      async run(sql, params = []) {
+        console.log('MockDB run:', sql, params);
+        // Simple CREATE TABLE simulation
+        if (sql.includes('CREATE TABLE')) {
+          const match = sql.match(/CREATE TABLE (?:IF NOT EXISTS )?(\w+)/);
+          if (match) {
+            const tableName = match[1];
+            if (!this.tables[tableName]) {
+              this.tables[tableName] = [];
+            }
+          }
+        }
+        // Simple INSERT simulation
+        else if (sql.includes('INSERT')) {
+          const match = sql.match(/INSERT (?:OR REPLACE )?INTO (\w+)/);
+          if (match) {
+            const tableName = match[1];
+            if (!this.tables[tableName]) {
+              this.tables[tableName] = [];
+            }
+            this.tables[tableName].push({ params });
+          }
+        }
+        return { changes: 1 };
+      }
+
+      async query(sql, params = []) {
+        console.log('MockDB query:', sql, params);
+        const match = sql.match(/FROM (\w+)/);
+        if (match) {
+          const tableName = match[1];
+          return this.tables[tableName] || [];
+        }
+        return [];
+      }
+
+      async queryOne(sql, params = []) {
+        const results = await this.query(sql, params);
+        return results[0] || null;
+      }
+    }
+
+    // Initialize
+    let pluginLoader = null;
+    const eventBus = new EventBus();
+    const mockDB = new MockDatabaseService();
+
+    // Event listeners
+    eventBus.on('*', (data) => {
+      console.log('Event:', data.event, data.data);
+    });
+
+    // Buttons
+    document.getElementById('loadPlugins').onclick = async () => {
+      try {
+        console.log('Initializing plugin loader...');
+        
+        await mockDB.init();
+
+        pluginLoader = new PluginLoader({
+          pluginsDir: '/plugins',
+          services: {
+            DatabaseService: mockDB
+          },
+          eventBus: eventBus,
+          databaseService: mockDB
+        });
+
+        console.log('Loading plugins...');
+        await pluginLoader.loadAll();
+
+        const manifests = pluginLoader.getAllManifests();
+        console.log(`✅ Loaded ${manifests.length} plugin(s):`, manifests.map(m => m.id));
+
+        updateStatus();
+      } catch (error) {
+        console.error('Failed to load plugins:', error);
+      }
+    };
+
+    document.getElementById('showDemo').onclick = () => {
+      if (!pluginLoader) {
+        console.error('Plugin loader not initialized!');
+        return;
+      }
+
+      const plugin = pluginLoader.get('demo');
+      if (!plugin) {
+        console.error('Demo plugin not found!');
+        return;
+      }
+
+      const container = document.getElementById('pluginContainer');
+      container.innerHTML = '';
+
+      console.log('Mounting demo plugin...');
+      plugin.mount(container);
+
+      document.getElementById('activePlugin').textContent = 'demo';
+      document.getElementById('activePlugin').className = 'status-value success';
+    };
+
+    document.getElementById('clearLog').onclick = () => {
+      logEntries.innerHTML = '';
+      log('Log cleared', 'info');
+    };
+
+    // Initial log
+    console.log('Plugin System Test initialized');
+    console.log('Click "Load Plugins" to start');
+    updateStatus();
+  </script>
+</body>
+</html>

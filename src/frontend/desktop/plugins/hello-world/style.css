@@ -1,0 +1,7 @@
+/* Hello World Plugin Styles */
+
+/* 这个文件会被自动注入到 document.head */
+/* 如果需要全局样式，可以在这里定义 */
+
+/* 如果插件使用 Shadow DOM，这些样式不会影响插件内部 */
+/* 插件内部样式应该在 styles() 方法中定义 */
