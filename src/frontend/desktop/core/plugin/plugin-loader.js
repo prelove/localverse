@@ -1,5 +1,6 @@
 /**
  * Plugin Loader
+ * Discovers, loads, and manages plugins
  * 插件加载器 - 管理插件的完整生命周期
  * 插件加载器
  * 
@@ -120,6 +121,8 @@ export class PluginLoader {
     this.installedVersions = new Map();
   }
   
+  /**
+   * Load all available plugins
     
     this.initDatabase();
   }
@@ -159,6 +162,12 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Discover available plugins
+   * @returns {Promise<string[]>}
+   */
+  async discoverPlugins() {
+    // Try to load plugins list from config
   async discoverPlugins() {
     // 从配置或目录获取插件列表
     // 这里假设有一个 plugins.json 文件
@@ -198,6 +207,9 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Load single plugin
+   * @param {string} pluginId
       // Return default plugins when plugins.json is not available
       // This allows the system to work in demo/development mode
       return ['demo'];
@@ -250,6 +262,7 @@ export class PluginLoader {
     // 6. Create context
     const context = this.createContext(manifest);
     
+    // 7. Instantiate plugin
     // 7. Instantiate
     const instance = new PluginClass(context);
     
@@ -273,6 +286,9 @@ export class PluginLoader {
       await instance.onInstall();
       await this.markInstalled(manifest.id, manifest.version);
     } else {
+      // Check version update
+      const installedVersion = this.installedVersions.get(manifest.id);
+      if (installedVersion !== manifest.version) {
       // 检查版本更新
       const installedVersion = this.installedVersions.get(manifest.id);
       if (installedVersion !== manifest.version) {
@@ -287,6 +303,7 @@ export class PluginLoader {
     
     await instance.onActivate();
     
+    // 10. Emit event
     // 10. 发送事件
     // 10. Emit event
       // Check for version update
@@ -307,6 +324,8 @@ export class PluginLoader {
   }
   
   /**
+   * Unload plugin
+   * @param {string} pluginId
    * Unload a plugin
    * @param {string} pluginId - Plugin ID
    */
@@ -316,6 +335,10 @@ export class PluginLoader {
     
     await instance.onDeactivate();
     
+    // Remove styles
+    this.unloadStyle(pluginId);
+    
+    // Remove registration
     // 移除样式
     this.unloadStyle(pluginId);
     
@@ -335,6 +358,9 @@ export class PluginLoader {
   }
   
   /**
+   * Load manifest.json
+   * @param {string} pluginDir
+   * @returns {Promise<Object>}
    * Load plugin manifest
    * @param {string} pluginDir - Plugin directory
    * @returns {Promise<Object>} Manifest
@@ -348,6 +374,8 @@ export class PluginLoader {
   }
   
   /**
+   * Validate manifest
+   * @param {Object} manifest
    * Validate plugin manifest
    * @param {Object} manifest - Manifest to validate
    */
@@ -364,6 +392,9 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Check plugin dependencies
+   * @param {Object} manifest
   async checkDependencies(manifest) {
     const deps = manifest.dependencies || {};
     
@@ -382,6 +413,9 @@ export class PluginLoader {
       }
     }
     
+    // Check plugin dependencies
+    for (const pluginId of deps.plugins || []) {
+      if (!this.instances.has(pluginId)) {
     // 检查插件依赖
     for (const pluginId of deps.plugins || []) {
       if (!this.instances.has(pluginId)) {
@@ -396,6 +430,12 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Create plugin context
+   * @param {Object} manifest
+   * @returns {Object}
+   */
+  createContext(manifest) {
   createContext(manifest) {
     // 根据权限过滤服务
   /**
@@ -427,6 +467,8 @@ export class PluginLoader {
       storage: new PluginStorage(manifest.id),
       settings: new PluginSettings(manifest),
       i18n: new PluginI18n(manifest),
+      ui: this.createUIHelper(),
+      pluginLoader: this
       ui: this.createUIHelper()
     };
   }
@@ -444,6 +486,8 @@ export class PluginLoader {
   
   /**
    * Filter services by permissions
+   * @param {string[]} permissions
+   * @returns {Object}
    * @param {string[]} permissions - Required permissions
    * @returns {Object} Allowed services
    */
@@ -458,6 +502,7 @@ export class PluginLoader {
       }
     }
     
+    // Map permissions to services
     // 根据权限添加服务
     // Add services based on permissions
     // Permission-based services
@@ -480,6 +525,10 @@ export class PluginLoader {
     return allowed;
   }
   
+  /**
+   * Load plugin stylesheet
+   * @param {string} stylePath
+   * @param {string} pluginId
   async loadStyle(stylePath, pluginId) {
     const response = await fetch(stylePath);
     if (!response.ok) return;
@@ -509,6 +558,13 @@ export class PluginLoader {
       style.textContent = css;
       document.head.appendChild(style);
     } catch (error) {
+      console.warn(`Failed to load style for plugin ${pluginId}:`, error);
+    }
+  }
+  
+  /**
+   * Unload plugin stylesheet
+   * @param {string} pluginId
       console.warn(`Failed to load style for ${pluginId}:`, error);
     }
   }
@@ -524,6 +580,11 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Check if plugin is installed
+   * @param {string} pluginId
+   * @returns {Promise<boolean>}
+   */
   async isInstalled(pluginId) {
     try {
       const db = this.services.DatabaseService;
@@ -554,6 +615,11 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Mark plugin as installed
+   * @param {string} pluginId
+   * @param {string} version
+   */
   async markInstalled(pluginId, version) {
     try {
       const db = this.services.DatabaseService;
@@ -584,6 +650,10 @@ export class PluginLoader {
     }
   }
   
+  /**
+   * Create UI helper
+   * @returns {Object}
+   */
   createUIHelper() {
     return {
       showModal: (options) => window.app?.showModal(options),
@@ -601,6 +671,8 @@ export class PluginLoader {
   
   /**
    * Get plugin instance
+   * @param {string} pluginId
+   * @returns {Plugin}
    * @param {string} pluginId - Plugin ID
    * @returns {Object} Plugin instance
    */
@@ -610,6 +682,7 @@ export class PluginLoader {
   
   /**
    * Get all plugin instances
+   * @returns {Plugin[]}
    * @returns {Object[]} Plugin instances
    */
   getAll() {
@@ -618,6 +691,8 @@ export class PluginLoader {
   
   /**
    * Get plugin manifest
+   * @param {string} pluginId
+   * @returns {Object}
    * @param {string} pluginId - Plugin ID
    * @returns {Object} Plugin manifest
    */
@@ -626,6 +701,8 @@ export class PluginLoader {
   }
   
   /**
+   * Get all manifests
+   * @returns {Object[]}
    * Get all plugin manifests
    * @returns {Object[]} Plugin manifests
    */
@@ -634,6 +711,10 @@ export class PluginLoader {
   }
   
   /**
+   * Call plugin exported method
+   * @param {string} pluginId
+   * @param {string} method
+   * @param  {...any} args
    * Call plugin method
    * @param {string} pluginId - Plugin ID
    * @param {string} method - Method name

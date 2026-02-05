@@ -1,5 +1,6 @@
 /**
  * Permission Manager
+ * Manages plugin permissions
  * 权限管理器 - 控制插件的权限访问
  * 权限管理器
  * 
@@ -103,6 +104,14 @@ const PERMISSIONS = {
 
 export class PermissionManager {
   constructor() {
+    this.grants = new Map(); // pluginId -> Set<permission>
+  }
+
+  /**
+   * Grant permissions to plugin
+   * @param {string} pluginId
+   * @param {string[]} permissions
+   */
     this._pluginPermissions = new Map(); // pluginId -> Set<permission>
     this._authService = null;
   }
@@ -287,6 +296,12 @@ export class PermissionManager {
       grants.add(permission);
     }
   }
+
+  /**
+   * Revoke permission from plugin
+   * @param {string} pluginId
+   * @param {string} permission
+   */
   
   revoke(pluginId, permission) {
     const grants = this.grants.get(pluginId);
@@ -294,6 +309,21 @@ export class PermissionManager {
       grants.delete(permission);
     }
   }
+
+  /**
+   * Revoke all permissions from plugin
+   * @param {string} pluginId
+   */
+  revokeAll(pluginId) {
+    this.grants.delete(pluginId);
+  }
+
+  /**
+   * Check if plugin has permission
+   * @param {string} pluginId
+   * @param {string} permission
+   * @returns {boolean}
+   */
   
   revokeAll(pluginId) {
     this.grants.delete(pluginId);
@@ -316,12 +346,43 @@ export class PermissionManager {
     // Check specific permission
     if (grants.has(permission)) return true;
     
+    // Check parent permission (e.g. database:* includes database:read)
     // Check parent permission (e.g., database:* includes database:read)
     const [category] = permission.split(':');
     if (grants.has(`${category}:*`)) return true;
     
     return false;
   }
+
+  /**
+   * Get granted permissions for plugin
+   * @param {string} pluginId
+   * @returns {string[]}
+   */
+  getGranted(pluginId) {
+    const grants = this.grants.get(pluginId);
+    return grants ? Array.from(grants) : [];
+  }
+
+  /**
+   * Get permission information
+   * @param {string} permission
+   * @returns {Object}
+   */
+  getPermissionInfo(permission) {
+    return PERMISSIONS[permission] || { name: permission, risk: 'unknown' };
+  }
+
+  /**
+   * Get all available permissions
+   * @returns {Object}
+   */
+  getAllPermissions() {
+    return PERMISSIONS;
+  }
+}
+
+export default PermissionManager;
   
   getGranted(pluginId) {
     const grants = this.grants.get(pluginId);

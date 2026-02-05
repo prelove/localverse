@@ -1,4 +1,6 @@
 /**
+ * Event Bus for Plugin Communication
+ * Provides pub/sub mechanism for plugins to communicate
  * Event Bus
  * 事件总线 - 用于插件间通信
  * 事件总线 - 插件间通信
@@ -19,6 +21,12 @@
 
 export class EventBus {
   constructor() {
+    this.handlers = new Map();
+    this.onceHandlers = new Map();
+  }
+
+  /**
+   * Register event listener
     this._listeners = new Map(); // eventName -> Set<{handler, once, namespace}>
     this._wildcards = new Map(); // pattern -> Set<{handler, once, namespace}>
   }
@@ -249,6 +257,12 @@ export const eventBus = new EventBus();
     }
     this.handlers.get(event).add(handler);
     
+    // Return unsubscribe function
+    return () => this.off(event, handler);
+  }
+
+  /**
+   * Register one-time event listener
     // 返回取消函数
     return () => this.off(event, handler);
   }
@@ -284,6 +298,9 @@ export const eventBus = new EventBus();
     }
     this.onceHandlers.get(event).add(handler);
   }
+
+  /**
+   * Remove event listener
   
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context
@@ -313,6 +330,11 @@ export const eventBus = new EventBus();
       onceHandlers.delete(handler);
     }
   }
+
+  /**
+   * Emit event synchronously
+   * @param {string} event - Event name
+   * @param {any} data - Event data
   
   emit(event, data) {
     // 普通监听器
@@ -352,6 +374,7 @@ export const eventBus = new EventBus();
       }
     }
     
+    // One-time handlers
     // 一次性监听器
     // Once handlers
     const onceHandlers = this.onceHandlers.get(event);
@@ -379,6 +402,11 @@ export const eventBus = new EventBus();
       }
     }
   }
+
+  /**
+   * Emit event asynchronously
+   * @param {string} event - Event name
+   * @param {any} data - Event data
   
 
   /**
@@ -404,6 +432,12 @@ export const eventBus = new EventBus();
     
     this.onceHandlers.delete(event);
   }
+
+  /**
+   * Wait for an event
+   * @param {string} event - Event name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise} Promise that resolves when event is emitted
   
 
   /**
@@ -424,6 +458,9 @@ export const eventBus = new EventBus();
       });
     });
   }
+
+  /**
+   * Clear all event listeners
   
 
   /**

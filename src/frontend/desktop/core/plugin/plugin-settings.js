@@ -1,4 +1,6 @@
 /**
+ * Plugin Settings Manager
+ * Manages plugin configuration with validation
  * Plugin Settings
  * 插件设置管理 - 处理插件配置项
  * 
@@ -27,6 +29,9 @@ export class PluginSettings {
       this.values[key] = config.default;
     }
   }
+
+  /**
+   * Load settings from localStorage
   
 
   /**
@@ -59,6 +64,11 @@ export class PluginSettings {
       JSON.stringify(this.values)
     );
   }
+
+  /**
+   * Get setting value
+   * @param {string} key
+   * @returns {any}
   
 
   /**
@@ -74,6 +84,11 @@ export class PluginSettings {
     const config = this.schema[key];
     return config?.default;
   }
+
+  /**
+   * Set setting value
+   * @param {string} key
+   * @param {any} value
   
 
   /**
@@ -107,6 +122,13 @@ export class PluginSettings {
       }
     }
   }
+
+  /**
+   * Validate setting value
+   * @param {string} key
+   * @param {any} value
+   * @param {Object} config
+   * @returns {boolean}
   
 
   /**
@@ -142,6 +164,10 @@ export class PluginSettings {
         return true;
     }
   }
+
+  /**
+   * Get all settings
+   * @returns {Object}
   
   getAll() {
     return { ...this.values };
@@ -157,6 +183,8 @@ export class PluginSettings {
   }
 
   /**
+   * Reset setting to default
+   * @param {string} key - Optional, if not provided resets all
    * Reset settings to defaults
    * @param {string} [key] - Specific key to reset, or all if omitted
    */
@@ -173,6 +201,10 @@ export class PluginSettings {
       this.saveToStorage();
     }
   }
+
+  /**
+   * Listen for setting changes
+   * @param {Function} callback
   
 
   /**
@@ -189,6 +221,10 @@ export class PluginSettings {
       }
     };
   }
+
+  /**
+   * Get settings schema
+   * @returns {Object}
   
 
   /**

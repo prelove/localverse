@@ -7,6 +7,7 @@ import { Router } from './router.js';
 import store from './state.js';
 import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
+import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
 import { PluginLoader, EventBus } from './plugin/index.js';
 import { PluginLoader, eventBus } from './plugin/index.js';
 
@@ -15,6 +16,9 @@ class LocalverseApp {
     this.mode = null;
     this.user = null;
     this.services = {};
+    this.pluginLoader = null;
+    this.eventBus = new EventBus();
+    this.permissionManager = new PermissionManager();
     this.ready = false;
     
     this.router = new Router();
@@ -51,6 +55,10 @@ class LocalverseApp {
       
       // 5. Initialize services
       await this.initServices();
+      this.updateSplash(this.i18n.t('splash.loading_services'));
+      
+      // 6. Initialize plugin system
+      await this.initPluginSystem();
       this.updateSplash('Loading services...');
       
       // 6. Initialize plugins
@@ -155,6 +163,32 @@ class LocalverseApp {
    * Initialize services
    */
   async initServices() {
+    // Import and initialize services based on mode
+    try {
+      // Always load communication layer
+      const { CommunicationLayer } = await import('../services/comm/index.js');
+      this.services.CommunicationLayer = new CommunicationLayer();
+      
+      // Load database service
+      const { default: DatabaseService } = await import('../services/database/index.js');
+      this.services.DatabaseService = DatabaseService;
+      
+      // Load search service if available
+      try {
+        const { SearchService } = await import('../services/search/index.js');
+        this.services.SearchService = new SearchService();
+      } catch {
+        console.log('Search service not available');
+      }
+      
+      // Load auth service
+      try {
+        const { AuthService } = await import('../services/auth/index.js');
+        this.services.AuthService = new AuthService();
+      } catch {
+        console.log('Auth service not available');
+      }
+      
     // Import services dynamically based on mode
     try {
       const { DatabaseService } = await import('../services/database/index.js');
@@ -177,11 +211,13 @@ class LocalverseApp {
   /**
    * Initialize plugin system
    */
+  async initPluginSystem() {
   async initPlugins() {
     try {
       this.pluginLoader = new PluginLoader({
         pluginsDir: '/plugins',
         services: this.services,
+        eventBus: this.eventBus
         eventBus: this.eventBus,
         router: this.router,
         databaseService: this.services.DatabaseService
@@ -190,6 +226,9 @@ class LocalverseApp {
       // Load all plugins
       await this.pluginLoader.loadAll();
       
+      console.log('Plugins loaded:', this.pluginLoader.getAllManifests().map(m => m.id));
+    } catch (error) {
+      console.error('Failed to initialize plugin system:', error);
       // Store plugin loader reference
       this.plugins = this.pluginLoader;
       this.store.set('plugins', this.pluginLoader.getAllManifests());
@@ -305,6 +344,12 @@ class LocalverseApp {
     const content = document.getElementById('content');
     
     // Check if plugin exists
+    const plugin = this.pluginLoader?.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin not found: ${pluginId}</h1>
+          <p>The requested plugin is not installed or could not be loaded.</p>
     if (!this.pluginLoader) {
       content.innerHTML = `
         <div class="plugin-page">
@@ -333,6 +378,17 @@ class LocalverseApp {
     }
     
     // Create plugin container
+    content.innerHTML = `
+      <div class="plugin-page">
+        <div id="plugin-${pluginId}" class="plugin-container"></div>
+      </div>
+    `;
+    
+    // Mount plugin
+    const container = document.getElementById(`plugin-${pluginId}`);
+    if (container) {
+      plugin.mount(container);
+    }
     content.innerHTML = '<div id="plugin-container" class="plugin-container"></div>';
     const container = document.getElementById('plugin-container');
     

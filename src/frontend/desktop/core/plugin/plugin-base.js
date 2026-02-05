@@ -1,5 +1,6 @@
 /**
  * Plugin Base Class
+ * All plugins must extend this class
  * 插件基类 - 所有插件必须继承此类
  * 插件基类
  * 
@@ -379,6 +380,7 @@ export class Plugin {
   async onUninstall() {}
   
   /**
+   * Called when plugin is activated (every app start)
    * Called when plugin is activated
    */
   async onActivate() {}
@@ -389,6 +391,10 @@ export class Plugin {
   async onDeactivate() {}
   
   /**
+   * Called when settings change
+   * @param {string} key
+   * @param {any} value
+   * @param {any} oldValue
    * Called when a setting changes
    * @param {string} key - Setting key
    * @param {*} value - New value
@@ -407,6 +413,11 @@ export class Plugin {
    * @returns {string} HTML string
    */
   render() {
+    return '<div>Plugin content</div>';
+  }
+  
+  /**
+   * Plugin styles
     return '<div class="plugin-content">Plugin content</div>';
   }
   
@@ -418,6 +429,16 @@ export class Plugin {
     return '';
   }
   
+  /**
+   * Mount plugin to container
+   * @param {HTMLElement} container
+   */
+  mount(container) {
+    this._container = container;
+    
+    // Create Shadow DOM for style isolation
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
+    
   mount(container) {
     this._container = container;
     
@@ -438,6 +459,12 @@ export class Plugin {
     this.bindEvents();
   }
   
+  /**
+   * Unmount plugin
+   */
+  unmount() {
+    if (this._container && this._shadowRoot) {
+      this._shadowRoot.innerHTML = '';
   unmount() {
     if (this._container && this._shadowRoot) {
       this._shadowRoot.innerHTML = '';
@@ -451,6 +478,9 @@ export class Plugin {
     this._mounted = false;
   }
   
+  /**
+   * Internal render
+   */
   _render() {
     if (!this._shadowRoot) return;
     
@@ -487,6 +517,8 @@ export class Plugin {
   }
   
   /**
+   * Update plugin state and re-render
+   * @param {Object} newState
    * Update plugin state
    * @param {Object} newState - State updates
    */
@@ -498,6 +530,30 @@ export class Plugin {
     }
   }
   
+  // ========== DOM Utilities ==========
+  
+  /**
+   * Query selector in shadow root
+   * @param {string} selector
+   * @returns {HTMLElement}
+   */
+  $(selector) {
+    return this._shadowRoot?.querySelector(selector);
+  }
+  
+  /**
+   * Query all in shadow root
+   * @param {string} selector
+   * @returns {NodeList}
+   */
+  $$(selector) {
+    return this._shadowRoot?.querySelectorAll(selector) || [];
+  }
+  
+  // ========== Event Binding ==========
+  
+  /**
+   * Bind DOM events (override in subclass)
   // ========== DOM 工具 ==========
   // ========== DOM Utilities ==========
   
@@ -543,6 +599,8 @@ export class Plugin {
   
   /**
    * Emit plugin event
+   * @param {string} event
+   * @param {any} data
    * @param {string} event - Event name
    * @param {*} data - Event data
    */
@@ -551,6 +609,9 @@ export class Plugin {
   }
   
   /**
+   * Listen to event
+   * @param {string} event
+   * @param {Function} handler
    * Subscribe to event
    * @param {string} event - Event name
    * @param {Function} handler - Event handler
@@ -560,6 +621,13 @@ export class Plugin {
     return this.eventBus.on(event, handler);
   }
   
+  // ========== Service Calls ==========
+  
+  /**
+   * Call service method
+   * @param {string} serviceName
+   * @param {string} method
+   * @param  {...any} args
   // ========== 服务调用 ==========
   
   // ========== Service Calls ==========
@@ -582,6 +650,13 @@ export class Plugin {
     return service[method](...args);
   }
   
+  // ========== Internationalization ==========
+  
+  /**
+   * Translate text
+   * @param {string} key
+   * @param {Object} params
+   * @returns {string}
   // ========== 国际化 ==========
   
   // ========== Internationalization ==========
@@ -596,6 +671,11 @@ export class Plugin {
     return this.i18n.t(key, params);
   }
   
+  // ========== Settings ==========
+  
+  /**
+   * Get setting value
+   * @param {string} key
   // ========== 设置 ==========
   
   // ========== Settings ==========
@@ -610,6 +690,9 @@ export class Plugin {
   }
   
   /**
+   * Set setting value
+   * @param {string} key
+   * @param {any} value
    * Set a setting value
    * @param {string} key - Setting key
    * @param {*} value - New value
@@ -618,6 +701,12 @@ export class Plugin {
     return this.settings.set(key, value);
   }
   
+  // ========== Utilities ==========
+  
+  /**
+   * Generate unique ID
+   * @param {string} prefix
+   * @returns {string}
   // ========== 工具 ==========
   
   // ========== Utilities ==========
@@ -633,6 +722,9 @@ export class Plugin {
   }
   
   /**
+   * Escape HTML
+   * @param {string} text
+   * @returns {string}
    * Escape HTML special characters
    * @param {string} text - Text to escape
    * @returns {string} Escaped text
@@ -646,12 +738,16 @@ export class Plugin {
   
   /**
    * Get current user ID
+   * @returns {string}
    * @returns {string} User ID
    */
   getCurrentUserId() {
     return window.app?.user?.id || 'unknown';
   }
   
+  /**
+   * Get current user name
+   * @returns {string}
   getCurrentUserName() {
     return window.app?.user?.name || 'Unknown';
   }
@@ -665,6 +761,9 @@ export default Plugin;
   getCurrentUserName() {
     return window.app?.user?.name || 'Unknown';
   }
+}
+
+export default Plugin;
   
   /**
    * Navigate to a route

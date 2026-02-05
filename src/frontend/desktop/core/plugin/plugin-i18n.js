@@ -1,4 +1,6 @@
 /**
+ * Plugin Internationalization
+ * Manages plugin localization
  * Plugin I18n
  * 插件国际化支持
  * 
@@ -13,6 +15,16 @@ export class PluginI18n {
     this.fallbackLocale = 'en';
     this.messages = {};
     
+    // Load locales asynchronously
+    this.loadLocales(manifest).catch(err => {
+      console.warn(`Failed to load locales for plugin ${this.pluginId}:`, err);
+    });
+  }
+
+  /**
+   * Load locale messages
+   * @param {Object} manifest
+   */
     this.loadLocales(manifest);
   }
   
@@ -28,6 +40,30 @@ export class PluginI18n {
           this.messages[locale] = await response.json();
         }
       } catch {
+        // Ignore load failures
+      }
+    }
+  }
+
+  /**
+   * Set current locale
+   * @param {string} locale
+   */
+  setLocale(locale) {
+    this.locale = locale;
+  }
+
+  /**
+   * Translate key with parameters
+   * @param {string} key - Translation key
+   * @param {Object} params - Parameters for interpolation
+   * @returns {string}
+   */
+  t(key, params = {}) {
+    // Try current locale
+    let text = this.getNestedValue(this.messages[this.locale], key);
+    
+    // Fallback to default locale
         // 忽略加载失败
         // Ignore loading failures
       }
@@ -66,6 +102,13 @@ export class PluginI18n {
     
     return text;
   }
+
+  /**
+   * Get nested value from object using dot notation
+   * @param {Object} obj
+   * @param {string} key
+   * @returns {any}
+   */
   
   getNestedValue(obj, key) {
     if (!obj) return undefined;
@@ -74,6 +117,12 @@ export class PluginI18n {
       return current && current[part];
     }, obj);
   }
+
+  /**
+   * Check if translation exists
+   * @param {string} key
+   * @returns {boolean}
+   */
   
   has(key) {
     return this.getNestedValue(this.messages[this.locale], key) !== undefined ||

@@ -1,5 +1,6 @@
 /**
  * Plugin Storage
+ * Provides isolated IndexedDB storage for each plugin
  * 插件存储 - 基于 IndexedDB 的插件数据持久化
  * 插件存储 - 为每个插件提供独立的存储空间
  * 
@@ -261,6 +262,9 @@ export class PluginStorage {
     this.storeName = 'data';
     this.db = null;
   }
+
+  /**
+   * Initialize database
   
 
   /**
@@ -295,6 +299,11 @@ export class PluginStorage {
       await this.init();
     }
   }
+
+  /**
+   * Get value by key
+   * @param {string} key
+   * @returns {Promise<any>}
   
 
   /**
@@ -313,6 +322,11 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+
+  /**
+   * Set value by key
+   * @param {string} key
+   * @param {any} value
   
 
   /**
@@ -331,6 +345,10 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+
+  /**
+   * Remove value by key
+   * @param {string} key
   
 
   /**
@@ -348,6 +366,9 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+
+  /**
+   * Clear all data
   
 
   /**
@@ -364,6 +385,10 @@ export class PluginStorage {
       tx.onerror = () => reject(tx.error);
     });
   }
+
+  /**
+   * Get all keys
+   * @returns {Promise<string[]>}
   
 
   /**
@@ -381,6 +406,10 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+
+  /**
+   * Get all key-value pairs
+   * @returns {Promise<Object>}
   
 
   /**

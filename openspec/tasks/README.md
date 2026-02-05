@@ -37,12 +37,15 @@
 | [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | ✅ 已完成 |
 | [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | ✅ 已完成 |
 
+**Phase 0 总计：约 68 小时** ✅ **全部完成**
 **Phase 0 总计：约 68 小时** ✅ **100% 已完成** (2026-01-31)
 
 ### Phase 1: 核心应用 🟡 优先完成
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
+| [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | ✅ 已完成 |
+| task-002-search-service | 搜索服务 | 8h | 001 | ⏭️ 下一步 |
 | [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | 🟡 部分完成 |
 | task-002-search-service | 搜索服务 | 8h | 001 | 🔵 开发中 |
 | task-003-finder-plugin | 文件搜索插件 | 12h | 002 | 待创建 |
