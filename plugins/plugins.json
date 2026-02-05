@@ -1,7 +1,7 @@
 {
   "plugins": [
-    "hello-world"
+    "hello-world",
+    "hello",
+    "demo"
   ]
-  "plugins": ["hello"]
-  "plugins": ["demo"]
 }
