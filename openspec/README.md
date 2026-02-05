@@ -2,6 +2,21 @@
 
 这是 Localverse 项目的完整规格文档集。AI 开发工具和人类开发者都可以通过这些文档理解和实现系统。
 
+## 📊 项目当前状态
+
+**Phase 0 基础设施**: 83% 完成 (5/6 任务) 🟢
+
+| 任务 | 状态 | 文档 |
+|------|------|------|
+| 001: Launcher | ✅ 完成 | [task-001](./tasks/phase-0/task-001-launcher.md) |
+| 002: Local JAR | ✅ 完成 | [task-002](./tasks/phase-0/task-002-local-jar.md) |
+| 003: 通信层 | ✅ 完成 | [task-003](./tasks/phase-0/task-003-communication.md) |
+| 004: 数据库 | ✅ 完成 | [task-004](./tasks/phase-0/task-004-database.md) |
+| 005: 认证 | ✅ 完成 | [task-005](./tasks/phase-0/task-005-authentication.md) |
+| 006: 插件系统 | ⏳ 进行中 | [task-006](./tasks/phase-0/task-006-plugin-system.md) |
+
+**下一步**: 完成插件系统 → 启动 Phase 1 (前端框架)
+
 ## 快速导航
 
 ### 我是新手，从哪里开始？
@@ -39,17 +54,17 @@ Phase 2: 服务端与同步
 
 ### 我要开发某个功能
 
-| 功能 | 规格文档 | 任务文档 |
-|------|----------|----------|
-| 启动器 | specs/01-launcher.md | tasks/phase-0/task-001-launcher.md |
-| 本地 JAR | specs/02-local-jar.md | tasks/phase-0/task-002-local-jar.md |
-| 通信层 | specs/04-communication.md | tasks/phase-0/task-003-communication.md |
-| 数据库 | specs/05-database.md | tasks/phase-0/task-004-database.md |
-| 认证 | specs/06-authentication.md | tasks/phase-0/task-005-authentication.md |
-| 插件系统 | specs/08-plugin-system.md | tasks/phase-0/task-006-plugin-system.md |
-| 前端核心 | specs/09-frontend-core.md | tasks/phase-1/task-001-frontend-core.md |
-| 同步服务器 | specs/03-sync-server.md | tasks/phase-2/task-001-sync-server.md |
-| 同步引擎 | specs/07-sync-engine.md | tasks/phase-2/task-002-sync-engine.md |
+| 功能 | 状态 | 规格文档 | 任务文档 |
+|------|------|----------|----------|
+| 启动器 | ✅ 完成 | [specs/01-launcher.md](specs/01-launcher.md) | [tasks/phase-0/task-001-launcher.md](tasks/phase-0/task-001-launcher.md) |
+| 本地 JAR | ✅ 完成 | [specs/02-local-jar.md](specs/02-local-jar.md) | [tasks/phase-0/task-002-local-jar.md](tasks/phase-0/task-002-local-jar.md) |
+| 通信层 | ✅ 完成 | [specs/04-communication.md](specs/04-communication.md) | [tasks/phase-0/task-003-communication.md](tasks/phase-0/task-003-communication.md) |
+| 数据库 | ✅ 完成 | [specs/05-database.md](specs/05-database.md) | [tasks/phase-0/task-004-database.md](tasks/phase-0/task-004-database.md) |
+| 认证 | ✅ 完成 | [specs/06-authentication.md](specs/06-authentication.md) | [tasks/phase-0/task-005-authentication.md](tasks/phase-0/task-005-authentication.md) |
+| 插件系统 | ⏳ 进行中 | [specs/08-plugin-system.md](specs/08-plugin-system.md) | [tasks/phase-0/task-006-plugin-system.md](tasks/phase-0/task-006-plugin-system.md) |
+| 前端核心 | ⏳ 待开发 | [specs/09-frontend-core.md](specs/09-frontend-core.md) | [tasks/phase-1/task-001-frontend-core.md](tasks/phase-1/task-001-frontend-core.md) |
+| 同步服务器 | ⏳ 待开发 | [specs/03-sync-server.md](specs/03-sync-server.md) | [tasks/phase-2/task-001-sync-server.md](tasks/phase-2/task-001-sync-server.md) |
+| 同步引擎 | ⏳ 待开发 | [specs/07-sync-engine.md](specs/07-sync-engine.md) | [tasks/phase-2/task-002-sync-engine.md](tasks/phase-2/task-002-sync-engine.md) |
 
 ### 我要开发插件
 
@@ -60,7 +75,53 @@ Phase 2: 服务端与同步
    - [specs/plugins/chat.md](./specs/plugins/chat.md) - 聊天
    - [specs/plugins/task.md](./specs/plugins/task.md) - 任务管理
 
-## 目录结构
+## 📝 文档类型说明
+
+### specs/ - 技术规格
+**作用**: 定义"是什么"和"为什么"
+- 组件的架构设计
+- API 接口定义
+- 数据结构
+- 交互协议
+- 技术选型理由
+
+**阅读对象**: 架构师、技术决策者、需要深入理解系统的开发者
+
+### tasks/ - 开发任务
+**作用**: 说明"怎么做"
+- 具体实现步骤
+- 代码示例
+- 测试要点
+- 验收标准
+- 时间估算
+
+**阅读对象**: 实现功能的开发者、AI Agent
+
+### 两者关系
+- **specs** 是蓝图，**tasks** 是施工指南
+- 开发前先读 **specs** 理解设计，再读 **tasks** 开始实现
+- **specs** 相对稳定，**tasks** 可根据实际调整
+
+## 🎯 推荐阅读顺序
+
+### 第一次接触项目
+1. [../README.md](../README.md) - 项目概览 (3分钟)
+2. [QUICK-START-GUIDE.md](QUICK-START-GUIDE.md) - 快速入门 (5分钟)
+3. [specs/00-architecture.md](specs/00-architecture.md) - 系统架构 (10分钟)
+4. [DEVELOPMENT-ROADMAP.md](DEVELOPMENT-ROADMAP.md) - 开发路线图 (15分钟)
+
+### 准备开发 Phase 0
+1. [tasks/README.md](tasks/README.md) - 任务总览
+2. [tasks/phase-0/task-001-launcher.md](tasks/phase-0/task-001-launcher.md) - 第一个任务
+3. [specs/01-launcher.md](specs/01-launcher.md) - 启动器规格
+4. 开始编码
+
+### 了解已完成功能
+1. [../docs/IMPLEMENTATION_SUMMARY.md](../docs/IMPLEMENTATION_SUMMARY.md) - 实现总结
+2. [../docs/local-jar.md](../docs/local-jar.md) - Local JAR API
+3. [../src/frontend/desktop/services/](../src/frontend/desktop/services/) - 前端服务实现
+
+## 📚 核心文档
 
 ```
 openspec/
