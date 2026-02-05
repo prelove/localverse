@@ -1,4 +1,6 @@
 /**
+ * PluginI18n - Internationalization for plugins
+ * Loads and manages plugin translations
  * Plugin I18n
  * Provides internationalization for plugins
  * Plugin Internationalization
@@ -17,6 +19,37 @@ export class PluginI18n {
     this.fallbackLocale = 'en';
     this.messages = {};
     
+    // Sync with global language changes
+    this._syncLocale();
+    
+    // Note: Locales are loaded asynchronously via loadLocales()
+  }
+  
+  /**
+   * Sync locale with document language
+   */
+  _syncLocale() {
+    // Update locale when document language changes
+    const observer = new MutationObserver(() => {
+      const newLocale = document.documentElement.lang;
+      if (newLocale && newLocale !== this.locale) {
+        this.locale = newLocale;
+      }
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['lang']
+    });
+  }
+
+  /**
+   * Load locale files for the plugin
+   * @param {string} pluginDir - Plugin directory path
+   * @returns {Promise<void>}
+   */
+  async loadLocales(pluginDir) {
+    const locales = ['zh', 'en', 'ja'];
     this.loadLocales(manifest);
   }
 
@@ -44,12 +77,14 @@ export class PluginI18n {
     for (const locale of locales) {
       try {
         const response = await fetch(
+          `${pluginDir}/locales/${locale}.json`
           `/plugins/${this.pluginId}/locales/${locale}.json`
         );
         if (response.ok) {
           this.messages[locale] = await response.json();
         }
       } catch {
+        // Ignore loading failures
         // Ignore load failures
       }
     }
@@ -57,6 +92,7 @@ export class PluginI18n {
 
   /**
    * Set current locale
+   * @param {string} locale - Locale code
    * @param {string} locale - Locale code (e.g., 'zh', 'en')
    * @param {string} locale
    */
@@ -65,6 +101,20 @@ export class PluginI18n {
   }
 
   /**
+   * Get current locale
+   * @returns {string} Current locale
+   */
+  getLocale() {
+    return this.locale;
+  }
+
+  /**
+   * Translate a key
+   * @param {string} key - Translation key
+   * @param {Object} params - Template parameters
+   * @returns {string} Translated text
+   */
+  t(key, params = {}) {
    * Translate key with parameters
    * @param {string} key - Translation key (dot notation supported)
    * @param {Object} params - Parameters to replace in template
@@ -118,6 +168,11 @@ export class PluginI18n {
   }
 
   /**
+   * Get nested value from object
+   * @param {Object} obj - Object to search
+   * @param {string} key - Dot-separated key path
+   * @returns {*} Value or undefined
+   */
    * Get nested value from object by path
    * @param {Object} obj - Object to traverse
    * @param {string} key - Dot-separated path
@@ -141,6 +196,8 @@ export class PluginI18n {
   /**
    * Check if translation exists
    * @param {string} key - Translation key
+   * @returns {boolean} Whether translation exists
+   */
    * @returns {boolean} True if translation exists
    */
    * @param {string} key

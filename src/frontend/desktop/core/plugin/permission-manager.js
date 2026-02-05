@@ -1,4 +1,6 @@
 /**
+ * PermissionManager - Manages plugin permissions
+ * Controls access to sensitive APIs
  * Permission Manager
  * Manages plugin permissions and access control
  * Manages plugin permissions
@@ -119,6 +121,10 @@ export class PermissionManager {
   }
 
   /**
+   * Grant permissions to a plugin
+   * @param {string} pluginId - Plugin ID
+   * @param {string[]} permissions - Permissions to grant
+   */
    * Grant permissions to plugin
    * @param {string} pluginId - Plugin ID
    * @param {string[]} permissions - Permissions to grant
@@ -312,6 +318,10 @@ export class PermissionManager {
   }
 
   /**
+   * Revoke a permission from a plugin
+   * @param {string} pluginId - Plugin ID
+   * @param {string} permission - Permission to revoke
+   */
    * Revoke permission from plugin
    * @param {string} pluginId - Plugin ID
    * @param {string} permission - Permission to revoke
@@ -328,6 +338,8 @@ export class PermissionManager {
   }
 
   /**
+   * Revoke all permissions from a plugin
+   * @param {string} pluginId - Plugin ID
    * Revoke all permissions from plugin
    * @param {string} pluginId - Plugin ID
    * @param {string} pluginId
@@ -337,6 +349,11 @@ export class PermissionManager {
   }
 
   /**
+   * Check if plugin has a permission
+   * @param {string} pluginId - Plugin ID
+   * @param {string} permission - Permission to check
+   * @returns {boolean} Whether plugin has permission
+   */
    * Check if plugin has permission
    * @param {string} pluginId - Plugin ID
    * @param {string} permission - Permission to check
@@ -383,6 +400,9 @@ export class PermissionManager {
   }
 
   /**
+   * Get all granted permissions for a plugin
+   * @param {string} pluginId - Plugin ID
+   * @returns {string[]} Array of permissions
    * Get granted permissions for plugin
    * @param {string} pluginId - Plugin ID
    * @returns {string[]} Array of granted permissions
@@ -414,12 +434,16 @@ export class PermissionManager {
 
   /**
    * Get all available permissions
+   * @returns {Object} All permissions
    * @returns {Object} All permissions with info
    * @returns {Object}
    */
   getAllPermissions() {
     return PERMISSIONS;
   }
+}
+
+export default PermissionManager;
 
   /**
    * Create permission proxy for services

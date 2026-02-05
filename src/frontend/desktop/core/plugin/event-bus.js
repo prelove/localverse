@@ -1,4 +1,6 @@
 /**
+ * EventBus - Plugin Event Communication
+ * Enables loose coupling between plugins and core system
  * Event Bus
  * Provides pub/sub event system for plugin communication
  * Event Bus for Plugin Communication
@@ -28,6 +30,9 @@ export class EventBus {
   }
 
   /**
+   * Register an event handler
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
    * Register event listener
    * @param {string} event - Event name
    * @param {Function} handler - Handler function
@@ -266,6 +271,9 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Register a one-time event handler
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
    * Register one-time event listener
    * @param {string} event - Event name
    * @param {Function} handler - Handler function
@@ -306,6 +314,9 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Remove an event handler
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
    * Remove event listener
    * @param {string} event - Event name
    * @param {Function} handler - Handler function
@@ -416,6 +427,10 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Emit an event asynchronously
+   * @param {string} event - Event name
+   * @param {*} data - Event data
+   * @returns {Promise<void>}
    * Emit event asynchronously
    * @param {string} event - Event name
    * @param {any} data - Event data
@@ -446,6 +461,12 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Wait for an event to be emitted
+   * @param {string} event - Event name
+   * @param {number} timeout - Timeout in milliseconds (default: 5000ms)
+   * @returns {Promise<*>} Event data
+   */
+  wait(event, timeout = 5000) {
    * Wait for event
    * @param {string} event - Event name
    * @param {number} timeout - Timeout in milliseconds
@@ -476,6 +497,7 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Clear all handlers
    * Clear all listeners
    * Clear all event listeners
   

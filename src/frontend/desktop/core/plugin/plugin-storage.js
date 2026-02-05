@@ -1,4 +1,6 @@
 /**
+ * PluginStorage - IndexedDB storage for plugins
+ * Each plugin gets isolated storage
  * Plugin Storage
  * Provides isolated IndexedDB storage for plugins
  * Provides isolated IndexedDB storage for each plugin
@@ -265,6 +267,8 @@ export class PluginStorage {
   }
 
   /**
+   * Initialize database
+   * @returns {Promise<void>}
    * Initialize IndexedDB
    * @returns {Promise<void>}
    * Initialize database
@@ -295,6 +299,7 @@ export class PluginStorage {
 
   /**
    * Ensure database is initialized
+   * @returns {Promise<void>}
    * @private
   
 
@@ -308,6 +313,9 @@ export class PluginStorage {
   }
 
   /**
+   * Get a value
+   * @param {string} key - Storage key
+   * @returns {Promise<*>} Stored value or null
    * Get value by key
    * @param {string} key - Storage key
    * @returns {Promise<*>} Stored value or null
@@ -333,6 +341,10 @@ export class PluginStorage {
   }
 
   /**
+   * Set a value
+   * @param {string} key - Storage key
+   * @param {*} value - Value to store
+   * @returns {Promise<void>}
    * Set value by key
    * @param {string} key - Storage key
    * @param {*} value - Value to store
@@ -359,6 +371,9 @@ export class PluginStorage {
   }
 
   /**
+   * Remove a value
+   * @param {string} key - Storage key
+   * @returns {Promise<void>}
    * Remove value by key
    * @param {string} key - Storage key
    * @returns {Promise<void>}
@@ -382,6 +397,8 @@ export class PluginStorage {
   }
 
   /**
+   * Clear all values
+   * @returns {Promise<void>}
    * Clear all data
    * @returns {Promise<void>}
   
@@ -423,6 +440,8 @@ export class PluginStorage {
   }
 
   /**
+   * Get all key-value pairs
+   * @returns {Promise<Object>} Object with all data
    * Get all data as object
    * Get all key-value pairs
    * @returns {Promise<Object>}

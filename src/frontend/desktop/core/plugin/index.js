@@ -1,4 +1,6 @@
 /**
+ * Plugin System - Main exports
+ * Localverse Plugin Framework
  * Plugin System
  * Main entry point for plugin system
  * Plugin System - Main Entry Point
@@ -31,6 +33,7 @@ export { EventBus } from './event-bus.js';
 export { PluginStorage } from './plugin-storage.js';
 export { PluginSettings } from './plugin-settings.js';
 export { PluginI18n } from './plugin-i18n.js';
+export { PermissionManager } from './permission-manager.js';
 export { PermissionManager, PERMISSIONS } from './permission-manager.js';
 
 // Re-export default

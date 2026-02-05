@@ -1,4 +1,6 @@
 /**
+ * Plugin - Base class for all Localverse plugins
+ * Provides lifecycle hooks, state management, and utilities
  * Plugin Base Class
  * All plugins must extend this class
  * 插件基类 - 所有插件必须继承此类
@@ -36,6 +38,10 @@ export class Plugin {
     this.storage = context.storage;
     this.settings = context.settings;
     this.i18n = context.i18n;
+    
+    this._state = {};
+    this._mounted = false;
+    this._shadowRoot = null;
     this.ui = context.ui;
     
     this._state = {};
@@ -364,6 +370,8 @@ export class Plugin {
   // ========== Lifecycle Hooks ==========
   
   /**
+   * Called when plugin is first installed
+   * @returns {Promise<void>}
    * Called when plugin is installed (first time only)
    * Use for database table creation, default configuration, etc.
   async onInstall() {}
@@ -380,11 +388,14 @@ export class Plugin {
   
   /**
    * Called when plugin is uninstalled
+   * @returns {Promise<void>}
    * Use for cleanup, data removal, etc.
    */
   async onUninstall() {}
   
   /**
+   * Called when plugin is activated
+   * @returns {Promise<void>}
    * Called when plugin is activated (every app launch)
    * Use for event registration, background tasks, etc.
    * Called when plugin is activated (every app start)
@@ -394,6 +405,7 @@ export class Plugin {
   
   /**
    * Called when plugin is deactivated
+   * @returns {Promise<void>}
    * Use for event removal, stopping tasks, etc.
    */
   async onDeactivate() {}
@@ -408,12 +420,15 @@ export class Plugin {
    * @param {string} key - Setting key
    * @param {*} value - New value
    * @param {*} oldValue - Old value
+   * @returns {Promise<void>}
    */
   async onSettingsChange(key, value, oldValue) {}
   
   // ========== Rendering ==========
   
   /**
+   * Render plugin content
+   * @returns {string} HTML content
    * Render main UI
    * @returns {string} HTML string
    */
@@ -432,6 +447,7 @@ export class Plugin {
   
   /**
    * Plugin styles
+   * @returns {string} CSS styles
     return '<div class="plugin-content">Plugin content</div>';
   }
   
@@ -444,12 +460,17 @@ export class Plugin {
   }
   
   /**
+   * Mount plugin to a container
+   * @param {HTMLElement} container - Container element
    * Mount plugin to container
    * @param {HTMLElement} container - Container element
    * @param {HTMLElement} container
    */
   mount(container) {
     this._container = container;
+    
+    // Create Shadow DOM for style isolation
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
     
     // Create Shadow DOM
     this._shadowRoot = container.attachShadow({ mode: 'open' });
@@ -498,6 +519,7 @@ export class Plugin {
   }
   
   /**
+   * Internal render method
    * Render content to Shadow DOM
    * @private
    * Internal render
@@ -511,6 +533,9 @@ export class Plugin {
     `;
   }
   
+  // ========== State Management ==========
+  
+  /**
   /**
    * Force re-render
    */
@@ -547,6 +572,7 @@ export class Plugin {
   }
   
   /**
+   * Update plugin state and re-render
    * Update state and re-render
    * Update plugin state and re-render
    * @param {Object} newState
@@ -564,6 +590,9 @@ export class Plugin {
   // ========== DOM Utilities ==========
   
   /**
+   * Query selector in shadow root
+   * @param {string} selector - CSS selector
+   * @returns {HTMLElement|null} Element or null
    * Query selector in Shadow DOM
    * @param {string} selector - CSS selector
    * @returns {Element|null} Matched element
@@ -576,6 +605,9 @@ export class Plugin {
   }
   
   /**
+   * Query selector all in shadow root
+   * @param {string} selector - CSS selector
+   * @returns {NodeList} Node list
    * Query all in Shadow DOM
    * @param {string} selector - CSS selector
    * @returns {NodeList} Matched elements
@@ -590,6 +622,12 @@ export class Plugin {
   // ========== Event Handling ==========
   
   /**
+   * Bind event handlers (override in subclass)
+   */
+  bindEvents() {}
+  
+  /**
+   * Emit a plugin event
    * Bind DOM events (override in subclass)
   // ========== Event Binding ==========
   
@@ -650,6 +688,7 @@ export class Plugin {
   }
   
   /**
+   * Listen to an event
    * Listen to event
    * @param {string} event
    * @param {Function} handler
@@ -662,6 +701,10 @@ export class Plugin {
     return this.eventBus.on(event, handler);
   }
   
+  // ========== Service Calls ==========
+  
+  /**
+   * Call a service method
   /**
    * Listen to event once
    * @param {string} event - Event name
@@ -707,6 +750,9 @@ export class Plugin {
   // ========== Internationalization ==========
   
   /**
+   * Translate a key
+   * @param {string} key - Translation key
+   * @param {Object} params - Template parameters
    * Translate key
    * Translate text
    * @param {string} key
@@ -745,6 +791,10 @@ export class Plugin {
   }
   
   /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   * @returns {Promise<void>}
    * Set setting value
    * @param {string} key - Setting key
    * @param {*} value - New value
@@ -762,6 +812,8 @@ export class Plugin {
   // ========== Utilities ==========
   
   /**
+   * Generate a unique ID
+   * @param {string} prefix - Optional prefix
    * Generate unique ID
    * @param {string} prefix
    * @returns {string}
@@ -780,6 +832,7 @@ export class Plugin {
   }
   
   /**
+   * Escape HTML to prevent XSS
    * Escape HTML
    * @param {string} text
    * @returns {string}
@@ -819,6 +872,9 @@ export default Plugin;
   getCurrentUserName() {
     return window.app?.user?.name || 'Unknown';
   }
+}
+
+export default Plugin;
   
   /**
    * Show toast notification

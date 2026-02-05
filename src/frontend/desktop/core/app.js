@@ -9,7 +9,6 @@ import { I18n } from './i18n.js';
 import { ThemeManager } from './theme.js';
 import { PluginLoader, EventBus, PermissionManager } from './plugin/index.js';
 import { PluginLoader, EventBus } from './plugin/index.js';
-import { PluginLoader, eventBus } from './plugin/index.js';
 
 class LocalverseApp {
   constructor() {
@@ -28,6 +27,7 @@ class LocalverseApp {
     this.i18n = new I18n();
     this.theme = new ThemeManager();
     this.eventBus = new EventBus();
+    this.permissionManager = new PermissionManager();
     this.pluginLoader = null;
     this.pluginLoader = new PluginLoader(this);
     this.eventBus = eventBus;
@@ -177,6 +177,7 @@ class LocalverseApp {
    */
   async initPluginSystem() {
     try {
+      this.plugins = new PluginLoader({
       // Create event bus
       this.eventBus = new EventBus();
       
@@ -189,6 +190,15 @@ class LocalverseApp {
         services: this.services,
         eventBus: this.eventBus,
         permissionManager: this.permissionManager
+      });
+      
+      // Load all available plugins
+      await this.plugins.loadAll();
+      
+      console.log(`Loaded ${this.plugins.getAll().length} plugins`);
+    } catch (error) {
+      console.error('Plugin system init failed:', error);
+      // Non-fatal error, continue without plugins
    * Initialize services
    */
   async initServices() {
@@ -385,6 +395,11 @@ class LocalverseApp {
   async showPlugin(pluginId) {
     const content = document.getElementById('content');
     
+    if (!this.plugins) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin System Not Available</h1>
+          <p>Plugin system is not initialized.</p>
     if (!this.pluginLoader) {
       content.innerHTML = `
         <div class="plugin-page">
@@ -406,6 +421,12 @@ class LocalverseApp {
       return;
     }
     
+    const plugin = this.plugins.get(pluginId);
+    if (!plugin) {
+      content.innerHTML = `
+        <div class="plugin-page">
+          <h1>Plugin Not Found</h1>
+          <p>Plugin '${pluginId}' is not installed or loaded.</p>
     const plugin = this.pluginLoader.get(pluginId);
     // Try to get plugin instance
     const plugin = this.pluginLoader.getPlugin(pluginId);
@@ -430,6 +451,10 @@ class LocalverseApp {
       return;
     }
     
+    // Clear content and mount plugin
+    content.innerHTML = '<div id="plugin-container"></div>';
+    const container = document.getElementById('plugin-container');
+    plugin.mount(container);
     // Create container for plugin
     content.innerHTML = `
       <div class="plugin-page">

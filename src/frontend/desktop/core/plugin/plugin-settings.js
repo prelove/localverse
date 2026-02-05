@@ -1,4 +1,6 @@
 /**
+ * PluginSettings - Manages plugin configuration
+ * Validates settings against schema and persists to localStorage
  * Plugin Settings
  * Manages plugin settings with validation and persistence
  * Plugin Settings Manager
@@ -37,6 +39,7 @@ export class PluginSettings {
   }
 
   /**
+   * Load values from localStorage with validation
    * Load values from localStorage
    * @private
    * Load settings from localStorage
@@ -50,6 +53,14 @@ export class PluginSettings {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Validate each loaded value against schema
+        for (const [key, value] of Object.entries(parsed)) {
+          const config = this.schema[key];
+          if (config && this.validate(key, value, config)) {
+            this.values[key] = value;
+          }
+        }
+      } catch {
         this.values = { ...this.values, ...parsed };
       } catch {
         // 忽略无效数据
@@ -98,6 +109,10 @@ export class PluginSettings {
   }
 
   /**
+   * Set a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   * @returns {Promise<void>}
    * Set setting value
    * @param {string} key - Setting key
    * @param {*} value - New value
@@ -139,6 +154,11 @@ export class PluginSettings {
   }
 
   /**
+   * Validate a setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting configuration
+   * @returns {boolean} Whether value is valid
    * Validate setting value
    * @param {string} key - Setting key
    * @param {*} value - Value to validate
@@ -204,6 +224,9 @@ export class PluginSettings {
   }
 
   /**
+   * Reset a setting to default
+   * @param {string} key - Setting key (optional, resets all if omitted)
+   * @returns {Promise<void>}
    * Reset setting(s) to default
    * @param {string} [key] - Setting key to reset (resets all if omitted)
    * @returns {Promise<void>}
@@ -222,6 +245,12 @@ export class PluginSettings {
       // Reset all
       this.loadDefaults();
       this.saveToStorage();
+    }
+  }
+
+  /**
+   * Register a change listener
+   * @param {Function} callback - Callback function
       
       // Notify listeners for all settings
       for (const [settingKey, value] of Object.entries(this.values)) {
@@ -267,6 +296,7 @@ export class PluginSettings {
   }
 
   /**
+   * Get the settings schema
    * Get settings schema
    * @returns {Object} Settings schema
    */

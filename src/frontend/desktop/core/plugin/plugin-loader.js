@@ -1,4 +1,6 @@
 /**
+ * PluginLoader - Loads and manages plugins
+ * Handles discovery, validation, loading, and lifecycle
  * Plugin Loader
  * Discovers, loads, and manages plugins
  * 插件加载器 - 管理插件的完整生命周期
@@ -123,6 +125,8 @@ export class PluginLoader {
   }
   
   /**
+   * Load all available plugins
+   * @returns {Promise<void>}
    * Load all plugins
    * @returns {Promise<void>}
    * Load all available plugins
@@ -168,6 +172,9 @@ export class PluginLoader {
   /**
    * Discover available plugins
    * @returns {Promise<string[]>} Array of plugin IDs
+   */
+  async discoverPlugins() {
+    // Try to load plugins.json
    * @private
    */
   async discoverPlugins() {
@@ -204,11 +211,14 @@ export class PluginLoader {
       const data = await response.json();
       return data.plugins || [];
     } catch {
+      // Return empty array if no plugins.json found
       // 默认插件列表（暂时为空，后续添加内置插件）
       return [];
     }
   }
   
+  /**
+   * Load a specific plugin
   async load(pluginId) {
     const pluginDir = `${this.pluginsDir}/${pluginId}`;
     
@@ -246,6 +256,10 @@ export class PluginLoader {
   async load(pluginId) {
     const pluginDir = `${this.pluginsDir}/${pluginId}`;
     
+    // 1. Read manifest
+    const manifest = await this.loadManifest(pluginDir);
+    
+    // 2. Validate
     // 1. Load manifest
     const manifest = await this.loadManifest(pluginDir);
     
@@ -256,6 +270,7 @@ export class PluginLoader {
     // 3. Check dependencies
     await this.checkDependencies(manifest);
     
+    // 4. Load style
     // 4. Load styles (if any)
     // 4. Load style
     // 4. Load styles
@@ -283,6 +298,12 @@ export class PluginLoader {
     const PluginClass = module.default;
     
     // 6. Create context
+    const context = await this.createContext(manifest, pluginDir);
+    
+    // 7. Instantiate
+    const instance = new PluginClass(context);
+    
+    // 8. Register
     const context = this.createContext(manifest);
     
     // 7. Instantiate plugin
@@ -293,6 +314,11 @@ export class PluginLoader {
     this.instances.set(manifest.id, instance);
     
     // 9. Grant permissions
+    if (this.permissionManager && manifest.permissions) {
+      this.permissionManager.grant(manifest.id, manifest.permissions);
+    }
+    
+    // 10. Install/activate
     if (this.permissionManager) {
       this.permissionManager.grant(manifest.id, manifest.permissions || []);
     }
@@ -369,6 +395,9 @@ export class PluginLoader {
   }
   
   /**
+   * Unload a plugin
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<void>}
    * Unload plugin
    * @param {string} pluginId - Plugin ID
    * @returns {Promise<void>}
@@ -380,6 +409,12 @@ export class PluginLoader {
     const instance = this.instances.get(pluginId);
     if (!instance) return;
     
+    await instance.onDeactivate();
+    
+    // Remove style
+    this.unloadStyle(pluginId);
+    
+    // Revoke permissions
     // 1. Deactivate
     await instance.onDeactivate();
     
@@ -396,6 +431,7 @@ export class PluginLoader {
       this.permissionManager.revokeAll(pluginId);
     }
     
+    // Remove registration
     // 5. Remove registration
     this.manifests.delete(pluginId);
     this.instances.delete(pluginId);
@@ -426,6 +462,9 @@ export class PluginLoader {
   }
   
   /**
+   * Load plugin manifest
+   * @param {string} pluginDir - Plugin directory
+   * @returns {Promise<Object>} Manifest object
    * Load manifest file
    * @param {string} pluginDir - Plugin directory
    * @returns {Promise<Object>} Manifest object
@@ -446,6 +485,9 @@ export class PluginLoader {
   }
   
   /**
+   * Validate plugin manifest
+   * @param {Object} manifest - Manifest object
+   * @throws {Error} If manifest is invalid
    * Validate manifest
    * @param {Object} manifest - Manifest object
    * @throws {Error} If manifest is invalid
@@ -513,6 +555,10 @@ export class PluginLoader {
   /**
    * Create plugin context
    * @param {Object} manifest - Manifest object
+   * @param {string} pluginDir - Plugin directory
+   * @returns {Promise<Object>} Plugin context
+   */
+  async createContext(manifest, pluginDir) {
    * @returns {Object} Plugin context
    * @private
    */
@@ -534,6 +580,9 @@ export class PluginLoader {
       manifest.permissions || []
     );
     
+    // Create i18n and load locales
+    const i18n = new PluginI18n(manifest);
+    await i18n.loadLocales(pluginDir);
     // Create storage
     const storage = new PluginStorage(manifest.id);
     await storage.init();
@@ -551,6 +600,7 @@ export class PluginLoader {
       eventBus: this.eventBus,
       storage: new PluginStorage(manifest.id),
       settings: new PluginSettings(manifest),
+      i18n,
       i18n: new PluginI18n(manifest),
       ui: this.createUIHelper(),
       pluginLoader: this
@@ -584,6 +634,7 @@ export class PluginLoader {
   filterServicesByPermissions(permissions) {
     const allowed = {};
     
+    // Permission to service mapping
     // Base services always available
     const baseServices = ['NotificationService'];
     for (const name of baseServices) {
@@ -602,6 +653,8 @@ export class PluginLoader {
       'filesystem:read': 'FileSystemService',
       'filesystem:write': 'FileSystemService',
       'network:sync': 'CommunicationLayer',
+      'search': 'SearchService',
+      'notification': 'NotificationService'
       'search': 'SearchService'
     };
     
@@ -616,6 +669,11 @@ export class PluginLoader {
   }
   
   /**
+   * Load plugin style
+   * @param {string} stylePath - Style file path
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<void>}
+   */
    * Load plugin stylesheet
    * @param {string} stylePath - Path to stylesheet
    * @param {string} pluginId - Plugin ID
@@ -636,6 +694,7 @@ export class PluginLoader {
   }
   
   /**
+   * Unload plugin style
    * Load plugin styles
    * @param {string} stylePath - Path to CSS file
    * @param {string} pluginId - Plugin ID
@@ -680,6 +739,16 @@ export class PluginLoader {
   /**
    * Check if plugin is installed
    * @param {string} pluginId - Plugin ID
+   * @returns {Promise<boolean>} Whether plugin is installed
+   */
+  async isInstalled(pluginId) {
+    try {
+      // Use localStorage for installation tracking
+      const key = `plugin_install_${pluginId}`;
+      const version = localStorage.getItem(key);
+      
+      if (version) {
+        this.installedVersions.set(pluginId, version);
    * @returns {Promise<boolean>} True if installed
    * @private
    * @param {string} pluginId
@@ -731,6 +800,11 @@ export class PluginLoader {
    * @param {string} pluginId - Plugin ID
    * @param {string} version - Plugin version
    * @returns {Promise<void>}
+   */
+  async markInstalled(pluginId, version) {
+    try {
+      const key = `plugin_install_${pluginId}`;
+      localStorage.setItem(key, version);
    * @private
    * @param {string} pluginId
    * @param {string} version
@@ -772,6 +846,24 @@ export class PluginLoader {
   }
   
   /**
+   * Create UI helper utilities
+   * @returns {Object} UI helpers
+   */
+  createUIHelper() {
+    return {
+      showModal: (options) => window.app?.showModal?.(options),
+      showToast: (message, type) => window.app?.showToast?.(message, type),
+      showConfirm: (message) => window.app?.showConfirm?.(message),
+      showPrompt: (message, defaultValue) => window.app?.showPrompt?.(message, defaultValue)
+    };
+  }
+  
+  // ========== Public API ==========
+  
+  /**
+   * Get a plugin instance
+   * @param {string} pluginId - Plugin ID
+   * @returns {Object|undefined} Plugin instance
    * Create UI helper for plugins
    * @returns {Object} UI helper object
    * @private
@@ -808,6 +900,7 @@ export class PluginLoader {
   
   /**
    * Get all plugin instances
+   * @returns {Object[]} Array of plugin instances
    * @returns {Plugin[]} Array of plugin instances
    * @returns {Plugin[]}
    * @returns {Object[]} Plugin instances
@@ -817,6 +910,9 @@ export class PluginLoader {
   }
   
   /**
+   * Get a plugin manifest
+   * @param {string} pluginId - Plugin ID
+   * @returns {Object|undefined} Plugin manifest
    * Get plugin manifest
    * @param {string} pluginId - Plugin ID
    * @returns {Object|undefined} Plugin manifest
@@ -842,6 +938,7 @@ export class PluginLoader {
   }
   
   /**
+   * Call an exported plugin method
    * Call exported plugin method
    * @param {string} pluginId - Plugin ID
    * @param {string} method - Method name
@@ -877,6 +974,9 @@ export class PluginLoader {
     
     return instance[methodName](...args);
   }
+}
+
+export default PluginLoader;
   
   /**
    * Check if plugin is loaded
