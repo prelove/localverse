@@ -18,6 +18,9 @@
 - 待创建: Chat Plugin, Task Plugin
 
 ---
+> 🚀 **新手入门**：先阅读 [QUICK-START-GUIDE.md](../QUICK-START-GUIDE.md) 快速了解开发流程（5分钟）
+> 
+> 📘 **完整路线图**：参阅 [DEVELOPMENT-ROADMAP.md](../DEVELOPMENT-ROADMAP.md) 了解详细的任务依赖、并行策略、时间线规划和风险管理
 
 ## 开发阶段
 
@@ -43,7 +46,7 @@
 | [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | 🟡 部分完成 |
 | task-002-search-service | 搜索服务 | 8h | 001 | 🔵 开发中 |
 | task-003-finder-plugin | 文件搜索插件 | 12h | 002 | 待创建 |
-| task-004-wiki-plugin | 知识库插件 | 16h | 001 | 待创建 |
+| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | 开发中 |
 
 **Phase 1 总计：约 52 小时**
 
@@ -66,6 +69,8 @@
 | task-002-vote-plugin | 投票插件 | 8h | Phase 1 | 待创建 |
 | task-003-calendar-plugin | 日历插件 | 12h | Phase 1 | 待创建 |
 | task-004-announcement | 公告系统 | 8h | Phase 1 | 待创建 |
+
+**Phase 3 总计：约 44 小时**
 
 ## 依赖关系图
 
@@ -186,3 +191,8 @@ task-004-wiki-plugin        task-004-task-plugin
 - [修复行动计划](../../IMMEDIATE_ACTIONS.md) - 优先级和执行步骤
 - [最终报告](../../FINAL_REPORT.md) - 综合总结和后续建议
 - [Plugin System 文档](../../src/frontend/desktop/core/plugin/README.md) - 插件系统使用指南
+## 📖 延伸阅读
+
+- **[完整开发路线图](../DEVELOPMENT-ROADMAP.md)** - 详细的任务依赖分析、并行策略、时间线规划、风险管理和最佳实践
+- **[项目架构](../specs/00-architecture.md)** - 系统整体架构设计
+- **[技术规格](../specs/)** - 所有技术规格文档

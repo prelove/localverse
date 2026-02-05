@@ -1,7 +1,13 @@
 # Build artifacts
-build/
 target/
 *.class
+
+# Dist folder (built JARs)
+dist/*.jar
+dist/lib/
+
+# Dist folder (built JARs)
+dist/*.jar
 dist/lib/
 
 # Test directories
@@ -16,6 +22,16 @@ temp/
 data/
 config.json
 
+# Maven
+dependency-reduced-pom.xml
+
+# Maven
+dependency-reduced-pom.xml
+
+# Maven
+dependency-reduced-pom.xml
+config.json
+
 # IDE
 .idea/
 .vscode/
@@ -25,5 +41,14 @@ config.json
 .DS_Store
 Thumbs.db
 
+# Config files (keep template)
+config.json
+# Config files (keep template)
+config.json
 # Maven
 dependency-reduced-pom.xml
+
+
+# Plugin data
+*.idb
+*.idb-journal

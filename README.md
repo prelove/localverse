@@ -14,36 +14,90 @@
 ### 开发者
 
 ```bash
-# 查看规格文档
+# 快速入门（5分钟了解开发流程）
+cat openspec/QUICK-START-GUIDE.md
+
+# 详细规划（完整开发路线图）
+cat openspec/DEVELOPMENT-ROADMAP.md
+
+# 查看所有规格文档
 cd openspec
 cat README.md
+```
 
-用户
+### 用户
+
 下载 localverse.jar，双击运行，浏览器访问 http://127.0.0.1:8765
 
-文档
-项目规格
-架构设计
-开发任务
-技术栈
-Java 21 (后端)
-HTML5 + CSS3 + ES2022 (前端，无框架)
-SQLite (数据库，WASM + JDBC)
-WebSocket / SSE / HTTP (通信)
-项目结构
-Code
-localverse/
-├── openspec/       # 规格文档（AI 和人类都可读）
-├── src/            # 源代码
-│   ├── java/       # Java 后端
-│   ├── frontend/   # 前端代码
-│   └── wasm/       # WASM 模块
-├── dist/           # 构建产物
-└── docs/           # 用户文档
-License
-MIT
+## 构建
 
-Code
+```bash
+# 构建核心服务
+./build/build-core.sh
+
+# 构建启动器
+./build/build-launcher.sh
+
+# 或使用完整构建脚本
+./build/build-localverse.sh
+```
+
+构建产物位于 `dist/` 目录。
+
+## 文档
+
+- 🚀 [快速开发指南](./openspec/QUICK-START-GUIDE.md) - 5分钟快速入门
+- 📘 [开发路线图](./openspec/DEVELOPMENT-ROADMAP.md) - 完整开发规划
+- 📖 [项目规格](./openspec/specs/) - 技术规格文档
+- 📋 [开发任务](./openspec/tasks/) - 分阶段任务清单
+- 🏗️ [架构设计](./openspec/specs/00-architecture.md) - 系统架构
+## 技术栈
+
+- **后端**: Java 21 (虚拟线程、记录类)
+- **前端**: HTML5 + CSS3 + ES2022 (原生，无框架)
+- **数据库**: SQLite (WASM + JDBC)
+- **通信**: WebSocket / HTTP
+- **构建**: Maven
+
+## 项目结构
+
+```
+localverse/
+├── README.md           # 项目说明
+├── AGENTS.md          # AI 开发指南
+├── LICENSE            # MIT 许可证
+├── pom.xml            # Maven 构建配置
+├── .gitignore         # Git 忽略规则
+├── openspec/          # 规格文档（AI 和人类都可读）
+│   ├── QUICK-START-GUIDE.md      # 快速开发指南
+│   ├── DEVELOPMENT-ROADMAP.md    # 完整开发路线图
+│   ├── specs/         # 技术规格
+│   └── tasks/         # 开发任务
+├── src/               # 源代码
+│   ├── java/          # Java 后端
+│   │   ├── core/      # 核心服务代码
+│   │   └── launcher/  # 启动器代码
+│   ├── frontend/      # 前端代码
+│   ├── wasm/          # WASM 模块
+│   ├── resources/     # 资源文件
+│   │   └── config/    # 配置模板
+│   └── scripts/       # 辅助脚本
+├── build/             # 构建脚本
+│   ├── build-core.sh
+│   ├── build-launcher.sh
+│   └── build-localverse.sh
+├── docs/              # 文档
+│   ├── QUICK_START.md
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   └── project.md
+├── tests/             # 测试文件
+│   └── unit/          # 单元测试
+└── dist/              # 构建产物（gitignored）
+```
+
+## License
+
+MIT
 
 ### 📄 根目录 AGENTS.md（AI 开发指南）
 
