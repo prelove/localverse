@@ -48,3 +48,7 @@ config.json
 # Maven
 dependency-reduced-pom.xml
 
+
+# Plugin data
+*.idb
+*.idb-journal

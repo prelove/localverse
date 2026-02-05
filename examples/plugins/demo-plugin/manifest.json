@@ -1,0 +1,44 @@
+{
+  "id": "demo",
+  "name": {
+    "zh": "示例插件",
+    "en": "Demo Plugin"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "这是一个演示插件系统功能的示例插件",
+    "en": "A demo plugin showcasing the plugin system features"
+  },
+  "author": "Localverse Team",
+  "license": "MIT",
+  "entry": "./index.js",
+  "permissions": [
+    "database:read",
+    "ui:render",
+    "ui:notification",
+    "storage:read",
+    "storage:write"
+  ],
+  "dependencies": {
+    "services": [],
+    "plugins": []
+  },
+  "settings": {
+    "greeting": {
+      "type": "string",
+      "default": "Hello",
+      "label": {
+        "zh": "问候语",
+        "en": "Greeting"
+      }
+    },
+    "showTimestamp": {
+      "type": "boolean",
+      "default": true,
+      "label": {
+        "zh": "显示时间戳",
+        "en": "Show Timestamp"
+      }
+    }
+  }
+}
