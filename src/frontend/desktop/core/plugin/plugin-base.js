@@ -36,6 +36,7 @@ export class Plugin {
     this.storage = context.storage;
     this.settings = context.settings;
     this.i18n = context.i18n;
+    this.ui = context.ui;
     
     this._state = {};
     this._mounted = false;
@@ -362,6 +363,9 @@ export class Plugin {
   
   // ========== Lifecycle Hooks ==========
   
+  /**
+   * Called when plugin is installed (first time only)
+   * Use for database table creation, default configuration, etc.
   async onInstall() {}
   async onUninstall() {}
   async onActivate() {}
@@ -376,10 +380,13 @@ export class Plugin {
   
   /**
    * Called when plugin is uninstalled
+   * Use for cleanup, data removal, etc.
    */
   async onUninstall() {}
   
   /**
+   * Called when plugin is activated (every app launch)
+   * Use for event registration, background tasks, etc.
    * Called when plugin is activated (every app start)
    * Called when plugin is activated
    */
@@ -387,11 +394,13 @@ export class Plugin {
   
   /**
    * Called when plugin is deactivated
+   * Use for event removal, stopping tasks, etc.
    */
   async onDeactivate() {}
   
   /**
    * Called when settings change
+   * @param {string} key - Changed setting key
    * @param {string} key
    * @param {any} value
    * @param {any} oldValue
@@ -404,6 +413,11 @@ export class Plugin {
   
   // ========== Rendering ==========
   
+  /**
+   * Render main UI
+   * @returns {string} HTML string
+   */
+  render() {
   render() {
     return '<div>Plugin content</div>';
   }
@@ -431,10 +445,14 @@ export class Plugin {
   
   /**
    * Mount plugin to container
+   * @param {HTMLElement} container - Container element
    * @param {HTMLElement} container
    */
   mount(container) {
     this._container = container;
+    
+    // Create Shadow DOM
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
     
     // Create Shadow DOM for style isolation
     this._shadowRoot = container.attachShadow({ mode: 'open' });
@@ -460,6 +478,7 @@ export class Plugin {
   }
   
   /**
+   * Unmount plugin from container
    * Unmount plugin
    */
   unmount() {
@@ -479,6 +498,8 @@ export class Plugin {
   }
   
   /**
+   * Render content to Shadow DOM
+   * @private
    * Internal render
    */
   _render() {
@@ -490,6 +511,14 @@ export class Plugin {
     `;
   }
   
+  /**
+   * Force re-render
+   */
+  forceUpdate() {
+    if (this._mounted) {
+      this._render();
+      this.bindEvents();
+    }
   // ========== 状态管理 ==========
   
   /**
@@ -509,6 +538,7 @@ export class Plugin {
   // ========== State Management ==========
   
   /**
+   * Get current state
    * Get plugin state
    * @returns {Object} Current state
    */
@@ -517,6 +547,7 @@ export class Plugin {
   }
   
   /**
+   * Update state and re-render
    * Update plugin state and re-render
    * @param {Object} newState
    * Update plugin state
@@ -533,6 +564,9 @@ export class Plugin {
   // ========== DOM Utilities ==========
   
   /**
+   * Query selector in Shadow DOM
+   * @param {string} selector - CSS selector
+   * @returns {Element|null} Matched element
    * Query selector in shadow root
    * @param {string} selector
    * @returns {HTMLElement}
@@ -542,6 +576,9 @@ export class Plugin {
   }
   
   /**
+   * Query all in Shadow DOM
+   * @param {string} selector - CSS selector
+   * @returns {NodeList} Matched elements
    * Query all in shadow root
    * @param {string} selector
    * @returns {NodeList}
@@ -550,6 +587,10 @@ export class Plugin {
     return this._shadowRoot?.querySelectorAll(selector) || [];
   }
   
+  // ========== Event Handling ==========
+  
+  /**
+   * Bind DOM events (override in subclass)
   // ========== Event Binding ==========
   
   /**
@@ -621,6 +662,14 @@ export class Plugin {
     return this.eventBus.on(event, handler);
   }
   
+  /**
+   * Listen to event once
+   * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   */
+  once(event, handler) {
+    return this.eventBus.once(event, handler);
+  }
   // ========== Service Calls ==========
   
   /**
@@ -633,6 +682,11 @@ export class Plugin {
   // ========== Service Calls ==========
   
   /**
+   * Call service method
+   * @param {string} serviceName - Service name
+   * @param {string} method - Method name
+   * @param {...*} args - Method arguments
+   * @returns {Promise<*>} Method result
    * Call a service method
    * @param {string} serviceName - Service name
    * @param {string} method - Method name
@@ -653,6 +707,7 @@ export class Plugin {
   // ========== Internationalization ==========
   
   /**
+   * Translate key
    * Translate text
    * @param {string} key
    * @param {Object} params
@@ -691,6 +746,9 @@ export class Plugin {
   
   /**
    * Set setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   * @returns {Promise<void>}
    * @param {string} key
    * @param {any} value
    * Set a setting value
@@ -761,6 +819,44 @@ export default Plugin;
   getCurrentUserName() {
     return window.app?.user?.name || 'Unknown';
   }
+  
+  /**
+   * Show toast notification
+   * @param {string} message - Message text
+   * @param {string} type - Toast type (info, success, warning, error)
+   */
+  showToast(message, type = 'info') {
+    if (this.ui && this.ui.showToast) {
+      this.ui.showToast(message, type);
+    }
+  }
+  
+  /**
+   * Show modal dialog
+   * @param {Object} options - Modal options
+   * @returns {Promise<*>} Modal result
+   */
+  showModal(options) {
+    if (this.ui && this.ui.showModal) {
+      return this.ui.showModal(options);
+    }
+    return Promise.resolve(null);
+  }
+  
+  /**
+   * Show confirm dialog
+   * @param {string} message - Confirm message
+   * @returns {Promise<boolean>} True if confirmed
+   */
+  showConfirm(message) {
+    if (this.ui && this.ui.showConfirm) {
+      return this.ui.showConfirm(message);
+    }
+    return Promise.resolve(false);
+  }
+}
+
+export default Plugin;
 }
 
 export default Plugin;

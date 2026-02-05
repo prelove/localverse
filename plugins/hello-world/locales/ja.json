@@ -1,0 +1,15 @@
+{
+  "installed": "Hello World プラグインがインストールされました",
+  "hello": "こんにちは、{name}!",
+  "description": "これはプラグインシステムの基本機能を示すサンプルプラグインです。",
+  "greetCount": "挨拶回数：{count}",
+  "greetButton": "挨拶",
+  "changeNameButton": "名前を変更",
+  "pluginInfo": "プラグイン情報",
+  "id": "ID",
+  "version": "バージョン",
+  "author": "作者",
+  "greetMessage": "こんにちは、{name}!",
+  "enterName": "新しい名前を入力してください",
+  "nameChanged": "名前が変更されました"
+}

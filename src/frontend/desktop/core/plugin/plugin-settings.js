@@ -1,4 +1,6 @@
 /**
+ * Plugin Settings
+ * Manages plugin settings with validation and persistence
  * Plugin Settings Manager
  * Manages plugin configuration with validation
  * Plugin Settings
@@ -19,6 +21,10 @@ export class PluginSettings {
     this.loadDefaults();
     this.loadFromStorage();
   }
+
+  /**
+   * Load default values from schema
+   * @private
   
 
   /**
@@ -31,6 +37,8 @@ export class PluginSettings {
   }
 
   /**
+   * Load values from localStorage
+   * @private
    * Load settings from localStorage
   
 
@@ -53,6 +61,10 @@ export class PluginSettings {
       }
     }
   }
+
+  /**
+   * Save values to localStorage
+   * @private
   
 
   /**
@@ -87,6 +99,9 @@ export class PluginSettings {
 
   /**
    * Set setting value
+   * @param {string} key - Setting key
+   * @param {*} value - New value
+   * @returns {Promise<void>}
    * @param {string} key
    * @param {any} value
   
@@ -125,6 +140,11 @@ export class PluginSettings {
 
   /**
    * Validate setting value
+   * @param {string} key - Setting key
+   * @param {*} value - Value to validate
+   * @param {Object} config - Setting configuration
+   * @returns {boolean} True if valid
+   * @private
    * @param {string} key
    * @param {any} value
    * @param {Object} config
@@ -167,6 +187,7 @@ export class PluginSettings {
 
   /**
    * Get all settings
+   * @returns {Object} All setting values
    * @returns {Object}
   
   getAll() {
@@ -183,6 +204,9 @@ export class PluginSettings {
   }
 
   /**
+   * Reset setting(s) to default
+   * @param {string} [key] - Setting key to reset (resets all if omitted)
+   * @returns {Promise<void>}
    * Reset setting to default
    * @param {string} key - Optional, if not provided resets all
    * Reset settings to defaults
@@ -195,6 +219,26 @@ export class PluginSettings {
         await this.set(key, config.default);
       }
     } else {
+      // Reset all
+      this.loadDefaults();
+      this.saveToStorage();
+      
+      // Notify listeners for all settings
+      for (const [settingKey, value] of Object.entries(this.values)) {
+        for (const listener of this.listeners) {
+          try {
+            await listener(settingKey, value, undefined);
+          } catch (error) {
+            console.error('Settings listener error:', error);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Register change listener
+   * @param {Function} callback - Callback function (key, value, oldValue) => void
       // 重置所有
       // Reset all
       this.loadDefaults();
@@ -224,6 +268,69 @@ export class PluginSettings {
 
   /**
    * Get settings schema
+   * @returns {Object} Settings schema
+   */
+  getSchema() {
+    return this.schema;
+  }
+
+  /**
+   * Generate settings form HTML
+   * @returns {string} HTML form
+   */
+  generateForm() {
+    const entries = Object.entries(this.schema);
+    if (entries.length === 0) {
+      return '<p>此插件无可配置项</p>';
+    }
+
+    return `
+      <div class="plugin-settings-form">
+        ${entries.map(([key, config]) => this.generateField(key, config)).join('')}
+      </div>
+    `;
+  }
+
+  /**
+   * Generate form field HTML
+   * @param {string} key - Setting key
+   * @param {Object} config - Setting configuration
+   * @returns {string} HTML field
+   * @private
+   */
+  generateField(key, config) {
+    const value = this.get(key);
+    const label = config.label?.zh || config.label?.en || key;
+    const description = config.description?.zh || config.description?.en || '';
+
+    let input = '';
+    switch (config.type) {
+      case 'boolean':
+        input = `<input type="checkbox" id="setting-${key}" ${value ? 'checked' : ''}>`;
+        break;
+      case 'number':
+        input = `<input type="number" id="setting-${key}" value="${value}" 
+                  min="${config.min || ''}" max="${config.max || ''}">`;
+        break;
+      case 'select':
+        input = `<select id="setting-${key}">
+          ${config.options.map(opt => 
+            `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
+          ).join('')}
+        </select>`;
+        break;
+      case 'string':
+      default:
+        input = `<input type="text" id="setting-${key}" value="${value}">`;
+    }
+
+    return `
+      <div class="setting-field">
+        <label for="setting-${key}">${label}</label>
+        ${input}
+        ${description ? `<small>${description}</small>` : ''}
+      </div>
+    `;
    * @returns {Object}
   
 

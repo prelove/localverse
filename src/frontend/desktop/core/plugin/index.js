@@ -1,4 +1,6 @@
 /**
+ * Plugin System
+ * Main entry point for plugin system
  * Plugin System - Main Entry Point
  * 插件系统主入口
  * 插件系统 - 主入口
@@ -29,6 +31,11 @@ export { EventBus } from './event-bus.js';
 export { PluginStorage } from './plugin-storage.js';
 export { PluginSettings } from './plugin-settings.js';
 export { PluginI18n } from './plugin-i18n.js';
+export { PermissionManager, PERMISSIONS } from './permission-manager.js';
+
+// Re-export default
+import { PluginLoader } from './plugin-loader.js';
+export default PluginLoader;
 export { PermissionManager } from './permission-manager.js';
  * Plugin System Main Export
  */

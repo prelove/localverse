@@ -1,4 +1,6 @@
 /**
+ * Event Bus
+ * Provides pub/sub event system for plugin communication
  * Event Bus for Plugin Communication
  * Provides pub/sub mechanism for plugins to communicate
  * Event Bus
@@ -27,6 +29,8 @@ export class EventBus {
 
   /**
    * Register event listener
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
     this._listeners = new Map(); // eventName -> Set<{handler, once, namespace}>
     this._wildcards = new Map(); // pattern -> Set<{handler, once, namespace}>
   }
@@ -263,6 +267,8 @@ export const eventBus = new EventBus();
 
   /**
    * Register one-time event listener
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
     // 返回取消函数
     return () => this.off(event, handler);
   }
@@ -301,6 +307,8 @@ export const eventBus = new EventBus();
 
   /**
    * Remove event listener
+   * @param {string} event - Event name
+   * @param {Function} handler - Handler function
   
    * @param {Function} callback - Event handler
    * @param {Object} context - Execution context
@@ -332,6 +340,7 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Emit event
    * Emit event synchronously
    * @param {string} event - Event name
    * @param {any} data - Event data
@@ -362,6 +371,7 @@ export const eventBus = new EventBus();
    * @param {*} data - Event data
    */
   emit(event, data) {
+    // Regular listeners
     // Regular handlers
     const handlers = this.handlers.get(event);
     if (handlers) {
@@ -374,6 +384,7 @@ export const eventBus = new EventBus();
       }
     }
     
+    // Once listeners
     // One-time handlers
     // 一次性监听器
     // Once handlers
@@ -389,6 +400,7 @@ export const eventBus = new EventBus();
       this.onceHandlers.delete(event);
     }
     
+    // Wildcard listeners
     // 通配符监听器
     // Wildcard handlers
     const wildcardHandlers = this.handlers.get('*');
@@ -434,6 +446,10 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Wait for event
+   * @param {string} event - Event name
+   * @param {number} timeout - Timeout in milliseconds
+   * @returns {Promise<*>} Promise that resolves with event data
    * Wait for an event
    * @param {string} event - Event name
    * @param {number} timeout - Timeout in milliseconds
@@ -460,6 +476,7 @@ export const eventBus = new EventBus();
   }
 
   /**
+   * Clear all listeners
    * Clear all event listeners
   
 
@@ -508,6 +525,13 @@ export default EventBus;
    * @returns {number} Number of listeners
    */
   listenerCount(event) {
+    const handlers = this.handlers.get(event);
+    const onceHandlers = this.onceHandlers.get(event);
+    return (handlers?.size || 0) + (onceHandlers?.size || 0);
+  }
+}
+
+export default EventBus;
     return this.listeners.has(event) ? this.listeners.get(event).length : 0;
   }
 

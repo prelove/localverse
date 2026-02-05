@@ -235,3 +235,122 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-500, #9e9e9e);
 }
+
+/* Plugin Page */
+.plugin-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.plugin-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.plugin-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: var(--text-color, #212121);
+}
+
+.plugin-description {
+  font-size: 14px;
+  color: var(--text-secondary, #757575);
+}
+
+.plugin-container {
+  background: var(--surface-color, #ffffff);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  overflow: hidden;
+}
+
+/* Settings Page */
+.settings-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-page h1 {
+  font-size: 28px;
+  margin-bottom: 24px;
+  color: var(--text-color, #212121);
+}
+
+.settings-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: var(--surface-color, #ffffff);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.settings-section h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: var(--text-color, #212121);
+}
+
+.settings-section select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background: var(--bg-color, #ffffff);
+  color: var(--text-color, #212121);
+  cursor: pointer;
+}
+
+.settings-section select:hover {
+  border-color: var(--primary-color, #1976d2);
+}
+
+.settings-section select:focus {
+  outline: none;
+  border-color: var(--primary-color, #1976d2);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.plugin-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.plugin-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.plugin-list li:last-child {
+  border-bottom: none;
+}
+
+.plugin-name {
+  font-weight: 500;
+  color: var(--text-color, #212121);
+}
+
+.plugin-version {
+  font-size: 12px;
+  color: var(--text-secondary, #757575);
+  margin-left: 8px;
+}
+
+.plugin-link {
+  color: var(--primary-color, #1976d2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.plugin-link:hover {
+  color: var(--primary-dark, #1565c0);
+  text-decoration: underline;
+}
+

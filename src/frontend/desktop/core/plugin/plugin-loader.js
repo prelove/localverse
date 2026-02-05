@@ -113,6 +113,7 @@ export class PluginLoader {
     this.pluginsDir = options.pluginsDir || '/plugins';
     this.services = options.services || {};
     this.eventBus = options.eventBus;
+    this.permissionManager = options.permissionManager;
     this.router = options.router;
     this.databaseService = options.databaseService;
     
@@ -122,6 +123,8 @@ export class PluginLoader {
   }
   
   /**
+   * Load all plugins
+   * @returns {Promise<void>}
    * Load all available plugins
     
     this.initDatabase();
@@ -164,6 +167,23 @@ export class PluginLoader {
   
   /**
    * Discover available plugins
+   * @returns {Promise<string[]>} Array of plugin IDs
+   * @private
+   */
+  async discoverPlugins() {
+    // Try to fetch plugins.json listing
+    try {
+      const response = await fetch(`${this.pluginsDir}/plugins.json`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.plugins || [];
+      }
+    } catch {
+      // Ignore errors
+    }
+    
+    // Default plugin list (empty for now, will be populated when plugins are added)
+    return [];
    * @returns {Promise<string[]>}
    */
   async discoverPlugins() {
@@ -209,6 +229,8 @@ export class PluginLoader {
   
   /**
    * Load single plugin
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<Plugin>} Plugin instance
    * @param {string} pluginId
       // Return default plugins when plugins.json is not available
       // This allows the system to work in demo/development mode
@@ -234,6 +256,7 @@ export class PluginLoader {
     // 3. Check dependencies
     await this.checkDependencies(manifest);
     
+    // 4. Load styles (if any)
     // 4. Load style
     // 4. Load styles
     if (manifest.style) {
@@ -263,6 +286,18 @@ export class PluginLoader {
     const context = this.createContext(manifest);
     
     // 7. Instantiate plugin
+    const instance = new PluginClass(context);
+    
+    // 8. Register plugin
+    this.manifests.set(manifest.id, manifest);
+    this.instances.set(manifest.id, instance);
+    
+    // 9. Grant permissions
+    if (this.permissionManager) {
+      this.permissionManager.grant(manifest.id, manifest.permissions || []);
+    }
+    
+    // 10. Install/Activate
     // 7. Instantiate
     const instance = new PluginClass(context);
     
@@ -289,6 +324,8 @@ export class PluginLoader {
       // Check version update
       const installedVersion = this.installedVersions.get(manifest.id);
       if (installedVersion !== manifest.version) {
+        console.log(`Plugin ${manifest.id} updated: ${installedVersion} → ${manifest.version}`);
+        await this.markInstalled(manifest.id, manifest.version);
       // 检查版本更新
       const installedVersion = this.installedVersions.get(manifest.id);
       if (installedVersion !== manifest.version) {
@@ -303,6 +340,14 @@ export class PluginLoader {
     
     await instance.onActivate();
     
+    // 11. Setup settings listener
+    if (instance.settings) {
+      instance.settings.onChange((key, value, oldValue) => {
+        instance.onSettingsChange(key, value, oldValue);
+      });
+    }
+    
+    // 12. Emit event
     // 10. Emit event
     // 10. 发送事件
     // 10. Emit event
@@ -325,6 +370,8 @@ export class PluginLoader {
   
   /**
    * Unload plugin
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<void>}
    * @param {string} pluginId
    * Unload a plugin
    * @param {string} pluginId - Plugin ID
@@ -333,6 +380,27 @@ export class PluginLoader {
     const instance = this.instances.get(pluginId);
     if (!instance) return;
     
+    // 1. Deactivate
+    await instance.onDeactivate();
+    
+    // 2. Unmount if mounted
+    if (instance._mounted) {
+      instance.unmount();
+    }
+    
+    // 3. Remove styles
+    this.unloadStyle(pluginId);
+    
+    // 4. Revoke permissions
+    if (this.permissionManager) {
+      this.permissionManager.revokeAll(pluginId);
+    }
+    
+    // 5. Remove registration
+    this.manifests.delete(pluginId);
+    this.instances.delete(pluginId);
+    
+    // 6. Emit event
     await instance.onDeactivate();
     
     // Remove styles
@@ -358,6 +426,10 @@ export class PluginLoader {
   }
   
   /**
+   * Load manifest file
+   * @param {string} pluginDir - Plugin directory
+   * @returns {Promise<Object>} Manifest object
+   * @private
    * Load manifest.json
    * @param {string} pluginDir
    * @returns {Promise<Object>}
@@ -375,6 +447,9 @@ export class PluginLoader {
   
   /**
    * Validate manifest
+   * @param {Object} manifest - Manifest object
+   * @throws {Error} If manifest is invalid
+   * @private
    * @param {Object} manifest
    * Validate plugin manifest
    * @param {Object} manifest - Manifest to validate
@@ -394,6 +469,10 @@ export class PluginLoader {
   
   /**
    * Check plugin dependencies
+   * @param {Object} manifest - Manifest object
+   * @returns {Promise<void>}
+   * @throws {Error} If dependencies not met
+   * @private
    * @param {Object} manifest
   async checkDependencies(manifest) {
     const deps = manifest.dependencies || {};
@@ -416,6 +495,7 @@ export class PluginLoader {
     // Check plugin dependencies
     for (const pluginId of deps.plugins || []) {
       if (!this.instances.has(pluginId)) {
+        // Try to load dependency plugin
     // 检查插件依赖
     for (const pluginId of deps.plugins || []) {
       if (!this.instances.has(pluginId)) {
@@ -432,6 +512,11 @@ export class PluginLoader {
   
   /**
    * Create plugin context
+   * @param {Object} manifest - Manifest object
+   * @returns {Object} Plugin context
+   * @private
+   */
+  createContext(manifest) {
    * @param {Object} manifest
    * @returns {Object}
    */
@@ -473,6 +558,11 @@ export class PluginLoader {
     };
   }
   
+  /**
+   * Filter services by permissions
+   * @param {string[]} permissions - Requested permissions
+   * @returns {Object} Allowed services
+   * @private
   filterServicesByPermissions(permissions) {
     const allowed = {};
     
@@ -527,6 +617,10 @@ export class PluginLoader {
   
   /**
    * Load plugin stylesheet
+   * @param {string} stylePath - Path to stylesheet
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<void>}
+   * @private
    * @param {string} stylePath
    * @param {string} pluginId
   async loadStyle(stylePath, pluginId) {
@@ -558,12 +652,15 @@ export class PluginLoader {
       style.textContent = css;
       document.head.appendChild(style);
     } catch (error) {
+      console.warn(`Failed to load plugin style: ${pluginId}`, error);
       console.warn(`Failed to load style for plugin ${pluginId}:`, error);
     }
   }
   
   /**
    * Unload plugin stylesheet
+   * @param {string} pluginId - Plugin ID
+   * @private
    * @param {string} pluginId
       console.warn(`Failed to load style for ${pluginId}:`, error);
     }
@@ -582,12 +679,26 @@ export class PluginLoader {
   
   /**
    * Check if plugin is installed
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<boolean>} True if installed
+   * @private
    * @param {string} pluginId
    * @returns {Promise<boolean>}
    */
   async isInstalled(pluginId) {
     try {
       const db = this.services.DatabaseService;
+      if (!db) {
+        // Fallback to localStorage
+        const installed = localStorage.getItem(`plugin_installed_${pluginId}`);
+        if (installed) {
+          this.installedVersions.set(pluginId, installed);
+          return true;
+        }
+        return false;
+      }
+      
+      const record = await db.queryOne(
       if (!db) return false;
       
       const record = await db.queryOne(
@@ -617,12 +728,22 @@ export class PluginLoader {
   
   /**
    * Mark plugin as installed
+   * @param {string} pluginId - Plugin ID
+   * @param {string} version - Plugin version
+   * @returns {Promise<void>}
+   * @private
    * @param {string} pluginId
    * @param {string} version
    */
   async markInstalled(pluginId, version) {
     try {
       const db = this.services.DatabaseService;
+      if (!db) {
+        // Fallback to localStorage
+        localStorage.setItem(`plugin_installed_${pluginId}`, version);
+        this.installedVersions.set(pluginId, version);
+        return;
+      }
       if (!db) return;
       
       await db.run(
@@ -651,6 +772,9 @@ export class PluginLoader {
   }
   
   /**
+   * Create UI helper for plugins
+   * @returns {Object} UI helper object
+   * @private
    * Create UI helper
    * @returns {Object}
    */
@@ -671,6 +795,8 @@ export class PluginLoader {
   
   /**
    * Get plugin instance
+   * @param {string} pluginId - Plugin ID
+   * @returns {Plugin|undefined} Plugin instance
    * @param {string} pluginId
    * @returns {Plugin}
    * @param {string} pluginId - Plugin ID
@@ -682,6 +808,7 @@ export class PluginLoader {
   
   /**
    * Get all plugin instances
+   * @returns {Plugin[]} Array of plugin instances
    * @returns {Plugin[]}
    * @returns {Object[]} Plugin instances
    */
@@ -691,6 +818,8 @@ export class PluginLoader {
   
   /**
    * Get plugin manifest
+   * @param {string} pluginId - Plugin ID
+   * @returns {Object|undefined} Plugin manifest
    * @param {string} pluginId
    * @returns {Object}
    * @param {string} pluginId - Plugin ID
@@ -701,6 +830,8 @@ export class PluginLoader {
   }
   
   /**
+   * Get all plugin manifests
+   * @returns {Object[]} Array of plugin manifests
    * Get all manifests
    * @returns {Object[]}
    * Get all plugin manifests
@@ -711,6 +842,11 @@ export class PluginLoader {
   }
   
   /**
+   * Call exported plugin method
+   * @param {string} pluginId - Plugin ID
+   * @param {string} method - Method name
+   * @param {...*} args - Method arguments
+   * @returns {Promise<*>} Method result
    * Call plugin exported method
    * @param {string} pluginId
    * @param {string} method
@@ -741,6 +877,30 @@ export class PluginLoader {
     
     return instance[methodName](...args);
   }
+  
+  /**
+   * Check if plugin is loaded
+   * @param {string} pluginId - Plugin ID
+   * @returns {boolean} True if loaded
+   */
+  isLoaded(pluginId) {
+    return this.instances.has(pluginId);
+  }
+  
+  /**
+   * Reload plugin
+   * @param {string} pluginId - Plugin ID
+   * @returns {Promise<Plugin>} Plugin instance
+   */
+  async reload(pluginId) {
+    if (this.isLoaded(pluginId)) {
+      await this.unload(pluginId);
+    }
+    return await this.load(pluginId);
+  }
+}
+
+export default PluginLoader;
 }
 
 export default PluginLoader;

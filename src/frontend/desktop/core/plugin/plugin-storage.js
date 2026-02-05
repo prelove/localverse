@@ -1,5 +1,6 @@
 /**
  * Plugin Storage
+ * Provides isolated IndexedDB storage for plugins
  * Provides isolated IndexedDB storage for each plugin
  * 插件存储 - 基于 IndexedDB 的插件数据持久化
  * 插件存储 - 为每个插件提供独立的存储空间
@@ -264,6 +265,8 @@ export class PluginStorage {
   }
 
   /**
+   * Initialize IndexedDB
+   * @returns {Promise<void>}
    * Initialize database
   
 
@@ -289,6 +292,10 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+
+  /**
+   * Ensure database is initialized
+   * @private
   
 
   /**
@@ -302,6 +309,8 @@ export class PluginStorage {
 
   /**
    * Get value by key
+   * @param {string} key - Storage key
+   * @returns {Promise<*>} Stored value or null
    * @param {string} key
    * @returns {Promise<any>}
   
@@ -325,6 +334,9 @@ export class PluginStorage {
 
   /**
    * Set value by key
+   * @param {string} key - Storage key
+   * @param {*} value - Value to store
+   * @returns {Promise<void>}
    * @param {string} key
    * @param {any} value
   
@@ -348,6 +360,8 @@ export class PluginStorage {
 
   /**
    * Remove value by key
+   * @param {string} key - Storage key
+   * @returns {Promise<void>}
    * @param {string} key
   
 
@@ -369,6 +383,7 @@ export class PluginStorage {
 
   /**
    * Clear all data
+   * @returns {Promise<void>}
   
 
   /**
@@ -408,6 +423,7 @@ export class PluginStorage {
   }
 
   /**
+   * Get all data as object
    * Get all key-value pairs
    * @returns {Promise<Object>}
   
@@ -435,6 +451,25 @@ export class PluginStorage {
       
       tx.onerror = () => reject(tx.error);
     });
+  }
+
+  /**
+   * Check if key exists
+   * @param {string} key - Storage key
+   * @returns {Promise<boolean>} True if key exists
+   */
+  async has(key) {
+    const value = await this.get(key);
+    return value !== null;
+  }
+
+  /**
+   * Get size (number of keys)
+   * @returns {Promise<number>} Number of stored items
+   */
+  async size() {
+    const keys = await this.keys();
+    return keys.length;
   }
 }
 

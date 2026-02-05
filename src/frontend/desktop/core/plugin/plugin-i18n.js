@@ -1,4 +1,6 @@
 /**
+ * Plugin I18n
+ * Provides internationalization for plugins
  * Plugin Internationalization
  * Manages plugin localization
  * Plugin I18n
@@ -15,6 +17,14 @@ export class PluginI18n {
     this.fallbackLocale = 'en';
     this.messages = {};
     
+    this.loadLocales(manifest);
+  }
+
+  /**
+   * Load locale files
+   * @param {Object} manifest - Plugin manifest
+   * @private
+   */
     // Load locales asynchronously
     this.loadLocales(manifest).catch(err => {
       console.warn(`Failed to load locales for plugin ${this.pluginId}:`, err);
@@ -47,6 +57,7 @@ export class PluginI18n {
 
   /**
    * Set current locale
+   * @param {string} locale - Locale code (e.g., 'zh', 'en')
    * @param {string} locale
    */
   setLocale(locale) {
@@ -55,6 +66,9 @@ export class PluginI18n {
 
   /**
    * Translate key with parameters
+   * @param {string} key - Translation key (dot notation supported)
+   * @param {Object} params - Parameters to replace in template
+   * @returns {string} Translated text
    * @param {string} key - Translation key
    * @param {Object} params - Parameters for interpolation
    * @returns {string}
@@ -104,6 +118,12 @@ export class PluginI18n {
   }
 
   /**
+   * Get nested value from object by path
+   * @param {Object} obj - Object to traverse
+   * @param {string} key - Dot-separated path
+   * @returns {*} Value at path
+   * @private
+   */
    * Get nested value from object using dot notation
    * @param {Object} obj
    * @param {string} key
@@ -120,6 +140,9 @@ export class PluginI18n {
 
   /**
    * Check if translation exists
+   * @param {string} key - Translation key
+   * @returns {boolean} True if translation exists
+   */
    * @param {string} key
    * @returns {boolean}
    */
@@ -127,6 +150,22 @@ export class PluginI18n {
   has(key) {
     return this.getNestedValue(this.messages[this.locale], key) !== undefined ||
            this.getNestedValue(this.messages[this.fallbackLocale], key) !== undefined;
+  }
+
+  /**
+   * Get current locale
+   * @returns {string} Current locale code
+   */
+  getLocale() {
+    return this.locale;
+  }
+
+  /**
+   * Get all messages for current locale
+   * @returns {Object} Messages object
+   */
+  getMessages() {
+    return this.messages[this.locale] || {};
   }
 }
 
