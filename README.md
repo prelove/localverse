@@ -93,6 +93,9 @@ ls -la dist/
 ### 入门文档
 - 🚀 [快速开发指南](./openspec/QUICK-START-GUIDE.md) - 5分钟快速入门
 - 📘 [开发路线图](./openspec/DEVELOPMENT-ROADMAP.md) - 完整开发规划
+- 📊 [任务状态总览](./TASK-STATUS-OVERVIEW.md) - 所有任务完成状态一览 **← 新增**
+- 📋 [任务状态快速参考](./docs/TASK-STATUS-SUMMARY.md) - 快速查看进度 **← 新增**
+- 📖 [项目规格](./openspec/specs/) - 技术规格文档
 - 🤖 [AI 开发指南](./AGENTS.md) - AI Agent 使用说明
 
 ### 技术文档
