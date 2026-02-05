@@ -1,0 +1,68 @@
+{
+  "id": "wiki",
+  "name": {
+    "zh": "知识库",
+    "ja": "ナレッジベース",
+    "en": "Wiki"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "模块化知识管理,支持 Markdown 和双向链接",
+    "ja": "モジュール式ナレッジ管理、Markdownと双方向リンク対応",
+    "en": "Modular knowledge management with Markdown and bidirectional links"
+  },
+  "icon": "📚",
+  "category": "productivity",
+  
+  "entry": "./index.js",
+  "style": "./style.css",
+  
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 2
+    },
+    "shortcut": {
+      "global": "Ctrl+Shift+W"
+    }
+  },
+  
+  "permissions": [
+    "database:read",
+    "database:write",
+    "filesystem:read",
+    "filesystem:write",
+    "clipboard:read",
+    "clipboard:write"
+  ],
+  
+  "dependencies": {
+    "services": ["DatabaseService", "SearchService", "FileSystemService"]
+  },
+  
+  "settings": {
+    "defaultView": {
+      "type": "select",
+      "options": ["board", "list", "grid"],
+      "default": "board",
+      "label": { "zh": "默认视图", "en": "Default view" }
+    },
+    "autoSaveInterval": {
+      "type": "number",
+      "default": 5000,
+      "min": 1000,
+      "max": 60000,
+      "label": { "zh": "自动保存间隔(ms)", "en": "Auto-save interval(ms)" }
+    },
+    "enableBidirectionalLinks": {
+      "type": "boolean",
+      "default": true,
+      "label": { "zh": "启用双向链接", "en": "Enable bidirectional links" }
+    },
+    "enableVersionHistory": {
+      "type": "boolean",
+      "default": true,
+      "label": { "zh": "启用版本历史", "en": "Enable version history" }
+    }
+  }
+}

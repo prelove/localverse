@@ -1,6 +1,9 @@
 /**
  * Plugin I18n
  * 插件国际化支持
+ * 
+ * Internationalization support for plugins.
+ * Loads locale files and provides translation functions.
  */
 
 export class PluginI18n {
@@ -26,6 +29,7 @@ export class PluginI18n {
         }
       } catch {
         // 忽略加载失败
+        // Ignore loading failures
       }
     }
   }
@@ -39,17 +43,23 @@ export class PluginI18n {
     let text = this.getNestedValue(this.messages[this.locale], key);
     
     // 回退到默认语言
+    // Try current language
+    let text = this.getNestedValue(this.messages[this.locale], key);
+    
+    // Fallback to default language
     if (text === undefined) {
       text = this.getNestedValue(this.messages[this.fallbackLocale], key);
     }
     
     // 找不到返回 key
+    // Return key if not found
     if (text === undefined) {
       console.warn(`Missing translation: ${this.pluginId}.${key}`);
       return key;
     }
     
     // 替换参数
+    // Replace parameters
     for (const [param, value] of Object.entries(params)) {
       text = text.replace(new RegExp(`{${param}}`, 'g'), String(value));
     }
