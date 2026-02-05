@@ -1,4 +1,6 @@
 /**
+ * Plugin Base Class
+ * 插件基类 - 所有插件必须继承此类
  * 插件基类
  * 
  * 所有插件必须继承此基类
@@ -34,6 +36,12 @@ export class Plugin {
     this.settings = context.settings;
     this.i18n = context.i18n;
     
+    this._state = {};
+    this._mounted = false;
+    this._shadowRoot = null;
+  }
+  
+  // ========== 生命周期 ==========
     this._state = 'inactive'; // inactive | active | error
     this._mounted = false;
     this._container = null;
@@ -357,6 +365,9 @@ export class Plugin {
   async onUninstall() {}
   async onActivate() {}
   async onDeactivate() {}
+  async onSettingsChange(key, value, oldValue) {}
+  
+  // ========== 渲染 ==========
   /**
    * Called when plugin is first installed
    */
@@ -410,6 +421,9 @@ export class Plugin {
   mount(container) {
     this._container = container;
     
+    // 创建 Shadow DOM
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
+    
     // Create Shadow DOM
     this._shadowRoot = container.attachShadow({ mode: 'open' });
     
@@ -444,6 +458,10 @@ export class Plugin {
       <style>${this.styles()}</style>
       ${this.render()}
     `;
+  }
+  
+  // ========== 状态管理 ==========
+  
   /**
    * Internal render method
    */
@@ -480,6 +498,7 @@ export class Plugin {
     }
   }
   
+  // ========== DOM 工具 ==========
   // ========== DOM Utilities ==========
   
   $(selector) {
@@ -488,6 +507,12 @@ export class Plugin {
   
   $$(selector) {
     return this._shadowRoot?.querySelectorAll(selector) || [];
+  }
+  
+  // ========== 事件 ==========
+  
+  bindEvents() {}
+  
   /**
    * Query selector in container
    * @param {string} selector - CSS selector
@@ -535,6 +560,8 @@ export class Plugin {
     return this.eventBus.on(event, handler);
   }
   
+  // ========== 服务调用 ==========
+  
   // ========== Service Calls ==========
   
   /**
@@ -555,6 +582,8 @@ export class Plugin {
     return service[method](...args);
   }
   
+  // ========== 国际化 ==========
+  
   // ========== Internationalization ==========
   
   /**
@@ -566,6 +595,8 @@ export class Plugin {
   t(key, params = {}) {
     return this.i18n.t(key, params);
   }
+  
+  // ========== 设置 ==========
   
   // ========== Settings ==========
   
@@ -586,6 +617,8 @@ export class Plugin {
   async setSetting(key, value) {
     return this.settings.set(key, value);
   }
+  
+  // ========== 工具 ==========
   
   // ========== Utilities ==========
   

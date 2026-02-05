@@ -1,4 +1,6 @@
 /**
+ * Plugin System - Main Entry Point
+ * 插件系统主入口
  * 插件系统 - 主入口
  * 
  * 导出所有插件系统组件

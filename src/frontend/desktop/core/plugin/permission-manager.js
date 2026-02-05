@@ -1,4 +1,6 @@
 /**
+ * Permission Manager
+ * 权限管理器 - 控制插件的权限访问
  * 权限管理器
  * 
  * 功能：
@@ -93,6 +95,7 @@ const PERMISSIONS = {
     risk: 'low'
   },
   'search': {
+    name: '搜索服务',
     name: '搜索',
     risk: 'low'
   }
@@ -300,6 +303,13 @@ export class PermissionManager {
     const grants = this.grants.get(pluginId);
     if (!grants) return false;
     
+    // 检查通配符
+    if (grants.has('*')) return true;
+    
+    // 检查具体权限
+    if (grants.has(permission)) return true;
+    
+    // 检查父权限（例如 database:* 包含 database:read）
     // Check wildcard
     if (grants.has('*')) return true;
     

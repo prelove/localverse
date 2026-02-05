@@ -37,7 +37,7 @@
 | [task-005-authentication](./phase-0/task-005-authentication.md) | 认证系统 | 8h | 004 | ✅ 已完成 |
 | [task-006-plugin-system](./phase-0/task-006-plugin-system.md) | 插件系统 | 12h | 005 | ✅ 已完成 |
 
-**Phase 0 总计：约 68 小时**
+**Phase 0 总计：约 68 小时** ✅ **100% 已完成** (2026-01-31)
 
 ### Phase 1: 核心应用 🟡 优先完成
 

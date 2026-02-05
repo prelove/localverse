@@ -1,5 +1,6 @@
 /**
  * Plugin Settings
+ * 插件设置管理 - 处理插件配置项
  * 
  * Manages plugin configuration with schema validation and persistence.
  * Plugin Settings Manager
@@ -38,6 +39,11 @@ export class PluginSettings {
         const parsed = JSON.parse(stored);
         this.values = { ...this.values, ...parsed };
       } catch {
+        // 忽略无效数据
+      }
+    }
+  }
+  
         // Ignore invalid data
       }
     }
@@ -81,6 +87,7 @@ export class PluginSettings {
       throw new Error(`Unknown setting: ${key}`);
     }
     
+    // 验证
     // Validate
     if (!this.validate(key, value, config)) {
       throw new Error(`Invalid value for setting: ${key}`);
@@ -90,6 +97,7 @@ export class PluginSettings {
     this.values[key] = value;
     this.saveToStorage();
     
+    // 通知监听器
     // Notify listeners
     for (const listener of this.listeners) {
       try {
@@ -159,6 +167,7 @@ export class PluginSettings {
         await this.set(key, config.default);
       }
     } else {
+      // 重置所有
       // Reset all
       this.loadDefaults();
       this.saveToStorage();

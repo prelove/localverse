@@ -1,4 +1,6 @@
 /**
+ * Event Bus
+ * 事件总线 - 用于插件间通信
  * 事件总线 - 插件间通信
  * 
  * 功能：
@@ -247,6 +249,10 @@ export const eventBus = new EventBus();
     }
     this.handlers.get(event).add(handler);
     
+    // 返回取消函数
+    return () => this.off(event, handler);
+  }
+  
     // Return unsubscribe function
     return () => this.off(event, handler);
   }
@@ -308,6 +314,8 @@ export const eventBus = new EventBus();
     }
   }
   
+  emit(event, data) {
+    // 普通监听器
    * @param {Function} callback - Event handler to remove
    */
   off(event, callback) {
@@ -344,6 +352,7 @@ export const eventBus = new EventBus();
       }
     }
     
+    // 一次性监听器
     // Once handlers
     const onceHandlers = this.onceHandlers.get(event);
     if (onceHandlers) {
@@ -357,6 +366,7 @@ export const eventBus = new EventBus();
       this.onceHandlers.delete(event);
     }
     
+    // 通配符监听器
     // Wildcard handlers
     const wildcardHandlers = this.handlers.get('*');
     if (wildcardHandlers) {

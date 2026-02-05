@@ -1,4 +1,6 @@
 /**
+ * Plugin Loader
+ * 插件加载器 - 管理插件的完整生命周期
  * 插件加载器
  * 
  * 功能：
@@ -158,6 +160,8 @@ export class PluginLoader {
   }
   
   async discoverPlugins() {
+    // 从配置或目录获取插件列表
+    // 这里假设有一个 plugins.json 文件
     // Get plugin list from configuration or directory
     // Assumes a plugins.json file exists
   /**
@@ -171,6 +175,24 @@ export class PluginLoader {
       const data = await response.json();
       return data.plugins || [];
     } catch {
+      // 默认插件列表（暂时为空，后续添加内置插件）
+      return [];
+    }
+  }
+  
+  async load(pluginId) {
+    const pluginDir = `${this.pluginsDir}/${pluginId}`;
+    
+    // 1. 读取 manifest
+    const manifest = await this.loadManifest(pluginDir);
+    
+    // 2. 验证
+    this.validateManifest(manifest);
+    
+    // 3. 检查依赖
+    await this.checkDependencies(manifest);
+    
+    // 4. 加载样式
       // Default plugin list
       return ['finder', 'wiki', 'chat', 'task'];
     }
@@ -206,6 +228,21 @@ export class PluginLoader {
       await this.loadStyle(`${pluginDir}/${manifest.style}`, manifest.id);
     }
     
+    // 5. 加载入口模块
+    const module = await import(`${pluginDir}/${manifest.entry}`);
+    const PluginClass = module.default;
+    
+    // 6. 创建上下文
+    const context = this.createContext(manifest);
+    
+    // 7. 实例化
+    const instance = new PluginClass(context);
+    
+    // 8. 注册
+    this.manifests.set(manifest.id, manifest);
+    this.instances.set(manifest.id, instance);
+    
+    // 9. 安装/激活
     // 5. Load entry module
     const module = await import(`${pluginDir}/${manifest.entry}`);
     const PluginClass = module.default;
@@ -236,6 +273,10 @@ export class PluginLoader {
       await instance.onInstall();
       await this.markInstalled(manifest.id, manifest.version);
     } else {
+      // 检查版本更新
+      const installedVersion = this.installedVersions.get(manifest.id);
+      if (installedVersion !== manifest.version) {
+        // 可以触发迁移逻辑
       // Check version update
       const installedVersion = this.installedVersions.get(manifest.id);
       if (installedVersion !== manifest.version) {
@@ -246,6 +287,7 @@ export class PluginLoader {
     
     await instance.onActivate();
     
+    // 10. 发送事件
     // 10. Emit event
       // Check for version update
       const installedVersion = this.installedVersions.get(manifest.id);
@@ -274,6 +316,10 @@ export class PluginLoader {
     
     await instance.onDeactivate();
     
+    // 移除样式
+    this.unloadStyle(pluginId);
+    
+    // 移除注册
     // Remove style
     this.unloadStyle(pluginId);
     
@@ -318,6 +364,10 @@ export class PluginLoader {
     }
   }
   
+  async checkDependencies(manifest) {
+    const deps = manifest.dependencies || {};
+    
+    // 检查服务依赖
   /**
    * Check plugin dependencies
    * @param {Object} manifest - Plugin manifest
@@ -332,6 +382,10 @@ export class PluginLoader {
       }
     }
     
+    // 检查插件依赖
+    for (const pluginId of deps.plugins || []) {
+      if (!this.instances.has(pluginId)) {
+        // 尝试加载依赖插件
     // Check plugin dependencies
     for (const pluginId of deps.plugins || []) {
       if (!this.instances.has(pluginId)) {
@@ -343,6 +397,7 @@ export class PluginLoader {
   }
   
   createContext(manifest) {
+    // 根据权限过滤服务
   /**
    * Create plugin context
    * @param {Object} manifest - Plugin manifest
@@ -376,6 +431,10 @@ export class PluginLoader {
     };
   }
   
+  filterServicesByPermissions(permissions) {
+    const allowed = {};
+    
+    // 基础服务始终可用（不需要权限）
       storage,
       settings,
       i18n,
@@ -399,6 +458,7 @@ export class PluginLoader {
       }
     }
     
+    // 根据权限添加服务
     // Add services based on permissions
     // Permission-based services
     const permissionServiceMap = {
@@ -532,6 +592,8 @@ export class PluginLoader {
       showPrompt: (message, defaultValue) => window.app?.showPrompt(message, defaultValue)
     };
   }
+  
+  // ========== 公共 API ==========
   
   // ========== Public API ==========
   
