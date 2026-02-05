@@ -3,6 +3,7 @@ package server;
 import com.sun.net.httpserver.HttpServer;
 import config.Config;
 import server.handlers.*;
+import services.BackupService;
 import services.DatabaseService;
 import services.FileSystemService;
 import services.ProxyService;
@@ -21,6 +22,8 @@ public class LocalHttpServer {
     private final FileSystemService fileSystemService;
     private final DatabaseService databaseService;
     private final ProxyService proxyService;
+    private SearchService searchService;
+    private BackupService backupService;
     // SearchService and ProcessService are initialized in registerHandlers()
     // after the server is created, hence not final
     private SearchService searchService;
@@ -35,6 +38,45 @@ public class LocalHttpServer {
         this.fileSystemService = fileSystemService;
         this.databaseService = databaseService;
         this.proxyService = proxyService;
+        
+        // Initialize search service if database is available
+        if (databaseService != null && databaseService.getConnection() != null) {
+            this.searchService = new SearchService(databaseService.getConnection());
+            this.backupService = new BackupService(config, databaseService);
+        } else {
+            this.searchService = null;
+            this.backupService = null;
+        }
+    }
+
+    /**
+     * 启动服务器
+     */
+    public void start() throws IOException {
+        int port = config.client().httpPort();
+        String bindAddress = config.client().bindAddress();
+
+        server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
+
+        // 注册处理器
+        registerHandlers();
+
+        // 设置线程池
+        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+
+        // 启动服务器
+        server.start();
+
+        System.out.println("HTTP Server started on " + bindAddress + ":" + port);
+    }
+
+    /**
+     * 停止服务器
+     */
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+            System.out.println("HTTP Server stopped");
     }
 
     /**
@@ -112,6 +154,13 @@ public class LocalHttpServer {
         server.createContext("/api/local/process", 
             new ProcessHandler(processService));
         System.out.println("✓ Process engine enabled");
+
+        // 备份与恢复 (if database is available)
+        if (backupService != null) {
+            server.createContext("/api/local/backup", 
+                new BackupHandler(backupService));
+            System.out.println("✓ Backup service enabled");
+        }
 
         // 代理转发
         server.createContext("/api/sync", 

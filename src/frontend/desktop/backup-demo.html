@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>备份管理 - Localverse</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
+                   'Microsoft YaHei', sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .toolbar {
+      padding: 20px 30px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-danger {
+      background: #f56565;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e53e3e;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #4a5568;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .backup-list {
+      list-style: none;
+    }
+
+    .backup-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+
+    .backup-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .backup-info {
+      flex: 1;
+    }
+
+    .backup-name {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 5px;
+    }
+
+    .backup-meta {
+      font-size: 13px;
+      color: #718096;
+      margin-bottom: 3px;
+    }
+
+    .backup-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .backup-actions button {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #a0aec0;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #a0aec0;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #2d3748;
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+      color: #4a5568;
+      line-height: 1.6;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 5px;
+      color: #4a5568;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.active {
+      display: flex;
+    }
+
+    .toast.success {
+      border-left: 4px solid #48bb78;
+    }
+
+    .toast.error {
+      border-left: 4px solid #f56565;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🗄️ 备份管理</h1>
+      <p>数据备份与恢复 - 确保数据安全</p>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-primary" onclick="showCreateBackupModal()">
+        ➕ 创建备份
+      </button>
+      <button class="btn-secondary" onclick="loadBackups()">
+        🔄 刷新列表
+      </button>
+    </div>
+
+    <div class="content">
+      <div id="loading" class="loading">
+        <p>加载中...</p>
+      </div>
+
+      <ul id="backupList" class="backup-list" style="display: none;"></ul>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        <p>暂无备份文件</p>
+        <p style="font-size: 13px; margin-top: 10px;">点击"创建备份"开始备份数据</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建备份模态框 -->
+  <div id="createModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">创建备份</div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">备份描述（可选）</label>
+          <input type="text" id="backupDescription" class="form-input" 
+                 placeholder="例如：手动备份 - 2026-01-31">
+        </div>
+        <p style="font-size: 13px; color: #718096;">
+          备份将包含所有数据表并压缩存储。
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="hideCreateBackupModal()">取消</button>
+        <button class="btn-primary" onclick="createBackup()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 恢复确认模态框 -->
+  <div id="restoreModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">⚠️ 恢复备份</div>
+      <div class="modal-body">
+        <p>确定要恢复此备份吗？</p>
+        <p style="margin-top: 10px; color: #e53e3e;">
+          <strong>警告：</strong>此操作将覆盖当前所有数据（system_config 表除外）！
+        </p>
+        <p style="margin-top: 10px; font-size: 13px; color: #718096;">
+          建议在恢复前先创建当前数据的备份。
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="hideRestoreModal()">取消</button>
+        <button class="btn-danger" onclick="confirmRestore()">确认恢复</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    // API 基础 URL
+    const API_BASE = 'http://127.0.0.1:8765/api/local/backup';
+    
+    let currentRestoreFile = null;
+
+    // 格式化文件大小
+    function formatSize(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // 格式化时间
+    function formatDate(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    // 显示 Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} active`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+
+    // 加载备份列表
+    window.loadBackups = async function() {
+      const loading = document.getElementById('loading');
+      const backupList = document.getElementById('backupList');
+      const emptyState = document.getElementById('emptyState');
+
+      loading.style.display = 'block';
+      backupList.style.display = 'none';
+      emptyState.style.display = 'none';
+
+      try {
+        const response = await fetch(`${API_BASE}/list`);
+        const data = await response.json();
+
+        if (data.success && data.backups.length > 0) {
+          backupList.innerHTML = data.backups.map(backup => `
+            <li class="backup-item">
+              <div class="backup-info">
+                <div class="backup-name">${backup.file_name}</div>
+                <div class="backup-meta">📅 ${formatDate(backup.created_at)}</div>
+                <div class="backup-meta">📦 ${formatSize(backup.file_size)}</div>
+                ${backup.description ? `<div class="backup-meta">📝 ${backup.description}</div>` : ''}
+              </div>
+              <div class="backup-actions">
+                <button class="btn-secondary" onclick="restoreBackup('${backup.file_name}')">
+                  ⬆️ 恢复
+                </button>
+                <button class="btn-danger" onclick="deleteBackup('${backup.file_name}')">
+                  🗑️ 删除
+                </button>
+              </div>
+            </li>
+          `).join('');
+          backupList.style.display = 'block';
+        } else {
+          emptyState.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('加载备份列表失败:', error);
+        showToast('加载备份列表失败', 'error');
+        emptyState.style.display = 'block';
+      } finally {
+        loading.style.display = 'none';
+      }
+    };
+
+    // 显示创建备份模态框
+    window.showCreateBackupModal = function() {
+      document.getElementById('createModal').classList.add('active');
+      document.getElementById('backupDescription').value = '';
+    };
+
+    // 隐藏创建备份模态框
+    window.hideCreateBackupModal = function() {
+      document.getElementById('createModal').classList.remove('active');
+    };
+
+    // 创建备份
+    window.createBackup = async function() {
+      const description = document.getElementById('backupDescription').value;
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('备份创建成功');
+          hideCreateBackupModal();
+          loadBackups();
+        } else {
+          showToast(data.error || '备份创建失败', 'error');
+        }
+      } catch (error) {
+        console.error('创建备份失败:', error);
+        showToast('备份创建失败', 'error');
+      }
+    };
+
+    // 恢复备份
+    window.restoreBackup = function(fileName) {
+      currentRestoreFile = fileName;
+      document.getElementById('restoreModal').classList.add('active');
+    };
+
+    // 隐藏恢复模态框
+    window.hideRestoreModal = function() {
+      document.getElementById('restoreModal').classList.remove('active');
+      currentRestoreFile = null;
+    };
+
+    // 确认恢复
+    window.confirmRestore = async function() {
+      if (!currentRestoreFile) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_name: currentRestoreFile })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast(`恢复成功，共恢复 ${data.tables_restored} 个表`);
+          hideRestoreModal();
+        } else {
+          showToast(data.error || '恢复失败', 'error');
+        }
+      } catch (error) {
+        console.error('恢复备份失败:', error);
+        showToast('恢复备份失败', 'error');
+      }
+    };
+
+    // 删除备份
+    window.deleteBackup = async function(fileName) {
+      if (!confirm(`确定要删除备份 "${fileName}" 吗？`)) return;
+
+      try {
+        const response = await fetch(`${API_BASE}?file_name=${encodeURIComponent(fileName)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('备份删除成功');
+          loadBackups();
+        } else {
+          showToast(data.error || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除备份失败:', error);
+        showToast('删除备份失败', 'error');
+      }
+    };
+
+    // 页面加载时自动加载备份列表
+    loadBackups();
+  </script>
+</body>
+</html>
