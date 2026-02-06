@@ -5,7 +5,7 @@
 
 import { getFileCategory } from './utils/file-icons.js';
 import { formatSize, formatDate } from './utils/formatters.js';
-import { t as translate } from './i18n.js';
+import { t } from './i18n.js';
 import { FinderIndexer } from './services/indexer.js';
 import { PreviewService } from './services/preview.js';
 import { renderSearchBox } from './components/search-box.js';
@@ -691,7 +691,7 @@ export default class FinderPlugin {
   
   t(key) {
     // Translation helper using the i18n module
-    return translate(key, this.locale);
+    return t(key, this.locale);
   }
   
   emit(event, data) {
