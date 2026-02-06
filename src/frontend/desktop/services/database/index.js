@@ -20,11 +20,19 @@ export class DatabaseServiceFactory {
    */
   static async create(mode = 'auto', options = {}) {
     let service;
+    const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
     
     // Mock 模式（用于测试）
     if (mode === 'mock') {
       service = new MockDatabaseService();
       await service.init();
+      return service;
+    }
+
+    if (isFileProtocol) {
+      service = new MockDatabaseService();
+      await service.init();
+      console.warn('File protocol detected, using MockDatabaseService');
       return service;
     }
     

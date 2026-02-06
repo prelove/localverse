@@ -344,6 +344,22 @@
   white-space: pre-wrap;
 }
 
+.preview-code {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  background: var(--bg-primary, #fff);
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  font-size: 0.812rem;
+  overflow: auto;
+}
+
+.preview-code code {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  white-space: pre;
+  display: block;
+}
+
 .preview-meta {
   font-size: 0.75rem;
   color: var(--text-secondary, #666);

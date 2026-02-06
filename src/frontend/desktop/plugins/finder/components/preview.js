@@ -6,6 +6,8 @@ export function renderPreview({ file, preview, labels }) {
   let content = '';
   if (preview.type === 'image') {
     content = `<img src="${preview.src}" alt="${escapeHtml(file.name)}" />`;
+  } else if (preview.type === 'code') {
+    content = `<pre class="preview-code"><code data-language="${escapeHtml(preview.language || '')}">${preview.content}</code></pre>`;
   } else if (preview.type === 'text') {
     content = `<pre class="preview-text">${preview.content}</pre>`;
   } else {

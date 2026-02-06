@@ -41,6 +41,10 @@ class I18n {
     if (this.messages[locale]) return;
     
     try {
+      if (typeof window !== 'undefined' && window.location?.protocol === 'file:') {
+        this.messages[locale] = this.getEmbeddedMessages(locale);
+        return;
+      }
       // Try to load from server
       const response = await fetch(`/locales/${locale}.json`);
       if (response.ok) {
