@@ -59,10 +59,13 @@ class LinkParser {
    * Render links as HTML
    * @param {string} content - Markdown content
    * @param {Array} cards - All available cards
-   * @param {Function} onLinkClick - Callback for link clicks
+   * @param {Object} options - Render options
+   * @param {Function} options.onLinkClick - Callback for link clicks
+   * @param {string} options.missingLinkTitle - Tooltip for missing links
+   * @param {string} options.missingLinkAction - data-action for missing links
    * @returns {string} Content with rendered links
    */
-  renderLinks(content, cards = [], onLinkClick = null) {
+  renderLinks(content, cards = [], options = {}) {
     if (!content) return '';
     
     // Create a map of card titles to IDs for quick lookup
@@ -70,6 +73,7 @@ class LinkParser {
     cards.forEach(card => {
       cardMap.set(card.title.toLowerCase(), card.id);
     });
+    const { onLinkClick, missingLinkTitle, missingLinkAction } = options;
     
     return content.replace(this.linkRegex, (match, cardTitle) => {
       const trimmedTitle = cardTitle.trim();
@@ -80,10 +84,13 @@ class LinkParser {
         const onClick = onLinkClick 
           ? `onclick="event.preventDefault(); (${onLinkClick.toString()})('${cardId}')"`
           : '';
-        return `<a href="#/wiki/card/${cardId}" class="wiki-link" data-card-id="${cardId}" ${onClick}>${this.escapeHtml(trimmedTitle)}</a>`;
+        return `<a href="#/wiki/card/${cardId}" class="wiki-link" data-card-id="${cardId}" data-action="open-card-link" ${onClick}>${this.escapeHtml(trimmedTitle)}</a>`;
       } else {
         // Non-existing card - show as missing
-        return `<span class="wiki-link-missing" title="Card not found">${this.escapeHtml(trimmedTitle)}</span>`;
+        const title = this.escapeHtml(trimmedTitle);
+        const tooltip = missingLinkTitle ? ` title="${this.escapeHtml(missingLinkTitle)}"` : '';
+        const action = missingLinkAction ? ` data-action="${missingLinkAction}"` : '';
+        return `<span class="wiki-link-missing" data-link-title="${title}"${action}${tooltip}>${title}</span>`;
       }
     });
   }
@@ -113,7 +120,7 @@ class LinkParser {
         backlinks.push({
           cardId: card.id,
           cardTitle: card.title,
-          columnId: card.columnId
+          columnId: card.column_id
         });
       }
     }

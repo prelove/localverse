@@ -629,3 +629,7 @@ describe('WikiPlugin', () => {
 - [插件系统规格](../../specs/08-plugin-system.md)
 - [数据库服务规格](../../specs/services/database-service.md)
 - [搜索服务规格](../../specs/services/search-service.md)
+
+## 更新记录
+
+- 2026-02-06: 完善双向链接跳转与缺失提示、优化编辑/预览体验、增强搜索结果交互与高亮反馈。
