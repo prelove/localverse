@@ -16,9 +16,11 @@ class WikiPlugin {
     // State
     this.state = {
       modules: [],
+      allColumns: [],
       currentModule: null,
       columns: [],
       cards: [],
+      allCards: [],
       selectedCard: null,
       editingCard: null,
       view: 'board',
@@ -315,8 +317,8 @@ class WikiPlugin {
       return this.renderCardEditor(this.state.editingCard);
     }
 
-    const backlinksCount = this.linkParser.findBacklinks(card.id, card.title, this.state.cards).length;
-    const columnName = this.getColumnName(card.column_id);
+    const backlinksCount = this.linkParser.findBacklinks(card.id, card.title, this.state.allCards).length;
+    const columnContext = this.getColumnContext(card.column_id);
 
     return `
       <div class="card-detail-panel">
@@ -324,7 +326,7 @@ class WikiPlugin {
           <div class="card-detail-heading">
             <h2>${this.escapeHtml(card.title)}</h2>
             <div class="card-detail-subtitle">
-              <span>${columnName}</span>
+              <span>${columnContext}</span>
               <span>•</span>
               <span>${this.formatDate(card.updated_at)}</span>
             </div>
@@ -333,7 +335,10 @@ class WikiPlugin {
         </div>
         <div class="card-detail-body">
           <div class="card-content">
-            ${this.renderMarkdown(card.content, { highlightQuery: this.state.highlightQuery })}
+            ${this.renderMarkdown(card.content, {
+              highlightQuery: this.state.highlightQuery,
+              sourceModuleId: this.getModuleIdByColumn(card.column_id)
+            })}
           </div>
           ${this.state.showBacklinks ? this.renderBacklinks(card) : ''}
         </div>
@@ -353,7 +358,7 @@ class WikiPlugin {
   }
 
   renderBacklinks(card) {
-    const backlinks = this.linkParser.findBacklinks(card.id, card.title, this.state.cards);
+    const backlinks = this.linkParser.findBacklinks(card.id, card.title, this.state.allCards);
     
     return `
       <div class="backlinks-section">
@@ -365,9 +370,9 @@ class WikiPlugin {
           ? `<p class="empty-state">${this.t('noBacklinks')}</p>`
           : `<ul class="backlinks-list">
               ${backlinks.map(bl => `
-                <li data-card-id="${bl.cardId}" data-action="select-card">
+                <li data-card-id="${bl.cardId}" data-action="open-backlink">
                   <div class="backlink-title">${this.escapeHtml(bl.cardTitle)}</div>
-                  <div class="backlink-meta">${this.getColumnName(bl.columnId)}</div>
+                  <div class="backlink-meta">${this.getColumnContext(bl.columnId)}</div>
                 </li>
               `).join('')}
             </ul>`
@@ -398,7 +403,7 @@ class WikiPlugin {
                   <div class="result-title">${this.highlightText(card.title, query)}</div>
                   <div class="result-snippet">${this.getSearchSnippet(card, query)}</div>
                   <div class="result-meta">
-                    <span>${this.getColumnName(card.column_id)}</span>
+                    <span>${this.getColumnContext(card.column_id)}</span>
                     <span>${this.formatDate(card.updated_at)}</span>
                   </div>
                 </li>
@@ -456,7 +461,8 @@ class WikiPlugin {
       'edit-column': () => this.editColumn(element.dataset.columnId),
       'delete-column': () => this.deleteColumn(element.dataset.columnId),
       'create-card': () => this.createCard(element.dataset.columnId),
-      'select-card': () => this.selectCard(element.dataset.cardId),
+      'select-card': () => this.openCardById(element.dataset.cardId),
+      'open-backlink': () => this.openCardById(element.dataset.cardId),
       'edit-card-detail': () => this.editCard(this.state.selectedCard?.id),
       'delete-card-detail': () => this.deleteCard(this.state.selectedCard?.id),
       'close-detail': () => this.closeDetail(),
@@ -496,7 +502,7 @@ class WikiPlugin {
   // ==================== Data Operations ====================
 
   async loadModules() {
-    this.state.modules = await this.wikiService.getModules();
+    await this.refreshGlobalData();
     
     // Select first module by default
     if (this.state.modules.length > 0 && !this.state.currentModule) {
@@ -504,10 +510,12 @@ class WikiPlugin {
     }
   }
 
-  async selectModule(moduleId) {
+  async selectModule(moduleId, options = {}) {
+    if (!options.skipConfirm && !(await this.confirmDiscardChanges())) return;
     this.state.currentModule = await this.wikiService.getModule(moduleId);
     this.state.columns = await this.wikiService.getColumns(moduleId);
     this.state.cards = await this.wikiService.getAllCards(moduleId);
+    await this.refreshGlobalData();
     this.state.selectedCard = null;
     this.state.highlightQuery = '';
     this.state.focusedCardId = null;
@@ -521,6 +529,7 @@ class WikiPlugin {
 
     const module = await this.wikiService.createModule({ name });
     this.state.modules.push(module);
+    await this.refreshGlobalData();
     await this.selectModule(module.id);
   }
 
@@ -530,7 +539,7 @@ class WikiPlugin {
     if (!newName) return;
 
     await this.wikiService.updateModule(moduleId, { name: newName });
-    await this.loadModules();
+    await this.refreshGlobalData();
     await this.render();
   }
 
@@ -538,7 +547,7 @@ class WikiPlugin {
     if (!confirm(this.t('deleteConfirm'))) return;
 
     await this.wikiService.deleteModule(moduleId);
-    await this.loadModules();
+    await this.refreshGlobalData();
     
     if (this.state.currentModule?.id === moduleId) {
       this.state.currentModule = null;
@@ -561,6 +570,7 @@ class WikiPlugin {
     });
     
     this.state.columns.push(column);
+    await this.refreshGlobalData();
     await this.render();
   }
 
@@ -570,6 +580,7 @@ class WikiPlugin {
     if (!newName) return;
 
     await this.wikiService.updateColumn(columnId, { name: newName });
+    await this.refreshGlobalData();
     await this.selectModule(this.state.currentModule.id);
   }
 
@@ -577,6 +588,7 @@ class WikiPlugin {
     if (!confirm(this.t('deleteConfirm'))) return;
 
     await this.wikiService.deleteColumn(columnId);
+    await this.refreshGlobalData();
     await this.selectModule(this.state.currentModule.id);
   }
 
@@ -591,10 +603,19 @@ class WikiPlugin {
     });
     
     this.state.cards.push(card);
+    await this.refreshGlobalData();
     await this.render();
   }
 
   async selectCard(cardId, options = {}) {
+    if (
+      !options.skipConfirm &&
+      this.state.editingCard &&
+      this.state.editingCard.id !== cardId &&
+      !(await this.confirmDiscardChanges(cardId))
+    ) {
+      return;
+    }
     const card = await this.wikiService.getCard(cardId);
     if (!card) {
       this.showToast(this.t('cardNotFound'), 'error');
@@ -635,10 +656,12 @@ class WikiPlugin {
     if (!confirm(this.t('deleteConfirm'))) return;
 
     await this.wikiService.deleteCard(cardId);
+    await this.refreshGlobalData();
     await this.selectModule(this.state.currentModule.id);
   }
 
   async openCardById(cardId, options = {}) {
+    if (!(await this.confirmDiscardChanges(cardId))) return;
     const card = await this.wikiService.getCard(cardId);
     if (!card) {
       this.showToast(this.t('cardNotFound'), 'error');
@@ -647,10 +670,10 @@ class WikiPlugin {
 
     const column = await this.wikiService.getColumn(card.column_id);
     if (column?.module_id && this.state.currentModule?.id !== column.module_id) {
-      await this.selectModule(column.module_id);
+      await this.selectModule(column.module_id, { skipConfirm: true });
     }
 
-    await this.selectCard(cardId, options);
+    await this.selectCard(cardId, { ...options, skipConfirm: true });
   }
 
   async openCardFromLink(cardId) {
@@ -688,6 +711,7 @@ class WikiPlugin {
       content: ''
     });
 
+    await this.refreshGlobalData();
     await this.selectCard(card.id, { focusedCardId: card.id });
     await this.editCard(card.id);
   }
@@ -768,9 +792,13 @@ class WikiPlugin {
     let html = content;
     
     // Render links
-    html = this.linkParser.renderLinks(html, this.state.cards, {
+    const cardsForLinks = this.state.allCards.length > 0 ? this.state.allCards : this.state.cards;
+    html = this.linkParser.renderLinks(html, cardsForLinks, {
       missingLinkTitle: this.t('missingLinkHint'),
-      missingLinkAction: 'create-missing-card'
+      missingLinkAction: 'create-missing-card',
+      missingLinkLabel: this.t('missingLinkAction'),
+      preferModuleId: options.sourceModuleId,
+      getModuleId: (card) => this.getModuleIdByColumn(card.column_id)
     });
     
     // Basic markdown (simplified)
@@ -865,6 +893,7 @@ class WikiPlugin {
   renderCardEditor(card) {
     const isDirty = this.isEditingDirty(card);
     const tagsPreview = this.parseTags(card.tagsInput || '').slice(0, 8);
+    const hasTags = tagsPreview.length > 0;
     return `
       <div class="card-detail-panel">
         <div class="card-detail-header">
@@ -872,6 +901,9 @@ class WikiPlugin {
             <h2>${this.escapeHtml(card.title)}</h2>
             <div class="editor-status ${isDirty ? 'dirty' : ''}">
               ${isDirty ? this.t('unsavedChanges') : this.t('allChangesSaved')}
+            </div>
+            <div class="editor-preview-status">
+              ${this.t('previewStatus')}: ${this.state.editorPreviewEnabled ? this.t('previewOn') : this.t('previewOff')}
             </div>
           </div>
           <button class="btn-icon" data-action="cancel-edit">✕</button>
@@ -882,8 +914,11 @@ class WikiPlugin {
 
           <label class="editor-label">${this.t('tags')}</label>
           <input class="editor-input" data-field="tags" type="text" value="${this.escapeHtml(card.tagsInput || '')}" placeholder="${this.t('tagsHint')}" />
-          <div class="tags-preview ${tagsPreview.length > 0 ? '' : 'is-empty'}" data-role="tags-preview">
-            ${tagsPreview.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}
+          <div class="tags-preview ${hasTags ? '' : 'is-empty'}" data-role="tags-preview">
+            ${hasTags
+              ? tagsPreview.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')
+              : `<span class="tags-empty">${this.t('tagsEmpty')}</span>`
+            }
           </div>
 
           <label class="editor-label">${this.t('cardContent')}</label>
@@ -897,12 +932,14 @@ class WikiPlugin {
             <div class="editor-preview">
               <div class="editor-preview-header">
                 <h4>${this.t('preview')}</h4>
-                <button class="btn-icon-small" data-action="toggle-preview">${this.t('hidePreview')}</button>
+                <button class="btn-icon-small" data-action="toggle-preview" aria-pressed="true">${this.t('hidePreview')}</button>
               </div>
-              <div class="card-content">${this.renderMarkdown(card.content || '')}</div>
+              <div class="card-content">${this.renderMarkdown(card.content || '', {
+                sourceModuleId: this.getModuleIdByColumn(card.column_id)
+              })}</div>
             </div>
           ` : `
-            <button class="btn-secondary btn-preview-toggle" data-action="toggle-preview">${this.t('showPreview')}</button>
+            <button class="btn-secondary btn-preview-toggle" data-action="toggle-preview" aria-pressed="false">${this.t('showPreview')}</button>
           `}
         </div>
         <div class="card-detail-footer">
@@ -952,10 +989,19 @@ class WikiPlugin {
 
   parseTags(raw) {
     if (!raw) return [];
-    return raw
+    const tags = [];
+    const seen = new Set();
+    raw
       .split(/[,#]/)
       .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+      .filter(tag => tag.length > 0)
+      .forEach(tag => {
+        const key = tag.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        tags.push(tag);
+      });
+    return tags;
   }
 
   isEditingDirty(card) {
@@ -986,7 +1032,9 @@ class WikiPlugin {
     if (!this.state.editorPreviewEnabled) return;
     const preview = this.container.querySelector('.editor-preview .card-content');
     if (preview) {
-      preview.innerHTML = this.renderMarkdown(this.state.editingCard.content || '');
+      preview.innerHTML = this.renderMarkdown(this.state.editingCard.content || '', {
+        sourceModuleId: this.getModuleIdByColumn(this.state.editingCard.column_id)
+      });
     }
   }
 
@@ -995,7 +1043,9 @@ class WikiPlugin {
     const preview = this.container.querySelector('[data-role="tags-preview"]');
     if (!preview) return;
     const tags = this.parseTags(this.state.editingCard.tagsInput || '').slice(0, 8);
-    preview.innerHTML = tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('');
+    preview.innerHTML = tags.length > 0
+      ? tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')
+      : `<span class="tags-empty">${this.t('tagsEmpty')}</span>`;
     preview.classList.toggle('is-empty', tags.length === 0);
   }
 
@@ -1021,8 +1071,38 @@ class WikiPlugin {
   }
 
   getColumnName(columnId) {
-    const column = this.state.columns.find(col => col.id === columnId);
+    const column = this.state.allColumns.find(col => col.id === columnId);
     return column ? this.escapeHtml(column.name) : this.t('unknownColumn');
+  }
+
+  getModuleName(moduleId) {
+    const module = this.state.modules.find(item => item.id === moduleId);
+    return module ? this.escapeHtml(module.name) : this.t('unknownModule');
+  }
+
+  getModuleIdByColumn(columnId) {
+    const column = this.state.allColumns.find(col => col.id === columnId);
+    return column ? column.module_id : null;
+  }
+
+  getColumnContext(columnId) {
+    const column = this.state.allColumns.find(col => col.id === columnId);
+    if (!column) return this.t('unknownColumn');
+    const moduleName = this.getModuleName(column.module_id);
+    const columnName = this.escapeHtml(column.name);
+    return `${moduleName} / ${columnName}`;
+  }
+
+  async refreshGlobalData() {
+    this.state.modules = await this.wikiService.getModules();
+    this.state.allColumns = await this.wikiService.getAllColumns();
+    this.state.allCards = await this.wikiService.getAllCardsGlobal();
+  }
+
+  async confirmDiscardChanges(nextCardId = null) {
+    if (!this.isEditingDirty(this.state.editingCard)) return true;
+    if (nextCardId && this.state.editingCard?.id === nextCardId) return true;
+    return confirm(this.t('discardChangesConfirm'));
   }
 
   showToast(message, type = 'success') {
