@@ -11,11 +11,11 @@ __define('./app.js', function(module, exports){
 __require('./core/app.js');
 
 // Export for testing
-const __reexport = __require('./core/app.js'); exports.app = __reexport['default'];
-const __reexport = __require('./core/state.js'); exports.store = __reexport['default'];
-const __reexport = __require('./core/router.js'); exports.Router = __reexport['Router'];
-const __reexport = __require('./core/i18n.js'); exports.I18n = __reexport['I18n'];
-const __reexport = __require('./core/theme.js'); exports.ThemeManager = __reexport['ThemeManager'];
+const __reexport_1 = __require('./core/app.js'); exports.app = __reexport_1['default'];
+const __reexport_2 = __require('./core/state.js'); exports.store = __reexport_2['default'];
+const __reexport_3 = __require('./core/router.js'); exports.Router = __reexport_3['Router'];
+const __reexport_4 = __require('./core/i18n.js'); exports.I18n = __reexport_4['I18n'];
+const __reexport_5 = __require('./core/theme.js'); exports.ThemeManager = __reexport_5['ThemeManager'];
 
 });
 __define('./core/app.js', function(module, exports){
@@ -7575,15 +7575,15 @@ __define('./services/comm/index.js', function(module, exports){
  * Entry point for the communication service
  */
 
-const __reexport = __require('./services/comm/communication-layer.js'); exports.CommunicationLayer = __reexport['CommunicationLayer']; exports.ConnectionState = __reexport['ConnectionState'];
-const __reexport = __require('./services/comm/transports/websocket.js'); exports.WebSocketTransport = __reexport['WebSocketTransport'];
-const __reexport = __require('./services/comm/transports/sse.js'); exports.SSETransport = __reexport['SSETransport'];
-const __reexport = __require('./services/comm/transports/long-polling.js'); exports.LongPollingTransport = __reexport['LongPollingTransport'];
-const __reexport = __require('./services/comm/transports/short-polling.js'); exports.ShortPollingTransport = __reexport['ShortPollingTransport'];
-const __reexport = __require('./services/comm/queue/message-queue.js'); exports.MessageQueue = __reexport['MessageQueue'];
-const __reexport = __require('./services/comm/queue/queue-storage.js'); exports.QueueStorage = __reexport['QueueStorage'];
-const __reexport = __require('./services/comm/utils/message.js'); exports.generateMessageId = __reexport['generateMessageId']; exports.createMessage = __reexport['createMessage']; exports.validateMessage = __reexport['validateMessage']; exports.isMessageExpired = __reexport['isMessageExpired']; exports.serializeMessage = __reexport['serializeMessage']; exports.deserializeMessage = __reexport['deserializeMessage'];
-const __reexport = __require('./services/comm/utils/retry.js'); exports.calculateBackoff = __reexport['calculateBackoff']; exports.calculateNextAttempt = __reexport['calculateNextAttempt']; exports.shouldRetry = __reexport['shouldRetry']; exports.createRetryConfig = __reexport['createRetryConfig']; exports.RetryStrategy = __reexport['RetryStrategy'];
+const __reexport_6 = __require('./services/comm/communication-layer.js'); exports.CommunicationLayer = __reexport_6['CommunicationLayer']; exports.ConnectionState = __reexport_6['ConnectionState'];
+const __reexport_7 = __require('./services/comm/transports/websocket.js'); exports.WebSocketTransport = __reexport_7['WebSocketTransport'];
+const __reexport_8 = __require('./services/comm/transports/sse.js'); exports.SSETransport = __reexport_8['SSETransport'];
+const __reexport_9 = __require('./services/comm/transports/long-polling.js'); exports.LongPollingTransport = __reexport_9['LongPollingTransport'];
+const __reexport_10 = __require('./services/comm/transports/short-polling.js'); exports.ShortPollingTransport = __reexport_10['ShortPollingTransport'];
+const __reexport_11 = __require('./services/comm/queue/message-queue.js'); exports.MessageQueue = __reexport_11['MessageQueue'];
+const __reexport_12 = __require('./services/comm/queue/queue-storage.js'); exports.QueueStorage = __reexport_12['QueueStorage'];
+const __reexport_13 = __require('./services/comm/utils/message.js'); exports.generateMessageId = __reexport_13['generateMessageId']; exports.createMessage = __reexport_13['createMessage']; exports.validateMessage = __reexport_13['validateMessage']; exports.isMessageExpired = __reexport_13['isMessageExpired']; exports.serializeMessage = __reexport_13['serializeMessage']; exports.deserializeMessage = __reexport_13['deserializeMessage'];
+const __reexport_14 = __require('./services/comm/utils/retry.js'); exports.calculateBackoff = __reexport_14['calculateBackoff']; exports.calculateNextAttempt = __reexport_14['calculateNextAttempt']; exports.shouldRetry = __reexport_14['shouldRetry']; exports.createRetryConfig = __reexport_14['createRetryConfig']; exports.RetryStrategy = __reexport_14['RetryStrategy'];
 
 });
 __define('./services/database/index.js', function(module, exports){
@@ -8751,11 +8751,11 @@ __define('./services/auth/index.js', function(module, exports){
  * Exports all authentication-related functionality.
  */
 
-const __reexport = __require('./services/auth/device-fingerprint.js'); exports.generateDeviceId = __reexport['generateDeviceId']; exports.detectPlatform = __reexport['detectPlatform'];
-const __reexport = __require('./services/auth/token-manager.js'); exports.TokenManager = __reexport['TokenManager'];
-const __reexport = __require('./services/auth/auth-service.js'); exports.AuthService = __reexport['AuthService']; exports.authService = __reexport['authService'];
-const __reexport = __require('./services/auth/permission.js'); exports.hasPermission = __reexport['hasPermission']; exports.requirePermission = __reexport['requirePermission']; exports.canAccessData = __reexport['canAccessData']; exports.getRoleName = __reexport['getRoleName']; exports.getRolePermissions = __reexport['getRolePermissions'];
-const __reexport = __require('./services/auth/setup-ui.js'); exports.SetupUI = __reexport['SetupUI'];
+const __reexport_15 = __require('./services/auth/device-fingerprint.js'); exports.generateDeviceId = __reexport_15['generateDeviceId']; exports.detectPlatform = __reexport_15['detectPlatform'];
+const __reexport_16 = __require('./services/auth/token-manager.js'); exports.TokenManager = __reexport_16['TokenManager'];
+const __reexport_17 = __require('./services/auth/auth-service.js'); exports.AuthService = __reexport_17['AuthService']; exports.authService = __reexport_17['authService'];
+const __reexport_18 = __require('./services/auth/permission.js'); exports.hasPermission = __reexport_18['hasPermission']; exports.requirePermission = __reexport_18['requirePermission']; exports.canAccessData = __reexport_18['canAccessData']; exports.getRoleName = __reexport_18['getRoleName']; exports.getRolePermissions = __reexport_18['getRolePermissions'];
+const __reexport_19 = __require('./services/auth/setup-ui.js'); exports.SetupUI = __reexport_19['SetupUI'];
 
 });
 __define('./services/auth/setup-ui.js', function(module, exports){
