@@ -28,6 +28,7 @@ export const translations = {
     open: 'open',
     previewShortcut: 'Space preview',
     copyPath: 'copy path',
+    closeOrClear: 'close/clear',
     searchError: 'Search failed',
     searchFallback: 'File search service unavailable, using local index',
     openError: 'Failed to open file',
@@ -38,7 +39,9 @@ export const translations = {
     filePath: 'Path',
     fileSize: 'Size',
     modified: 'Modified',
-    previewNotAvailable: 'Preview not available for this file type'
+    previewNotAvailable: 'Preview not available for this file type',
+    previewTextTooLarge: 'Text preview skipped ({size} > {limit})',
+    previewImageTooLarge: 'Image preview skipped ({size} > {limit})'
   },
   zh: {
     searchPlaceholder: '搜索文件...',
@@ -64,6 +67,7 @@ export const translations = {
     open: '打开',
     previewShortcut: '空格预览',
     copyPath: '复制路径',
+    closeOrClear: '关闭/清空',
     searchError: '搜索失败',
     searchFallback: '文件搜索服务不可用，已切换本地索引',
     openError: '打开文件失败',
@@ -74,7 +78,9 @@ export const translations = {
     filePath: '路径',
     fileSize: '大小',
     modified: '修改时间',
-    previewNotAvailable: '此文件类型暂不支持预览'
+    previewNotAvailable: '此文件类型暂不支持预览',
+    previewTextTooLarge: '文本预览已跳过（{size} > {limit}）',
+    previewImageTooLarge: '图片预览已跳过（{size} > {limit}）'
   },
   ja: {
     searchPlaceholder: 'ファイルを検索...',
@@ -100,6 +106,7 @@ export const translations = {
     open: '開く',
     previewShortcut: 'スペースでプレビュー',
     copyPath: 'パスをコピー',
+    closeOrClear: '閉じる/クリア',
     searchError: '検索に失敗しました',
     searchFallback: 'ファイル検索サービスが利用できないためローカル検索に切り替えました',
     openError: 'ファイルを開けませんでした',
@@ -110,7 +117,9 @@ export const translations = {
     filePath: 'パス',
     fileSize: 'サイズ',
     modified: '更新日時',
-    previewNotAvailable: 'このファイルタイプのプレビューは利用できません'
+    previewNotAvailable: 'このファイルタイプのプレビューは利用できません',
+    previewTextTooLarge: 'テキストプレビューを省略しました（{size} > {limit}）',
+    previewImageTooLarge: '画像プレビューを省略しました（{size} > {limit}）'
   }
 };
 
