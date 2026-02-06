@@ -32,8 +32,9 @@ export default class FinderPlugin {
       selectedIndex: 0,
       filters: {
         type: 'all',
-        dateRange: null,
-        sizeRange: null
+        dateRange: 'any',
+        sizeRange: 'any',
+        extension: ''
       },
       preview: null
     };
@@ -155,7 +156,7 @@ export default class FinderPlugin {
           ${this.renderFilterBar()}
         </div>
         <div class="finder-body">
-          <div class="results-panel ${preview ? 'with-preview' : ''}">
+          <div class="results-panel ${preview ? 'with-preview' : ''}" tabindex="0">
             ${loading ? this.renderLoading() : this.renderResults()}
           </div>
           ${preview ? this.renderPreview() : ''}
@@ -190,7 +191,17 @@ export default class FinderPlugin {
         documents: this.t('documents') || 'Documents',
         images: this.t('images') || 'Images',
         code: this.t('code') || 'Code',
-        other: this.t('other') || 'Other'
+        other: this.t('other') || 'Other',
+        allSizes: this.t('allSizes') || 'Any Size',
+        sizeSmall: this.t('sizeSmall') || 'Small (<1MB)',
+        sizeMedium: this.t('sizeMedium') || 'Medium (1-10MB)',
+        sizeLarge: this.t('sizeLarge') || 'Large (>10MB)',
+        allDates: this.t('allDates') || 'Any Time',
+        dateDay: this.t('dateDay') || 'Last 24h',
+        dateWeek: this.t('dateWeek') || 'Last 7 days',
+        dateMonth: this.t('dateMonth') || 'Last 30 days',
+        dateYear: this.t('dateYear') || 'Last year',
+        extensionPlaceholder: this.t('extensionPlaceholder') || 'Extension'
       }
     });
   }
@@ -243,6 +254,7 @@ export default class FinderPlugin {
       <span class="shortcuts-hint">
         ↑↓ ${this.t('navigate') || 'navigate'} · 
         Enter ${this.t('open') || 'open'} · 
+        ${this.t('previewShortcut') || 'Space preview'} ·
         Ctrl+C ${this.t('copyPath') || 'copy path'}
       </span>
     `;
@@ -272,6 +284,36 @@ export default class FinderPlugin {
         this.performSearch();
       });
     }
+
+    const filterSize = this.container.querySelector('.filter-size');
+    if (filterSize) {
+      filterSize.addEventListener('change', (e) => {
+        this.setState({
+          filters: { ...this.state.filters, sizeRange: e.target.value }
+        });
+        this.performSearch();
+      });
+    }
+
+    const filterDate = this.container.querySelector('.filter-date');
+    if (filterDate) {
+      filterDate.addEventListener('change', (e) => {
+        this.setState({
+          filters: { ...this.state.filters, dateRange: e.target.value }
+        });
+        this.performSearch();
+      });
+    }
+
+    const filterExtension = this.container.querySelector('.filter-extension');
+    if (filterExtension) {
+      filterExtension.addEventListener('input', (e) => {
+        this.setState({
+          filters: { ...this.state.filters, extension: e.target.value }
+        });
+        this.performSearch();
+      });
+    }
     
     // Result list click
     const resultList = this.container.querySelector('.result-list');
@@ -281,12 +323,18 @@ export default class FinderPlugin {
         if (item) {
           const index = parseInt(item.dataset.index);
           this.selectResult(index);
+          this.container?.querySelector('.results-panel')?.focus();
           
           if (e.detail === 2) {  // Double click
             this.openSelectedFile();
           }
         }
       });
+    }
+
+    const resultsPanel = this.container.querySelector('.results-panel');
+    if (resultsPanel) {
+      resultsPanel.addEventListener('keydown', this.handleKeydown);
     }
     
     // Close preview
@@ -312,6 +360,7 @@ export default class FinderPlugin {
   
   handleKeydown(e) {
     const { results, selectedIndex } = this.state;
+    const isInputTarget = e.target?.classList?.contains('search-input');
     
     switch (e.key) {
       case 'ArrowUp':
@@ -338,7 +387,7 @@ export default class FinderPlugin {
         break;
         
       case ' ':  // Space
-        if (e.ctrlKey || e.metaKey) {
+        if (!isInputTarget) {
           e.preventDefault();
           this.previewSelectedFile();
         }
@@ -415,6 +464,19 @@ export default class FinderPlugin {
   }
   
   applyFilters(results, filters) {
+    const sizeRanges = {
+      small: { max: 1024 * 1024 },
+      medium: { min: 1024 * 1024, max: 10 * 1024 * 1024 },
+      large: { min: 10 * 1024 * 1024 }
+    };
+    const now = Date.now();
+    const dateRanges = {
+      day: now - 24 * 60 * 60 * 1000,
+      week: now - 7 * 24 * 60 * 60 * 1000,
+      month: now - 30 * 24 * 60 * 60 * 1000,
+      year: now - 365 * 24 * 60 * 60 * 1000
+    };
+
     return results.filter(result => {
       // Type filter
       if (filters.type !== 'all') {
@@ -423,18 +485,24 @@ export default class FinderPlugin {
       }
       
       // Size filter
-      if (filters.sizeRange) {
-        if (result.size < filters.sizeRange.min || result.size > filters.sizeRange.max) {
-          return false;
-        }
+      if (filters.sizeRange && filters.sizeRange !== 'any') {
+        const range = sizeRanges[filters.sizeRange];
+        if (result.size == null) return false;
+        if (range?.min && result.size < range.min) return false;
+        if (range?.max && result.size > range.max) return false;
       }
       
       // Date filter
-      if (filters.dateRange) {
-        if (result.modifiedAt < filters.dateRange.start || 
-            result.modifiedAt > filters.dateRange.end) {
-          return false;
-        }
+      if (filters.dateRange && filters.dateRange !== 'any') {
+        const start = dateRanges[filters.dateRange];
+        if (start && result.modifiedAt < start) return false;
+      }
+
+      if (filters.extension) {
+        const fallbackExtension = result.name?.includes('.') ? result.name.split('.').pop() : '';
+        const extension = (result.extension || fallbackExtension || '').toLowerCase();
+        const target = filters.extension.trim().replace(/^\./, '').toLowerCase();
+        if (target && extension !== target) return false;
       }
       
       return true;

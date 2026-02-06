@@ -202,6 +202,13 @@ class WikiService {
     return rows;
   }
 
+  async getAllColumns() {
+    const rows = await this.db.query(
+      'SELECT * FROM wiki_columns WHERE deleted = 0 ORDER BY sort_order'
+    );
+    return rows;
+  }
+
   async getColumn(id) {
     const rows = await this.db.query(
       'SELECT * FROM wiki_columns WHERE id = ? AND deleted = 0',
@@ -291,6 +298,13 @@ class WikiService {
        WHERE col.module_id = ? AND c.deleted = 0
        ORDER BY c.is_pinned DESC, c.sort_order`,
       [moduleId]
+    );
+    return rows.map(row => this.deserializeCard(row));
+  }
+
+  async getAllCardsGlobal() {
+    const rows = await this.db.query(
+      'SELECT * FROM wiki_cards WHERE deleted = 0 ORDER BY is_pinned DESC, sort_order'
     );
     return rows.map(row => this.deserializeCard(row));
   }

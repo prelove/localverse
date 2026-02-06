@@ -130,6 +130,26 @@ export function highlightMatch(text, query) {
 }
 
 /**
+ * Format snippet text with safe highlights.
+ * @param {string} snippet - Snippet containing highlight markers.
+ * @param {string} query - Search query.
+ * @returns {string} - HTML snippet with highlights.
+ */
+export function formatSnippet(snippet, query) {
+  if (!snippet) return '';
+  const markerStart = '\u0001';
+  const markerEnd = '\u0002';
+  const hasMarkers = snippet.includes(markerStart) && snippet.includes(markerEnd);
+  if (hasMarkers) {
+    const escaped = escapeHtml(snippet);
+    return escaped
+      .replaceAll(markerStart, '<mark>')
+      .replaceAll(markerEnd, '</mark>');
+  }
+  return highlightMatch(snippet, query);
+}
+
+/**
  * Truncate text to specified length
  * @param {string} text - Text to truncate
  * @param {number} maxLength - Maximum length
