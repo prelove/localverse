@@ -422,9 +422,15 @@ export default class FinderPlugin {
     try {
       let results;
       
-      if (this.context.mode === 'full' && this.services.FileSystemService) {
-        // Full mode: search through FileSystemService
-        results = await this.searchFilesystem(query);
+      if (this.context.mode === 'full' && this.services.SearchService) {
+        // Full mode: search through local service when available
+        try {
+          results = await this.searchFilesystem(query);
+        } catch (error) {
+          console.error('Finder plugin: Full-mode search failed, falling back', error);
+          results = await this.searchLocalIndex(query);
+          this.showError(this.t('searchFallback') || 'File search service unavailable, using local index');
+        }
       } else {
         // Light/Pure mode: search local index
         results = await this.searchLocalIndex(query);
@@ -451,7 +457,8 @@ export default class FinderPlugin {
     // This is a simplified implementation - actual implementation would depend on the service API
     return await this.services.SearchService.searchFiles(query, {
       maxResults: this.getSetting('maxResults') || 100,
-      includeHidden: this.getSetting('includeHidden') || false
+      includeHidden: this.getSetting('includeHidden') || false,
+      includeContent: this.getSetting('enableContentSearch') || false
     });
   }
   

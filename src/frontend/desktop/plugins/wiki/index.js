@@ -716,7 +716,8 @@ class WikiPlugin {
     await this.editCard(card.id);
   }
 
-  closeDetail() {
+  async closeDetail() {
+    if (!(await this.confirmDiscardChanges())) return;
     this.state.selectedCard = null;
     this.state.showBacklinks = false;
     this.state.editingCard = null;
@@ -798,7 +799,9 @@ class WikiPlugin {
       missingLinkAction: 'create-missing-card',
       missingLinkLabel: this.t('missingLinkAction'),
       preferModuleId: options.sourceModuleId,
-      getModuleId: (card) => this.getModuleIdByColumn(card.column_id)
+      getModuleId: (card) => this.getModuleIdByColumn(card.column_id),
+      getUpdatedAt: (card) => card.updated_at,
+      getLinkContextLabel: (card) => this.getColumnContext(card.column_id)
     });
     
     // Basic markdown (simplified)

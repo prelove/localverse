@@ -20,7 +20,7 @@ export function renderResultList({ results, selectedIndex, query, locale, emptyL
           <span class="file-icon">${getFileIcon(result)}</span>
           <div class="file-info">
             <div class="file-name">${highlightMatch(result.name, query)}</div>
-            <div class="file-path">${escapeHtml(result.path)}</div>
+            <div class="file-path">${highlightMatch(result.path, query)}</div>
             ${result.snippet ? `<div class="file-snippet">${formatSnippet(result.snippet, query)}</div>` : ''}
           </div>
           <div class="file-meta">
