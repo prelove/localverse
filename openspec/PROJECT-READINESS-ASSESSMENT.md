@@ -187,42 +187,20 @@ src/frontend/desktop/services/auth/
 
 ### Phase 1: 核心应用状态 (52小时预估)
 
-#### ⚠️ 部分进行中任务
+#### ✅ 已完成任务
 
-##### Task 001: 前端核心 (16h) - ⚠️ 部分实现
-**状态**: 基础框架存在，但不完整
+##### Task 001: 前端核心 (16h) - ✅ 已完成
+**状态**: 前端核心已补齐并可支撑插件开发
 
 **已实现**:
-- ✅ 基础 HTML 结构（index.html）
-- ✅ 样式系统（style.css）
-- ✅ 主题系统（themes/）
-- ✅ 工具函数（utils/dom.js）
-- ✅ 应用入口（app.js - 332 bytes）
-- ✅ 演示页面（demo-auth.html, architecture.html）
+- ✅ 应用启动流程（模式检测、配置加载、认证、插件加载）
+- ✅ 路由系统与状态管理
+- ✅ 通用 UI 组件（Header/Sidebar/Modal/Toast/Dropdown/Tooltip）
+- ✅ 主题与国际化
+- ✅ 插件容器与布局
 
-**文件结构**:
-```
-src/frontend/desktop/
-├── index.html
-├── app.js
-├── style.css
-├── themes/
-├── components/
-├── core/
-├── services/
-└── assets/
-```
-
-**缺失**:
-- ❌ 应用启动完整流程
-- ❌ 路由系统
-- ❌ 状态管理
-- ❌ 通用 UI 组件库
-- ❌ 插件容器和布局
-- ⚠️ 文档状态显示"待开发"
-
-##### Task 002: 搜索服务 (8h) - ⚠️ 前端实现，后端部分
-**状态**: 前端完成，后端存在骨架
+##### Task 002: 搜索服务 (8h) - ✅ 已完成
+**状态**: 前后端实现完整（待回归验证）
 
 **已实现（前端）**:
 - ✅ SearchService 类（search-service.js）
@@ -235,44 +213,43 @@ src/frontend/desktop/
 - ✅ 完整文档（src/frontend/desktop/services/search/README.md）
 
 **已实现（后端）**:
-- ✅ SearchHandler.java 存在
-- ⚠️ 未验证完整实现
+- ✅ SearchHandler.java
+- ✅ SearchService.java
+- ✅ FTS5 索引与索引管理接口
+- ✅ 搜索历史、建议与统计
 
-**缺失**:
-- ❌ FTS5 全文搜索表未创建
-- ❌ 索引管理未实现
-- ❌ 前后端集成测试
-- ⚠️ 文档状态显示"待创建"
+**待验证**:
+- ⏳ 端到端回归测试
 
 #### ❌ 未实现任务
 
 ##### Task 003: Finder 插件 (12h) - ❌ 无代码实现
-**状态**: 仅有规格文档
+**状态**: 规格与任务文档已就绪，待实现
 
 **已有**:
 - ✅ 规格文档（openspec/specs/plugins/finder.md）
-- ⚠️ 任务文档未创建
+- ✅ 任务文档（openspec/tasks/phase-1/task-003-finder-plugin.md）
 
 **缺失**:
-- ❌ 所有代码（因 Task 006 插件系统未完成）
+- ❌ 插件代码实现
 - ❌ 文件索引功能
 - ❌ 实时搜索界面
 - ❌ 文件预览
-- ⚠️ 文档状态显示"待创建"
+- ⚠️ 文档状态显示"待开发"
 
 ##### Task 004: Wiki 插件 (16h) - ❌ 无代码实现
-**状态**: 仅有规格文档
+**状态**: 规格与任务文档已就绪，待实现
 
 **已有**:
 - ✅ 规格文档（openspec/specs/plugins/wiki.md）
-- ⚠️ 任务文档未创建
+- ✅ 任务文档（openspec/tasks/phase-1/task-004-wiki-plugin.md）
 
 **缺失**:
-- ❌ 所有代码（因 Task 006 插件系统未完成）
+- ❌ 插件代码实现
 - ❌ Markdown 编辑器
 - ❌ 双向链接
 - ❌ Wiki 数据库表
-- ⚠️ 文档状态显示"待创建"
+- ⚠️ 文档状态显示"待开发"
 
 ---
 
