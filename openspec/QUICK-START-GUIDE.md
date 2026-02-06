@@ -101,7 +101,7 @@ java -jar dist/localverse.jar
    │     ↓
    │  🔵 Task 003: Finder 插件       [12h]
    │
-   └─ ☐ Task 004: Wiki 插件         [16h]  ← 可并行（MVP核心）
+   └─ 🔵 Task 004: Wiki 插件         [16h]  ← 可并行（MVP核心）
 
 🎯 完成前端框架 + Wiki = MVP 版本可用
 ```
