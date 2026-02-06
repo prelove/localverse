@@ -66,9 +66,13 @@
 .filter-bar {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.filter-type {
+.filter-type,
+.filter-size,
+.filter-date,
+.filter-extension {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 0.375rem;
@@ -79,11 +83,22 @@
   transition: all 0.2s;
 }
 
-.filter-type:hover {
+.filter-extension {
+  cursor: text;
+  min-width: 140px;
+}
+
+.filter-type:hover,
+.filter-size:hover,
+.filter-date:hover,
+.filter-extension:hover {
   border-color: var(--primary-color, #0066cc);
 }
 
-.filter-type:focus {
+.filter-type:focus,
+.filter-size:focus,
+.filter-date:focus,
+.filter-extension:focus {
   outline: none;
   border-color: var(--primary-color, #0066cc);
   box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(0, 102, 204, 0.1));
@@ -172,6 +187,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: 'Courier New', Consolas, monospace;
+}
+
+.file-snippet {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-snippet mark {
+  background: var(--highlight-bg, #fff59d);
+  color: var(--highlight-text, #333);
+  padding: 0 0.125rem;
+  border-radius: 0.125rem;
 }
 
 .file-meta {
