@@ -23,6 +23,7 @@ class WikiPlugin {
       editingCard: null,
       view: 'board',
       searchQuery: '',
+      searchResults: [],
       filters: {
         tags: [],
         dateRange: null
@@ -40,8 +41,8 @@ class WikiPlugin {
     this.pendingChanges = new Map();
 
     // Localization
-    this.locale = context.locale || 'zh';
-    this.translations = {};
+    this.i18n = context.i18n;
+    this.locale = this.i18n?.getLocale?.() || context.locale || 'zh';
   }
 
   // ==================== Lifecycle ====================
@@ -62,9 +63,6 @@ class WikiPlugin {
     // Initialize services
     this.wikiService = new WikiService(this.context.services.DatabaseService);
     this.versionManager = new VersionManager(this.wikiService);
-    
-    // Load translations
-    await this.loadTranslations();
     
     // Load initial data
     await this.loadModules();
@@ -307,6 +305,10 @@ class WikiPlugin {
   }
 
   renderCardDetail(card) {
+    if (this.state.editingCard) {
+      return this.renderCardEditor(this.state.editingCard);
+    }
+
     return `
       <div class="card-detail-panel">
         <div class="card-detail-header">
@@ -322,6 +324,9 @@ class WikiPlugin {
         <div class="card-detail-footer">
           <button class="btn-secondary" data-action="edit-card-detail">
             ${this.t('edit')}
+          </button>
+          <button class="btn-secondary" data-action="delete-card-detail">
+            ${this.t('delete')}
           </button>
           <button class="btn-secondary" data-action="toggle-backlinks">
             ${this.t('backlinks')}
@@ -352,8 +357,32 @@ class WikiPlugin {
   }
 
   renderSearchResults() {
-    // TODO: Implement search results rendering
-    return '';
+    const results = this.state.searchResults || [];
+
+    return `
+      <div class="search-results">
+        <div class="search-results-header">
+          <h3>${this.t('searchResults')}</h3>
+          <span class="search-results-count">${results.length}</span>
+        </div>
+        ${results.length === 0
+          ? `<div class="empty-state">${this.t('noResults')}</div>`
+          : `
+            <ul class="search-results-list">
+              ${results.map(card => `
+                <li data-card-id="${card.id}" data-action="select-card">
+                  <div class="result-title">${this.escapeHtml(card.title)}</div>
+                  <div class="result-meta">
+                    <span>${this.getColumnName(card.column_id)}</span>
+                    <span>${this.formatDate(card.updated_at)}</span>
+                  </div>
+                </li>
+              `).join('')}
+            </ul>
+          `
+        }
+      </div>
+    `;
   }
 
   // ==================== Event Handling ====================
@@ -368,6 +397,26 @@ class WikiPlugin {
       e.preventDefault();
       await this.handleAction(action, e.target.closest('[data-action]'));
     });
+
+    const searchInput = this.container.querySelector('.sidebar-search .search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.handleSearch(e.target.value);
+      });
+    }
+
+    const contentInput = this.container.querySelector('.editor-textarea[data-field="content"]');
+    if (contentInput) {
+      contentInput.addEventListener('input', (e) => {
+        if (this.state.editingCard) {
+          this.state.editingCard.content = e.target.value;
+        }
+        const preview = this.container.querySelector('.editor-preview .card-content');
+        if (preview) {
+          preview.innerHTML = this.renderMarkdown(e.target.value);
+        }
+      });
+    }
   }
 
   async handleAction(action, element) {
@@ -382,7 +431,10 @@ class WikiPlugin {
       'create-card': () => this.createCard(element.dataset.columnId),
       'select-card': () => this.selectCard(element.dataset.cardId),
       'edit-card-detail': () => this.editCard(this.state.selectedCard?.id),
+      'delete-card-detail': () => this.deleteCard(this.state.selectedCard?.id),
       'close-detail': () => this.closeDetail(),
+      'save-card': () => this.saveCardEdits(),
+      'cancel-edit': () => this.cancelEdit(),
       'toggle-backlinks': () => this.toggleBacklinks(),
       'switch-view': () => this.switchView(element.dataset.view),
       'search': () => this.handleSearch(element.value)
@@ -512,22 +564,34 @@ class WikiPlugin {
   async selectCard(cardId) {
     this.state.selectedCard = await this.wikiService.getCard(cardId);
     this.state.showBacklinks = false;
+    this.state.editingCard = null;
     await this.render();
   }
 
   async editCard(cardId) {
-    // TODO: Implement card editor modal
     const card = await this.wikiService.getCard(cardId);
-    const newContent = prompt(this.t('cardContent'), card.content);
-    if (newContent === null) return;
+    if (!card) return;
 
-    await this.wikiService.updateCard(cardId, { content: newContent });
+    this.state.editingCard = {
+      ...card,
+      tagsInput: (card.tags || []).join(', ')
+    };
+    this.state.showBacklinks = false;
+    await this.render();
+  }
+
+  async deleteCard(cardId) {
+    if (!cardId) return;
+    if (!confirm(this.t('deleteConfirm'))) return;
+
+    await this.wikiService.deleteCard(cardId);
     await this.selectModule(this.state.currentModule.id);
   }
 
   closeDetail() {
     this.state.selectedCard = null;
     this.state.showBacklinks = false;
+    this.state.editingCard = null;
     this.render();
   }
 
@@ -545,6 +609,7 @@ class WikiPlugin {
     this.state.searchQuery = query;
     
     if (!query.trim()) {
+      this.state.searchResults = [];
       await this.render();
       return;
     }
@@ -560,18 +625,8 @@ class WikiPlugin {
 
   // ==================== Helper Methods ====================
 
-  async loadTranslations() {
-    try {
-      const response = await fetch(`/plugins/wiki/locales/${this.locale}.json`);
-      this.translations = await response.json();
-    } catch (error) {
-      console.warn('Failed to load translations:', error);
-      this.translations = {};
-    }
-  }
-
   t(key) {
-    return this.translations[key] || key;
+    return this.i18n?.t?.(key) || key;
   }
 
   escapeHtml(text) {
@@ -616,6 +671,80 @@ class WikiPlugin {
     if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleDateString(this.locale);
+  }
+
+  renderCardEditor(card) {
+    return `
+      <div class="card-detail-panel">
+        <div class="card-detail-header">
+          <h2>${this.escapeHtml(card.title)}</h2>
+          <button class="btn-icon" data-action="cancel-edit">✕</button>
+        </div>
+        <div class="card-detail-body">
+          <label class="editor-label">${this.t('cardTitle')}</label>
+          <input class="editor-input" data-field="title" type="text" value="${this.escapeHtml(card.title)}" />
+
+          <label class="editor-label">${this.t('tags')}</label>
+          <input class="editor-input" data-field="tags" type="text" value="${this.escapeHtml(card.tagsInput || '')}" placeholder="${this.t('tagsHint')}" />
+
+          <label class="editor-label">${this.t('cardContent')}</label>
+          <textarea class="editor-textarea" data-field="content" rows="12">${this.escapeHtml(card.content || '')}</textarea>
+
+          <div class="editor-preview">
+            <h4>${this.t('preview')}</h4>
+            <div class="card-content">${this.renderMarkdown(card.content || '')}</div>
+          </div>
+        </div>
+        <div class="card-detail-footer">
+          <button class="btn-secondary" data-action="cancel-edit">${this.t('cancel')}</button>
+          <button class="btn-primary" data-action="save-card">${this.t('save')}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async saveCardEdits() {
+    if (!this.container || !this.state.editingCard) return;
+
+    const titleInput = this.container.querySelector('.editor-input[data-field="title"]');
+    const tagsInput = this.container.querySelector('.editor-input[data-field="tags"]');
+    const contentInput = this.container.querySelector('.editor-textarea[data-field="content"]');
+
+    const title = titleInput?.value?.trim() || this.state.editingCard.title;
+    const content = contentInput?.value || '';
+    const tags = this.parseTags(tagsInput?.value || '');
+
+    await this.wikiService.updateCard(this.state.editingCard.id, {
+      title,
+      content,
+      tags
+    });
+
+    this.state.editingCard = null;
+    await this.selectModule(this.state.currentModule.id);
+    this.showToast(this.t('saveSuccess'));
+  }
+
+  cancelEdit() {
+    this.state.editingCard = null;
+    this.render();
+  }
+
+  parseTags(raw) {
+    if (!raw) return [];
+    return raw
+      .split(/[,#]/)
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+  }
+
+  getColumnName(columnId) {
+    const column = this.state.columns.find(col => col.id === columnId);
+    return column ? this.escapeHtml(column.name) : this.t('unknownColumn');
+  }
+
+  showToast(message, type = 'success') {
+    this.context.ui?.toast?.(message, type);
   }
 
   startAutoSave() {

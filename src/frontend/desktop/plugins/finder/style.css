@@ -296,6 +296,29 @@
   padding: 1rem;
 }
 
+.preview-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.preview-text {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  background: var(--bg-primary, #fff);
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  font-size: 0.812rem;
+  white-space: pre-wrap;
+}
+
+.preview-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+  margin-bottom: 0.5rem;
+}
+
 .preview-info {
   font-size: 0.875rem;
   line-height: 1.6;

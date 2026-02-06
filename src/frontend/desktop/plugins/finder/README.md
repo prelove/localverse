@@ -71,6 +71,10 @@ finder/
 ├── style.css             # 样式文件
 ├── README.md             # 说明文档
 ├── components/           # UI 组件
+│   ├── search-box.js     # 搜索框渲染
+│   ├── filter-bar.js     # 过滤栏渲染
+│   ├── result-list.js    # 结果列表渲染
+│   └── preview.js        # 预览面板渲染
 ├── services/             # 服务模块
 │   ├── indexer.js       # 文件索引服务
 │   └── preview.js       # 预览服务

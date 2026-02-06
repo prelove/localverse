@@ -3,9 +3,15 @@
  * Fast file search plugin with full-text search and preview support
  */
 
-import { getFileIcon, getFileCategory } from './utils/file-icons.js';
-import { formatSize, formatDate, escapeHtml, highlightMatch, buildFtsQuery } from './utils/formatters.js';
-import { t as translate, getTranslations } from './i18n.js';
+import { getFileCategory } from './utils/file-icons.js';
+import { formatSize, formatDate } from './utils/formatters.js';
+import { t as translate } from './i18n.js';
+import { FinderIndexer } from './services/indexer.js';
+import { PreviewService } from './services/preview.js';
+import { renderSearchBox } from './components/search-box.js';
+import { renderFilterBar } from './components/filter-bar.js';
+import { renderResultList } from './components/result-list.js';
+import { renderPreview } from './components/preview.js';
 
 export default class FinderPlugin {
   static id = 'finder';
@@ -34,6 +40,9 @@ export default class FinderPlugin {
     
     this.searchDebounceTimer = null;
     this.container = null;
+    this.indexer = null;
+    this.previewService = null;
+    this.previewData = null;
     
     // Bind methods
     this.handleGlobalKeydown = this.handleGlobalKeydown.bind(this);
@@ -47,8 +56,17 @@ export default class FinderPlugin {
     console.log('Finder plugin: Installing...');
     
     try {
+      this.indexer = new FinderIndexer({
+        db: this.services.DatabaseService,
+        fs: this.services.FileSystemService,
+        settings: this.settings
+      });
+      this.previewService = new PreviewService({
+        fs: this.services.FileSystemService
+      });
+
       // Create file index tables
-      await this.initDatabase();
+      await this.indexer.ensureSchema();
       console.log('Finder plugin: Database initialized');
     } catch (error) {
       console.error('Finder plugin: Installation failed:', error);
@@ -101,58 +119,11 @@ export default class FinderPlugin {
     
     try {
       // Clean up database
-      await this.cleanupDatabase();
+      await this.indexer?.clearSchema();
       console.log('Finder plugin: Uninstalled successfully');
     } catch (error) {
       console.error('Finder plugin: Uninstall failed:', error);
     }
-  }
-  
-  // ============ Database Operations ============
-  
-  async initDatabase() {
-    const db = this.services.DatabaseService;
-    
-    // Create file index table
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS finder_index (
-        id TEXT PRIMARY KEY,
-        path TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        extension TEXT,
-        size INTEGER,
-        mime_type TEXT,
-        content_hash TEXT,
-        content_indexed INTEGER DEFAULT 0,
-        created_at INTEGER,
-        modified_at INTEGER,
-        indexed_at INTEGER NOT NULL
-      )
-    `);
-    
-    // Create indexes
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_finder_name ON finder_index(name)`);
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_finder_ext ON finder_index(extension)`);
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_finder_path ON finder_index(path)`);
-    
-    // Create FTS5 virtual table
-    await db.execute(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
-        name,
-        path,
-        content,
-        content='finder_index',
-        content_rowid='rowid',
-        tokenize='unicode61'
-      )
-    `);
-  }
-  
-  async cleanupDatabase() {
-    const db = this.services.DatabaseService;
-    
-    await db.execute('DROP TABLE IF EXISTS finder_fts');
-    await db.execute('DROP TABLE IF EXISTS finder_index');
   }
   
   // ============ Mount/Unmount ============
@@ -201,87 +172,56 @@ export default class FinderPlugin {
   
   renderSearchBox() {
     const { query } = this.state;
-    
-    return `
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input 
-          type="text" 
-          class="search-input" 
-          placeholder="${this.t('searchPlaceholder') || 'Search files...'}"
-          value="${escapeHtml(query)}"
-          autofocus
-        >
-        <span class="search-shortcut">Ctrl+Shift+F</span>
-      </div>
-    `;
+
+    return renderSearchBox({
+      query,
+      placeholder: this.t('searchPlaceholder') || 'Search files...',
+      shortcut: 'Ctrl+Shift+F'
+    });
   }
   
   renderFilterBar() {
     const { filters } = this.state;
-    
-    return `
-      <div class="filter-bar">
-        <select class="filter-type" value="${filters.type}">
-          <option value="all">${this.t('allTypes') || 'All Types'}</option>
-          <option value="document">${this.t('documents') || 'Documents'}</option>
-          <option value="image">${this.t('images') || 'Images'}</option>
-          <option value="code">${this.t('code') || 'Code'}</option>
-          <option value="other">${this.t('other') || 'Other'}</option>
-        </select>
-      </div>
-    `;
+
+    return renderFilterBar({
+      filters,
+      labels: {
+        allTypes: this.t('allTypes') || 'All Types',
+        documents: this.t('documents') || 'Documents',
+        images: this.t('images') || 'Images',
+        code: this.t('code') || 'Code',
+        other: this.t('other') || 'Other'
+      }
+    });
   }
   
   renderResults() {
     const { results, selectedIndex, query } = this.state;
-    
-    if (results.length === 0) {
-      return `
-        <div class="empty-state">
-          <span class="empty-icon">📂</span>
-          <p>${this.t('noResults') || 'No files found'}</p>
-        </div>
-      `;
-    }
-    
-    return `
-      <ul class="result-list">
-        ${results.map((result, index) => `
-          <li class="result-item ${index === selectedIndex ? 'selected' : ''}"
-              data-index="${index}"
-              data-path="${escapeHtml(result.path)}">
-            <span class="file-icon">${getFileIcon(result)}</span>
-            <div class="file-info">
-              <div class="file-name">${highlightMatch(result.name, query)}</div>
-              <div class="file-path">${escapeHtml(result.path)}</div>
-            </div>
-            <div class="file-meta">
-              <span class="file-size">${formatSize(result.size)}</span>
-              <span class="file-date">${formatDate(result.modifiedAt, this.locale)}</span>
-            </div>
-          </li>
-        `).join('')}
-      </ul>
-    `;
+
+    return renderResultList({
+      results,
+      selectedIndex,
+      query,
+      locale: this.locale,
+      emptyLabel: this.t('noResults') || 'No files found'
+    });
   }
   
   renderPreview() {
     const { preview } = this.state;
-    
-    if (!preview) return '';
-    
-    return `
-      <div class="preview-panel">
-        <div class="preview-header">
-          <span class="preview-title">${escapeHtml(preview.name)}</span>
-          <button class="preview-close" data-action="close-preview">×</button>
-        </div>
-        <div class="preview-content">
-          ${this.getPreviewContent(preview)}
-        </div>
-      </div>
-    `;
+
+    const fallbackPreview = {
+      type: 'info',
+      content: this.t('previewNotAvailable') || 'Preview not available'
+    };
+
+    return renderPreview({
+      file: preview,
+      preview: this.previewData || fallbackPreview,
+      labels: {
+        filePath: this.t('filePath') || 'File Path:'
+      }
+    });
   }
   
   renderLoading() {
@@ -305,19 +245,6 @@ export default class FinderPlugin {
         Enter ${this.t('open') || 'open'} · 
         Ctrl+C ${this.t('copyPath') || 'copy path'}
       </span>
-    `;
-  }
-  
-  getPreviewContent(file) {
-    // Simplified preview - just show file info for now
-    return `
-      <div class="preview-info">
-        <p><strong>${this.t('fileName')}:</strong> ${escapeHtml(file.name)}</p>
-        <p><strong>${this.t('filePath')}:</strong> ${escapeHtml(file.path)}</p>
-        <p><strong>${this.t('fileSize')}:</strong> ${formatSize(file.size)}</p>
-        <p><strong>${this.t('modified')}:</strong> ${formatDate(file.modifiedAt, this.locale)}</p>
-        <p><em>${this.t('previewNotAvailable')}</em></p>
-      </div>
     `;
   }
   
@@ -366,13 +293,15 @@ export default class FinderPlugin {
     const closeBtn = this.container.querySelector('[data-action="close-preview"]');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
+        this.previewData = null;
         this.setState({ preview: null });
       });
     }
   }
   
   handleSearchInput(query) {
-    this.setState({ query, loading: true });
+    this.previewData = null;
+    this.setState({ query, loading: true, preview: null });
     
     // Debounce search
     clearTimeout(this.searchDebounceTimer);
@@ -478,36 +407,11 @@ export default class FinderPlugin {
   }
   
   async searchLocalIndex(query) {
-    const ftsQuery = buildFtsQuery(query);
     const maxResults = this.getSetting('maxResults') || 100;
-    
-    const results = await this.services.DatabaseService.query(`
-      SELECT 
-        f.id,
-        f.path,
-        f.name,
-        f.extension,
-        f.size,
-        f.mime_type,
-        f.modified_at,
-        bm25(finder_fts) as score
-      FROM finder_index f
-      JOIN finder_fts ON f.rowid = finder_fts.rowid
-      WHERE finder_fts MATCH ?
-      ORDER BY score
-      LIMIT ?
-    `, [ftsQuery, maxResults]);
-    
-    return results.map(r => ({
-      id: r.id,
-      path: r.path,
-      name: r.name,
-      extension: r.extension,
-      size: r.size,
-      mimeType: r.mime_type,
-      modifiedAt: r.modified_at,
-      score: r.score
-    }));
+
+    if (!this.indexer) return [];
+
+    return this.indexer.searchIndex(query, maxResults);
   }
   
   applyFilters(results, filters) {
@@ -572,7 +476,8 @@ export default class FinderPlugin {
     const file = results[selectedIndex];
     
     if (!file) return;
-    
+
+    this.previewData = await this.previewService?.getPreview(file);
     this.setState({ preview: file });
   }
   
@@ -601,9 +506,7 @@ export default class FinderPlugin {
     this.emit('index_start');
     
     try {
-      for (const path of watchPaths) {
-        await this.indexDirectory(path);
-      }
+      await this.indexer?.buildIndex(watchPaths);
       
       this.emit('index_complete');
       console.log('Finder plugin: Index build complete');
@@ -611,12 +514,6 @@ export default class FinderPlugin {
       console.error('Finder plugin: Index build failed:', error);
       this.emit('index_error', error);
     }
-  }
-  
-  async indexDirectory(dirPath) {
-    // This would require FileSystemService to list directory recursively
-    // Simplified implementation for now
-    console.log('Finder plugin: Indexing directory:', dirPath);
   }
   
   async startFileWatch() {

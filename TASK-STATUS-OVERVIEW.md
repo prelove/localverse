@@ -104,7 +104,8 @@
 
 ## 🔄 正在进行中的 Spec/Task
 
-**当前无正在进行中的任务**
+- **task-003-finder-plugin (文件搜索插件)** - 核心功能开发中
+- **task-004-wiki-plugin (知识库插件)** - 编辑与搜索体验完善中
 
 ---
 
@@ -114,15 +115,15 @@
 
 | 任务ID | 任务名称 | 预估工时 | 依赖 | 状态 | 优先级 |
 |--------|----------|----------|------|------|--------|
-| task-003-finder-plugin | 文件搜索插件 | 12h | 002 | 待开发 | P1 |
-| task-004-wiki-plugin | 知识库插件 | 16h | 001 | 待创建 | P1 |
+| task-003-finder-plugin | 文件搜索插件 | 12h | 002 | 🔵 开发中 | P1 |
+| task-004-wiki-plugin | 知识库插件 | 16h | 001 | 🔵 开发中 | P1 |
 
 **剩余工时：** 28h
 
 #### 详细说明
 
 - **task-003-finder-plugin (文件搜索插件)**
-  - 状态：待开发
+  - 状态：🔵 开发中
   - 依赖：task-002-search-service（已完成✅）
   - 功能：
     - 文件名搜索
@@ -131,7 +132,7 @@
     - 快速定位
 
 - **task-004-wiki-plugin (知识库插件)**
-  - 状态：待创建（任务文档待编写）
+  - 状态：🔵 开发中
   - 依赖：task-001-frontend-core（已完成✅）
   - 功能：
     - Markdown 编辑器
@@ -220,7 +221,7 @@
   ├─ PR #11: ✅ Merge Conflicts Resolution
   ├─ PR #12: ✅ Search Service Integration (task-002-search-service)
   ├─ PR #14: ✅ Project Restructure
-  └─ PR #16: ✅ Finder Plugin with FTS5 (task-003-finder-plugin)
+  └─ PR #16: 🔵 Finder Plugin groundwork (task-003-finder-plugin)
 ```
 
 ---

@@ -55,26 +55,17 @@ class LocalverseApp {
       // 5. Initialize services
       await this.initServices();
       this.updateSplash(this.i18n.t('splash.init_services') || '初始化服务...');
-      
-      // 6. Initialize plugin system
-      await this.initPluginSystem();
-      this.updateSplash(this.i18n.t('splash.loading_plugins') || '加载插件...');
-      
-      // 7. Load plugins
-      await this.loadPlugins();
-      
-      // 8. Setup routes
-      this.setupRoutes();
-      
-      // 9. Render UI
-      this.render();
-      
-      // 10. Hide splash
-      setTimeout(() => this.hideSplash(), 500);
-      
-      this.ready = true;
-      this.dispatchEvent('app:ready');
-      console.log('[App] Initialization complete');
+
+      // 6. Authenticate user
+      this.updateSplash(this.i18n.t('splash.authenticating') || '认证中...');
+      const authResult = await this.authenticateUser();
+      if (authResult === 'setup-required') {
+        await this.showSetup();
+        return;
+      }
+
+      // 7. Continue initialization
+      await this.finalizeInitialization();
       
     } catch (error) {
       console.error('App init failed:', error);
@@ -158,7 +149,9 @@ class LocalverseApp {
     try {
       // Always load communication layer
       const { CommunicationLayer } = await import('../services/comm/index.js');
-      this.services.CommunicationLayer = new CommunicationLayer();
+      this.services.CommunicationLayer = new CommunicationLayer({
+        serverUrl: 'http://127.0.0.1:8765'
+      });
       
       // Load database service
       const { default: DatabaseServiceFactory } = await import('../services/database/index.js');
@@ -179,6 +172,14 @@ class LocalverseApp {
       } catch {
         console.log('[App] Auth service not available');
       }
+
+      if (this.mode === 'full' && this.services.CommunicationLayer) {
+        try {
+          await this.services.CommunicationLayer.connect();
+        } catch (error) {
+          console.warn('[App] Communication layer connection failed:', error);
+        }
+      }
       
       console.log('[App] Services initialized:', Object.keys(this.services));
     } catch (error) {
@@ -193,12 +194,104 @@ class LocalverseApp {
   }
 
   /**
+   * Authenticate current user
+   * @returns {Promise<string>} auth result
+   */
+  async authenticateUser() {
+    if (!this.services.AuthService) {
+      console.log('[App] Auth service not available, skipping authentication');
+      return 'skipped';
+    }
+
+    try {
+      const user = await this.services.AuthService.authenticate();
+      if (!user) {
+        return 'setup-required';
+      }
+
+      this.user = user;
+      this.store.set('user', user);
+      return 'authenticated';
+    } catch (error) {
+      console.error('[App] Authentication failed:', error);
+      this.showError(error);
+      return 'failed';
+    }
+  }
+
+  /**
+   * Show setup UI for first-time configuration
+   */
+  async showSetup() {
+    if (!this.services.AuthService) {
+      this.showError(new Error('Auth service is unavailable'));
+      return;
+    }
+
+    this.hideSplash();
+
+    const { SetupUI } = await import('../services/auth/setup-ui.js');
+    const root = document.getElementById('app');
+    const setupUI = new SetupUI(root);
+
+    return new Promise((resolve) => {
+      setupUI.setOnComplete(async (userData) => {
+        try {
+          this.updateSplash(this.i18n.t('splash.loading_config') || '加载配置...');
+          this.showSplash();
+
+          const user = await this.services.AuthService.setup(userData);
+          this.user = user;
+          this.store.set('user', user);
+
+          await this.finalizeInitialization();
+          resolve(user);
+        } catch (error) {
+          this.showError(error);
+          resolve(null);
+        }
+      });
+
+      setupUI.render();
+    });
+  }
+
+  /**
+   * Finish initialization after authentication
+   */
+  async finalizeInitialization() {
+    // Initialize plugin system
+    await this.initPluginSystem();
+    this.updateSplash(this.i18n.t('splash.loading_plugins') || '加载插件...');
+
+    // Load plugins
+    await this.loadPlugins();
+
+    // Setup routes
+    this.setupRoutes();
+
+    // Render UI
+    this.render();
+
+    // Hide splash
+    setTimeout(() => this.hideSplash(), 500);
+
+    this.startBackgroundTasks();
+
+    this.ready = true;
+    this.dispatchEvent('app:ready');
+    console.log('[App] Initialization complete');
+  }
+
+  /**
    * Initialize plugin system
    */
   async initPluginSystem() {
     try {
+      const pluginsDir = new URL('../plugins', import.meta.url).pathname;
+
       this.pluginLoader = new PluginLoader({
-        pluginsDir: '/plugins',
+        pluginsDir,
         services: this.services,
         eventBus: this.eventBus,
         router: this.router,
@@ -275,6 +368,9 @@ class LocalverseApp {
       await import('../components/header.js');
       await import('../components/sidebar.js');
       await import('../components/toast.js');
+      await import('../components/modal.js');
+      await import('../components/dropdown.js');
+      await import('../components/tooltip.js');
       
       // Initialize sidebar with plugins
       const sidebar = document.querySelector('lv-sidebar');
@@ -496,6 +592,15 @@ class LocalverseApp {
       await this.i18n.setLocale?.(e.target.value);
       this.showSettings();
     });
+  }
+
+  /**
+   * Start background tasks
+   */
+  startBackgroundTasks() {
+    if (this.services.CommunicationLayer) {
+      this.services.CommunicationLayer.startHeartbeat?.();
+    }
   }
 
   /**

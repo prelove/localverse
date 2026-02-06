@@ -286,7 +286,7 @@ localverse/
 
 ### ⏳ 待开发功能
 
-- **Phase 1**: Finder 插件、Wiki 插件
+- **Phase 1**: Finder 插件（开发中）、Wiki 插件（开发中）
 - **Phase 2**: Sync Server、Sync Engine、Chat 插件、Task 插件
 - **Phase 3**: 移动端支持、投票插件、日历插件、公告系统
 
