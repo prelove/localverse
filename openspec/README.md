@@ -4,7 +4,7 @@
 
 ## 📊 项目当前状态
 
-**Phase 0 基础设施**: 83% 完成 (5/6 任务) 🟢
+**Phase 0 基础设施**: 100% 完成 (6/6 任务) 🟢
 
 | 任务 | 状态 | 文档 |
 |------|------|------|
@@ -13,9 +13,9 @@
 | 003: 通信层 | ✅ 完成 | [task-003](./tasks/phase-0/task-003-communication.md) |
 | 004: 数据库 | ✅ 完成 | [task-004](./tasks/phase-0/task-004-database.md) |
 | 005: 认证 | ✅ 完成 | [task-005](./tasks/phase-0/task-005-authentication.md) |
-| 006: 插件系统 | ⏳ 进行中 | [task-006](./tasks/phase-0/task-006-plugin-system.md) |
+| 006: 插件系统 | ✅ 完成 | [task-006](./tasks/phase-0/task-006-plugin-system.md) |
 
-**下一步**: 完成插件系统 → 启动 Phase 1 (前端框架)
+**下一步**: 启动 Phase 1 插件开发（Finder/Wiki）
 
 ## 快速导航
 
@@ -67,8 +67,8 @@ Phase 2: 服务端与同步
 | 通信层 | ✅ 完成 | [specs/04-communication.md](specs/04-communication.md) | [tasks/phase-0/task-003-communication.md](tasks/phase-0/task-003-communication.md) |
 | 数据库 | ✅ 完成 | [specs/05-database.md](specs/05-database.md) | [tasks/phase-0/task-004-database.md](tasks/phase-0/task-004-database.md) |
 | 认证 | ✅ 完成 | [specs/06-authentication.md](specs/06-authentication.md) | [tasks/phase-0/task-005-authentication.md](tasks/phase-0/task-005-authentication.md) |
-| 插件系统 | ⏳ 进行中 | [specs/08-plugin-system.md](specs/08-plugin-system.md) | [tasks/phase-0/task-006-plugin-system.md](tasks/phase-0/task-006-plugin-system.md) |
-| 前端核心 | ⏳ 待开发 | [specs/09-frontend-core.md](specs/09-frontend-core.md) | [tasks/phase-1/task-001-frontend-core.md](tasks/phase-1/task-001-frontend-core.md) |
+| 插件系统 | ✅ 完成 | [specs/08-plugin-system.md](specs/08-plugin-system.md) | [tasks/phase-0/task-006-plugin-system.md](tasks/phase-0/task-006-plugin-system.md) |
+| 前端核心 | ✅ 完成 | [specs/09-frontend-core.md](specs/09-frontend-core.md) | [tasks/phase-1/task-001-frontend-core.md](tasks/phase-1/task-001-frontend-core.md) |
 | 同步服务器 | ⏳ 待开发 | [specs/03-sync-server.md](specs/03-sync-server.md) | [tasks/phase-2/task-001-sync-server.md](tasks/phase-2/task-001-sync-server.md) |
 | 同步引擎 | ⏳ 待开发 | [specs/07-sync-engine.md](specs/07-sync-engine.md) | [tasks/phase-2/task-002-sync-engine.md](tasks/phase-2/task-002-sync-engine.md) |
 
