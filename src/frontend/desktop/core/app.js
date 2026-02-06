@@ -202,8 +202,8 @@ class LocalverseApp {
         services: this.services,
         eventBus: this.eventBus,
         router: this.router,
-        databaseService: this.services.DatabaseService,
-        permissionManager: this.permissionManager
+        permissionManager: this.permissionManager,
+        app: this
       });
       
       // Listen to plugin events

@@ -14,38 +14,33 @@ Localverse OS 的核心插件框架，支持动态加载、生命周期管理和
 
 ## 快速开始
 
-### 1. 初始化插件管理器
+### 1. 初始化插件加载器
 
 ```javascript
-import { PluginManager } from './core/plugin/index.js';
+import { PluginLoader, EventBus, PermissionManager } from './core/plugin/index.js';
 
-const pluginManager = new PluginManager({
-  database: databaseService,
-  filesystem: filesystemService,
-  // ... 其他服务
-});
+const eventBus = new EventBus();
+const permissionManager = new PermissionManager();
 
-await pluginManager.init({
-  i18n: i18nService,
-  authService: authService,
-  pluginBasePath: './plugins/'
+const pluginLoader = new PluginLoader({
+  pluginsDir: './plugins/',
+  services: {
+    DatabaseService: databaseService,
+    FileSystemService: filesystemService
+  },
+  eventBus,
+  permissionManager
 });
 ```
 
 ### 2. 注册并加载插件
 
 ```javascript
-// 注册插件元数据
-pluginManager.register({
-  id: 'finder',
-  enabled: true
-});
-
 // 加载插件
-await pluginManager.load('finder');
+await pluginLoader.load('finder');
 
 // 激活插件
-await pluginManager.activate('finder');
+await pluginLoader.activatePlugin('finder');
 ```
 
 ### 3. 创建插件
@@ -120,24 +115,27 @@ export default class DemoPlugin extends PluginBase {
 
 ## 核心组件
 
-### PluginManager
+### PluginLoader
 
-插件管理器，负责插件的注册、加载、激活、停用和卸载。
+插件加载器，负责插件的发现、加载、激活、停用和卸载。
 
 ```javascript
-const manager = new PluginManager(services);
+const loader = new PluginLoader({
+  pluginsDir: '/plugins',
+  services,
+  eventBus,
+  permissionManager
+});
 
 // 生命周期
-await manager.load('plugin-id');      // 加载插件
-await manager.activate('plugin-id');  // 激活插件
-await manager.deactivate('plugin-id'); // 停用插件
-await manager.unload('plugin-id');    // 卸载插件
+await loader.load('plugin-id');        // 加载插件
+await loader.activatePlugin('plugin-id');  // 激活插件
+await loader.deactivatePlugin('plugin-id'); // 停用插件
+await loader.unload('plugin-id');      // 卸载插件
 
 // 查询
-const plugin = manager.get('plugin-id');
-const all = manager.getAll();
-const active = manager.getActive();
-const isActive = manager.isActive('plugin-id');
+const plugin = loader.getPlugin('plugin-id');
+const all = loader.getAllPlugins();
 ```
 
 ### PluginBase
@@ -208,14 +206,14 @@ eventBus.offNamespace('my-plugin');
 import { permissionManager } from './core/plugin/permission-manager.js';
 
 // 注册权限
-permissionManager.register('my-plugin', [
+permissionManager.grantMultiple('my-plugin', [
   'database:read',
   'database:write',
   'filesystem:read'
 ]);
 
 // 检查权限
-if (permissionManager.check('my-plugin', 'database:read')) {
+if (permissionManager.hasPermission('my-plugin', 'database:read')) {
   // 有权限
 }
 
@@ -223,7 +221,7 @@ if (permissionManager.check('my-plugin', 'database:read')) {
 permissionManager.require('my-plugin', 'database:write');
 
 // 批量检查
-if (permissionManager.checkAll('my-plugin', ['database:read', 'database:write'])) {
+if (permissionManager.hasAll('my-plugin', ['database:read', 'database:write'])) {
   // 都有
 }
 ```
@@ -287,16 +285,11 @@ storage.close();
 
 ## 事件列表
 
-### 插件管理器事件
-- `plugin-manager:init` - 管理器初始化
-- `plugin:registered` - 插件注册
+### 插件加载器事件
 - `plugin:loaded` - 插件加载
 - `plugin:activated` - 插件激活
 - `plugin:deactivated` - 插件停用
 - `plugin:unloaded` - 插件卸载
-- `plugin:uninstalled` - 插件卸载
-- `plugin:enabled` - 插件启用
-- `plugin:disabled` - 插件禁用
 
 ### 插件事件
 - `plugin:{id}:state-change` - 插件状态变更
@@ -327,22 +320,7 @@ async onDeactivate() {
     clearInterval(this.timer);
   }
   
-  // 不需要手动取消事件订阅，cleanup() 会自动处理
-}
-```
-
-### 3. 使用 registerCleanup
-
-```javascript
-async onActivate() {
-  const timer = setInterval(() => {
-    // ...
-  }, 1000);
-  
-  // 注册清理函数
-  this.registerCleanup(() => {
-    clearInterval(timer);
-  });
+  // 手动清理事件订阅或定时器等资源
 }
 ```
 

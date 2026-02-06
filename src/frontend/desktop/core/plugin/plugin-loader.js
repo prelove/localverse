@@ -3,6 +3,9 @@
  * Handles discovery, validation, loading, and lifecycle
  */
 
+import { PluginContext } from './plugin-context.js';
+import { PluginI18n } from './plugin-i18n.js';
+
 export class PluginLoader {
   constructor(context = {}) {
     this.pluginsDir = context.pluginsDir || '/plugins';
@@ -10,8 +13,8 @@ export class PluginLoader {
     this.eventBus = context.eventBus;
     this.permissionManager = context.permissionManager;
     this.router = context.router;
-    this.databaseService = context.databaseService;
-    
+    this.app = context.app || window.app;
+
     this._manifests = new Map();
     this._instances = new Map();
     this._loaded = new Set();
@@ -74,14 +77,17 @@ export class PluginLoader {
     // Load manifest
     const manifest = await this.loadManifest(pluginId);
     this.validateManifest(manifest);
+    await this.ensureDependencies(manifest);
     this._manifests.set(pluginId, manifest);
 
     // Load module
-    const module = await import(`${this.pluginsDir}/${pluginId}/index.js`);
+    const entry = this.resolveEntry(manifest);
+    const module = await import(`${this.pluginsDir}/${pluginId}/${entry}`);
     
     // Create instance
     const PluginClass = module.default || module[Object.keys(module)[0]];
-    const context = this.createContext(manifest);
+    this.permissionManager?.grantMultiple?.(pluginId, manifest.permissions || []);
+    const context = await this.createContext(manifest);
     const instance = new PluginClass(context);
     
     this._instances.set(pluginId, instance);
@@ -153,16 +159,60 @@ export class PluginLoader {
   }
 
   /**
+   * Ensure plugin dependencies are available
+   */
+  async ensureDependencies(manifest) {
+    const dependencies = manifest.dependencies || {};
+    const requiredServices = dependencies.services || [];
+    const requiredPlugins = dependencies.plugins || [];
+
+    const missingServices = requiredServices.filter((serviceName) => !this.services[serviceName]);
+    if (missingServices.length > 0) {
+      console.warn(`[PluginLoader] Missing services for ${manifest.id}:`, missingServices);
+    }
+
+    for (const pluginId of requiredPlugins) {
+      if (!this._loaded.has(pluginId)) {
+        await this.load(pluginId);
+      }
+    }
+  }
+
+  /**
+   * Resolve plugin entry file
+   */
+  resolveEntry(manifest) {
+    const entry = manifest.entry || 'index.js';
+    return entry.replace(/^\.\//, '');
+  }
+
+  /**
    * Create plugin context
    */
-  createContext(manifest) {
-    return {
-      manifest,
+  async createContext(manifest) {
+    const pluginI18n = new PluginI18n(manifest);
+    await pluginI18n.loadLocales(this.pluginsDir);
+
+    return new PluginContext(manifest, {
+      app: this.app,
       services: this.services,
       eventBus: this.eventBus,
       router: this.router,
-      databaseService: this.databaseService,
-      app: window.app
+      permissionManager: this.permissionManager,
+      i18n: pluginI18n,
+      ui: this.createUiHelper()
+    });
+  }
+
+  createUiHelper() {
+    return {
+      toast: (message, type = 'info') => {
+        if (this.app?.showToast) {
+          this.app.showToast(message, type);
+        } else {
+          console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+      }
     };
   }
 
