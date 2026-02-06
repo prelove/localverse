@@ -99,7 +99,7 @@ java -jar dist/localverse.jar
    ↓
    ├─ ✅ Task 002: 搜索服务          [8h]   ← 可并行
    │     ↓
-   │  ☐ Task 003: Finder 插件       [12h]
+   │  🔵 Task 003: Finder 插件       [12h]
    │
    └─ ☐ Task 004: Wiki 插件         [16h]  ← 可并行（MVP核心）
 

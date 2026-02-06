@@ -10,6 +10,7 @@
 | 预估工时 | 12 小时 |
 | 依赖 | Phase 1 Task 001 (Frontend Core), Task 002 (Search Service) |
 | 产出 | 文件搜索插件 |
+| 状态 | 🔵 开发中 |
 
 ## 目标
 

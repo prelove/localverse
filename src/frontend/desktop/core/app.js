@@ -288,8 +288,10 @@ class LocalverseApp {
    */
   async initPluginSystem() {
     try {
+      const pluginsDir = new URL('../plugins', import.meta.url).pathname;
+
       this.pluginLoader = new PluginLoader({
-        pluginsDir: '/plugins',
+        pluginsDir,
         services: this.services,
         eventBus: this.eventBus,
         router: this.router,
