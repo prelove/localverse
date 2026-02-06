@@ -51,11 +51,19 @@ cat docs/IMPLEMENTATION_SUMMARY.md
 - 现代浏览器 (Chrome 90+, Firefox 88+, Edge 90+, Safari 14+)
 
 **运行方式**:
-```bash
-# 下载 localverse.jar
-java -jar localverse.jar
 
-# 浏览器访问
+Localverse 默认使用 **HTML + CSS + 原生 JS** 的极简前端实现，支持三种模式：
+
+- **纯浏览器模式 (pure)**：无需服务端，仅用静态页面 + 本地存储/IndexedDB（可选 WASM）运行 UI 和插件演示。
+- **轻量模式 (light)**：浏览器端用 WASM/IndexedDB 处理本地数据能力，仍可脱离服务端。
+- **完整模式 (full)**：连接本地服务（JAR）以获得文件系统、索引、权限等完整能力。
+
+```bash
+# 纯浏览器/轻量模式：直接打开前端入口（无需 JAR）
+open src/frontend/desktop/index.html
+
+# 完整模式：启动本地服务后再访问
+java -jar dist/localverse.jar
 open http://127.0.0.1:8765
 ```
 
@@ -120,8 +128,8 @@ ls -la dist/
 ### 前端
 - **语言**: ES2022 (原生，零依赖)
 - **样式**: CSS3 (CSS 变量 + Grid + Flexbox)
-- **数据库**: SQLite WASM / IndexedDB
-- **通信**: WebSocket / SSE / HTTP (5级降级)
+- **数据库**: SQLite WASM / IndexedDB（按模式可选）
+- **通信**: WebSocket / SSE / HTTP (5级降级，完整模式启用)
 
 ### 核心特性
 - ✅ 无框架依赖 (Spring Boot ❌)

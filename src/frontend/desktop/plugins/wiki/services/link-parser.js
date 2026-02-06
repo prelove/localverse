@@ -63,6 +63,11 @@ class LinkParser {
    * @param {Function} options.onLinkClick - Callback for link clicks
    * @param {string} options.missingLinkTitle - Tooltip for missing links
    * @param {string} options.missingLinkAction - data-action for missing links
+   * @param {string} options.missingLinkLabel - Label for missing link action
+   * @param {string} options.preferModuleId - Preferred module id for link resolution
+   * @param {Function} options.getModuleId - Get module id from card
+   * @param {Function} options.getUpdatedAt - Get updated timestamp from card
+   * @param {Function} options.getLinkContextLabel - Get tooltip label for a card
    * @returns {string} Content with rendered links
    */
   renderLinks(content, cards = [], options = {}) {
@@ -71,26 +76,56 @@ class LinkParser {
     // Create a map of card titles to IDs for quick lookup
     const cardMap = new Map();
     cards.forEach(card => {
-      cardMap.set(card.title.toLowerCase(), card.id);
+      const key = card.title.toLowerCase();
+      if (!cardMap.has(key)) {
+        cardMap.set(key, []);
+      }
+      cardMap.get(key).push(card);
     });
-    const { onLinkClick, missingLinkTitle, missingLinkAction } = options;
+    const {
+      onLinkClick,
+      missingLinkTitle,
+      missingLinkAction,
+      missingLinkLabel,
+      preferModuleId,
+      getModuleId,
+      getUpdatedAt,
+      getLinkContextLabel
+    } = options;
     
     return content.replace(this.linkRegex, (match, cardTitle) => {
       const trimmedTitle = cardTitle.trim();
-      const cardId = cardMap.get(trimmedTitle.toLowerCase());
+      const candidates = cardMap.get(trimmedTitle.toLowerCase()) || [];
+      const byUpdated = (a, b) => {
+        const aTime = getUpdatedAt ? getUpdatedAt(a) : a.updated_at;
+        const bTime = getUpdatedAt ? getUpdatedAt(b) : b.updated_at;
+        return (bTime || 0) - (aTime || 0);
+      };
+
+      let pool = candidates;
+      if (preferModuleId && getModuleId) {
+        const inModule = candidates.filter(card => getModuleId(card) === preferModuleId);
+        pool = inModule.length > 0 ? inModule : candidates;
+      }
+
+      const selectedCard = [...pool].sort(byUpdated)[0];
       
-      if (cardId) {
+      if (selectedCard) {
+        const cardId = selectedCard.id;
+        const contextLabel = getLinkContextLabel ? getLinkContextLabel(selectedCard) : '';
+        const linkTitle = contextLabel ? ` title="${this.escapeHtml(contextLabel)}"` : '';
         // Existing card - create clickable link
         const onClick = onLinkClick 
           ? `onclick="event.preventDefault(); (${onLinkClick.toString()})('${cardId}')"`
           : '';
-        return `<a href="#/wiki/card/${cardId}" class="wiki-link" data-card-id="${cardId}" data-action="open-card-link" ${onClick}>${this.escapeHtml(trimmedTitle)}</a>`;
+        return `<a href="#/wiki/card/${cardId}" class="wiki-link" data-card-id="${cardId}" data-action="open-card-link"${linkTitle} ${onClick}>${this.escapeHtml(trimmedTitle)}</a>`;
       } else {
         // Non-existing card - show as missing
         const title = this.escapeHtml(trimmedTitle);
         const tooltip = missingLinkTitle ? ` title="${this.escapeHtml(missingLinkTitle)}"` : '';
         const action = missingLinkAction ? ` data-action="${missingLinkAction}"` : '';
-        return `<span class="wiki-link-missing" data-link-title="${title}"${action}${tooltip}>${title}</span>`;
+        const label = missingLinkLabel ? `<span class="wiki-link-missing-action">${this.escapeHtml(missingLinkLabel)}</span>` : '';
+        return `<span class="wiki-link-missing" data-link-title="${title}"${action}${tooltip}><span class="wiki-link-missing-text">${title}</span>${label}</span>`;
       }
     });
   }

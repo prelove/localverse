@@ -132,6 +132,7 @@ export class FinderIndexer {
         f.size,
         f.mime_type,
         f.modified_at,
+        snippet(finder_fts, 2, '\u0001', '\u0002', '…', 12) as snippet,
         bm25(finder_fts) as score
       FROM finder_index f
       JOIN finder_fts ON f.rowid = finder_fts.rowid
@@ -148,6 +149,7 @@ export class FinderIndexer {
       size: r.size,
       mimeType: r.mime_type,
       modifiedAt: r.modified_at,
+      snippet: r.snippet,
       score: r.score
     }));
   }
