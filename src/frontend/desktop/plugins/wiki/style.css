@@ -128,6 +128,12 @@
   font-weight: 600;
 }
 
+.search-results-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
 .search-results-count {
   font-size: 12px;
   color: var(--text-secondary, #6b7280);
@@ -158,6 +164,24 @@
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+.result-snippet {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.result-snippet-empty {
+  color: var(--text-secondary, #9ca3af);
+  font-style: italic;
+}
+
+.search-highlight {
+  background: rgba(250, 204, 21, 0.35);
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 .result-meta {
@@ -332,6 +356,11 @@
   transform: translateY(-1px);
 }
 
+.card.focused {
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .card.pinned {
   border-color: var(--warning-color, #f59e0b);
   background: var(--warning-bg, #fffbeb);
@@ -399,11 +428,25 @@
   border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
+.card-detail-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .card-detail-header h2 {
   font-size: 20px;
   font-weight: 700;
   margin: 0;
   flex: 1;
+}
+
+.card-detail-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .card-detail-body {
@@ -434,6 +477,47 @@
 .editor-textarea {
   resize: vertical;
   min-height: 160px;
+}
+
+.tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tags-preview.is-empty {
+  display: none;
+}
+
+.editor-status {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.editor-status.dirty {
+  color: var(--warning-color, #f59e0b);
+  font-weight: 600;
+}
+
+.editor-hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--surface-color, #f3f4f6);
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.editor-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.btn-preview-toggle {
+  margin-top: 12px;
 }
 
 .editor-preview {
@@ -487,7 +571,10 @@
 .wiki-link-missing {
   color: var(--danger-color, #ef4444);
   border-bottom: 1px dashed var(--danger-color, #ef4444);
-  cursor: not-allowed;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 .backlinks-section {
@@ -496,10 +583,22 @@
   border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
+.backlinks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
 .backlinks-section h3 {
   font-size: 14px;
   font-weight: 600;
-  margin: 0 0 12px 0;
+  margin: 0;
+}
+
+.backlinks-count {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
 }
 
 .backlinks-list {
@@ -519,6 +618,17 @@
 
 .backlinks-list li:hover {
   background: var(--hover-bg, #f3f4f6);
+}
+
+.backlink-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.backlink-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
 }
 
 .card-detail-footer {
@@ -566,6 +676,10 @@
 
 .card-table tbody tr:hover {
   background: var(--hover-bg, #f9fafb);
+}
+
+.card-table tbody tr.focused {
+  background: var(--active-bg, #eff6ff);
 }
 
 /* ==================== Buttons ==================== */
@@ -620,6 +734,11 @@
 
 .btn-primary:hover {
   background: var(--primary-hover, #2563eb);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
