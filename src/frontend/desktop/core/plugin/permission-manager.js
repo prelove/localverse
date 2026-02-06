@@ -55,6 +55,13 @@ export class PermissionManager {
       this.grant(pluginId, perm);
     }
   }
+
+  /**
+   * Register permissions (alias for grantMultiple)
+   */
+  register(pluginId, permissions) {
+    this.grantMultiple(pluginId, permissions);
+  }
   
   /**
    * Revoke a permission
@@ -92,6 +99,13 @@ export class PermissionManager {
     
     return false;
   }
+
+  /**
+   * Check permission (alias for hasPermission)
+   */
+  check(pluginId, permission) {
+    return this.hasPermission(pluginId, permission);
+  }
   
   /**
    * Check permission - throws if not granted
@@ -108,12 +122,26 @@ export class PermissionManager {
   hasAll(pluginId, permissions) {
     return permissions.every(perm => this.hasPermission(pluginId, perm));
   }
+
+  /**
+   * Check all permissions (alias for hasAll)
+   */
+  checkAll(pluginId, permissions) {
+    return this.hasAll(pluginId, permissions);
+  }
   
   /**
    * Check if plugin has any of the specified permissions
    */
   hasAny(pluginId, permissions) {
     return permissions.some(perm => this.hasPermission(pluginId, perm));
+  }
+
+  /**
+   * Check any permission (alias for hasAny)
+   */
+  checkAny(pluginId, permissions) {
+    return this.hasAny(pluginId, permissions);
   }
   
   /**

@@ -3,15 +3,25 @@
  * Provides isolated context and APIs for each plugin
  */
 
+import { PluginStorage } from './plugin-storage.js';
+import { PluginSettings } from './plugin-settings.js';
+
 export class PluginContext {
-  constructor(manifest, app, permissionManager) {
+  constructor(manifest, options = {}) {
     this.manifest = manifest;
-    this.app = app;
-    this.permissionManager = permissionManager;
-    
+    this.app = options.app;
+    this.permissionManager = options.permissionManager;
+    this._eventBus = options.eventBus || this.app?.eventBus;
+    this._router = options.router || this.app?.router;
+    this._i18n = options.i18n || this.app?.i18n;
+    this._store = options.store || this.app?.store;
+    this._theme = options.theme || this.app?.theme;
+    this._services = options.services || this.app?.services || {};
+    this._ui = options.ui || this.app?.ui;
+
     // Create isolated storage for this plugin
-    this._storage = this._createStorage();
-    this._settings = this._createSettings();
+    this._storage = new PluginStorage(this.manifest.id);
+    this._settings = new PluginSettings(this.manifest);
     this._permissions = new Set(manifest.permissions || []);
   }
 
@@ -26,35 +36,35 @@ export class PluginContext {
    * Get event bus
    */
   get eventBus() {
-    return this.app.eventBus;
+    return this._eventBus;
   }
 
   /**
    * Get i18n service
    */
   get i18n() {
-    return this.app.i18n;
+    return this._i18n;
   }
 
   /**
    * Get router
    */
   get router() {
-    return this.app.router;
+    return this._router;
   }
 
   /**
    * Get state store
    */
   get store() {
-    return this.app.store;
+    return this._store;
   }
 
   /**
    * Get theme manager
    */
   get theme() {
-    return this.app.theme;
+    return this._theme;
   }
 
   /**
@@ -62,18 +72,34 @@ export class PluginContext {
    */
   get services() {
     const services = {};
-    
+
+    const requiredServices = this.manifest.dependencies?.services || [];
+
+    const wantsService = (name) => requiredServices.includes(name);
+
     // Only expose services that plugin has permission to use
-    if (this.hasPermission('database:read') || this.hasPermission('database:write')) {
-      services.database = this.app.services.database;
+    if (
+      this._services.DatabaseService &&
+      (wantsService('DatabaseService') || this.hasPermission('database:read') || this.hasPermission('database:write'))
+    ) {
+      services.DatabaseService = this._services.DatabaseService;
     }
     
-    if (this.hasPermission('filesystem:read') || this.hasPermission('filesystem:write')) {
-      services.filesystem = this.app.services.filesystem;
+    if (
+      this._services.FileSystemService &&
+      (wantsService('FileSystemService') ||
+        this.hasPermission('filesystem:read') ||
+        this.hasPermission('filesystem:write') ||
+        this.hasPermission('filesystem:watch'))
+    ) {
+      services.FileSystemService = this._services.FileSystemService;
     }
     
-    if (this.hasPermission('search')) {
-      services.search = this.app.services.search;
+    if (
+      this._services.SearchService &&
+      (wantsService('SearchService') || this.hasPermission('search'))
+    ) {
+      services.SearchService = this._services.SearchService;
     }
     
     return services;
@@ -94,6 +120,13 @@ export class PluginContext {
   }
 
   /**
+   * Get UI helper
+   */
+  get ui() {
+    return this._ui;
+  }
+
+  /**
    * Get plugin permissions
    */
   get permissions() {
@@ -106,124 +139,10 @@ export class PluginContext {
    * @returns {boolean} True if has permission
    */
   hasPermission(permission) {
-    return this.permissionManager.check(this.manifest.id, permission, this._permissions);
-  }
-
-  /**
-   * Create isolated storage for plugin
-   * @private
-   */
-  _createStorage() {
-    const prefix = `plugin_${this.manifest.id}_`;
-    
-    return {
-      get: (key, defaultValue = null) => {
-        try {
-          const value = localStorage.getItem(prefix + key);
-          return value ? JSON.parse(value) : defaultValue;
-        } catch (error) {
-          console.error(`Storage get error for ${key}:`, error);
-          return defaultValue;
-        }
-      },
-
-      set: (key, value) => {
-        try {
-          localStorage.setItem(prefix + key, JSON.stringify(value));
-          return true;
-        } catch (error) {
-          console.error(`Storage set error for ${key}:`, error);
-          return false;
-        }
-      },
-
-      remove: (key) => {
-        try {
-          localStorage.removeItem(prefix + key);
-          return true;
-        } catch (error) {
-          console.error(`Storage remove error for ${key}:`, error);
-          return false;
-        }
-      },
-
-      clear: () => {
-        try {
-          // Remove all keys for this plugin
-          const keys = Object.keys(localStorage);
-          for (const key of keys) {
-            if (key.startsWith(prefix)) {
-              localStorage.removeItem(key);
-            }
-          }
-          return true;
-        } catch (error) {
-          console.error('Storage clear error:', error);
-          return false;
-        }
-      },
-
-      keys: () => {
-        try {
-          const keys = Object.keys(localStorage);
-          return keys
-            .filter(key => key.startsWith(prefix))
-            .map(key => key.substring(prefix.length));
-        } catch (error) {
-          console.error('Storage keys error:', error);
-          return [];
-        }
-      }
-    };
-  }
-
-  /**
-   * Create settings API for plugin
-   * @private
-   */
-  _createSettings() {
-    const settingsKey = 'settings';
-    const defaultSettings = {};
-
-    // Initialize default settings from manifest
-    if (this.manifest.settings) {
-      for (const [key, config] of Object.entries(this.manifest.settings)) {
-        defaultSettings[key] = config.default;
-      }
+    if (this.permissionManager?.hasPermission) {
+      return this.permissionManager.hasPermission(this.manifest.id, permission);
     }
 
-    // Bind storage to closure
-    const storage = this._storage;
-
-    return {
-      get: (key, defaultValue) => {
-        const settings = storage.get(settingsKey, defaultSettings);
-        return key ? (settings[key] ?? defaultValue ?? defaultSettings[key]) : settings;
-      },
-
-      set: (key, value) => {
-        const settings = storage.get(settingsKey, defaultSettings);
-        settings[key] = value;
-        return storage.set(settingsKey, settings);
-      },
-
-      reset: (key) => {
-        if (key) {
-          const settings = storage.get(settingsKey, defaultSettings);
-          settings[key] = defaultSettings[key];
-          return storage.set(settingsKey, settings);
-        } else {
-          return storage.set(settingsKey, defaultSettings);
-        }
-      },
-
-      getAll: () => {
-        return storage.get(settingsKey, defaultSettings);
-      },
-
-      setAll: (settings) => {
-        return storage.set(settingsKey, { ...defaultSettings, ...settings });
-      }
-    };
+    return this._permissions.has(permission) || this._permissions.has('*');
   }
 }

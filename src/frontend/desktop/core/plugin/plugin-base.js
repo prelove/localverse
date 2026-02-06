@@ -64,20 +64,11 @@ export class PluginBase {
     }
 
     this._container = container;
+    this._shadowRoot = container.attachShadow({ mode: 'open' });
     this._mounted = true;
 
-    // Render the plugin
-    const content = this.render();
-    if (content) {
-      if (typeof content === 'string') {
-        container.innerHTML = content;
-      } else if (content instanceof Node) {
-        container.appendChild(content);
-      }
-    }
-
-    // Bind events
-    this.bindEvents?.(container);
+    this._render();
+    this.bindEvents?.(this._shadowRoot);
   }
 
   /**
@@ -88,8 +79,8 @@ export class PluginBase {
     
     this._mounted = false;
     
-    if (this._container) {
-      this._container.innerHTML = '';
+    if (this._shadowRoot) {
+      this._shadowRoot.innerHTML = '';
     }
   }
 
@@ -103,12 +94,28 @@ export class PluginBase {
   }
 
   /**
+   * Render plugin styles
+   */
+  styles() {
+    return '';
+  }
+
+  /**
    * Set state
    * @param {string} key - State key
    * @param {any} value - State value
    */
   setState(key, value) {
-    this._state[key] = value;
+    if (key && typeof key === 'object') {
+      this._state = { ...this._state, ...key };
+    } else {
+      this._state[key] = value;
+    }
+
+    if (this._mounted) {
+      this._render();
+      this.bindEvents?.(this._shadowRoot);
+    }
   }
 
   /**
@@ -129,6 +136,13 @@ export class PluginBase {
   }
 
   /**
+   * Get state
+   */
+  get state() {
+    return this._state;
+  }
+
+  /**
    * Check if plugin is mounted
    * @returns {boolean}
    */
@@ -142,6 +156,42 @@ export class PluginBase {
    */
   isActivated() {
     return this._activated;
+  }
+
+  /**
+   * Find element in shadow root
+   */
+  $(selector) {
+    return this._shadowRoot?.querySelector(selector);
+  }
+
+  /**
+   * Find elements in shadow root
+   */
+  $$(selector) {
+    return this._shadowRoot?.querySelectorAll(selector) || [];
+  }
+
+  /**
+   * Render and attach styles
+   * @private
+   */
+  _render() {
+    if (!this._shadowRoot) return;
+    const content = this.render();
+    const styles = this.styles?.() || '';
+
+    if (typeof content === 'string') {
+      this._shadowRoot.innerHTML = `
+        <style>${styles}</style>
+        ${content}
+      `;
+    } else {
+      this._shadowRoot.innerHTML = `<style>${styles}</style>`;
+      if (content instanceof Node) {
+        this._shadowRoot.appendChild(content);
+      }
+    }
   }
 
   /**
@@ -164,6 +214,69 @@ export class PluginBase {
   navigate(path) {
     if (this.context?.router) {
       this.context.router.navigate(path);
+    }
+  }
+
+  /**
+   * Emit an event
+   */
+  emit(event, data) {
+    return this.eventBus?.emit(`${this.id}:${event}`, data);
+  }
+
+  /**
+   * Subscribe to an event
+   */
+  on(event, handler) {
+    return this.eventBus?.on(event, handler);
+  }
+
+  /**
+   * Call a service method
+   */
+  async callService(serviceName, method, ...args) {
+    const service = this.services[serviceName];
+    if (!service) {
+      throw new Error(`Service not found: ${serviceName}`);
+    }
+    if (typeof service[method] !== 'function') {
+      throw new Error(`Method not found: ${serviceName}.${method}`);
+    }
+    return service[method](...args);
+  }
+
+  /**
+   * Get a setting value
+   */
+  getSetting(key, defaultValue = null) {
+    return this.settings?.get?.(key, defaultValue);
+  }
+
+  /**
+   * Set a setting value
+   */
+  async setSetting(key, value) {
+    return this.settings?.set?.(key, value);
+  }
+
+  /**
+   * Translate a key
+   */
+  t(key, params) {
+    return this.i18n?.t?.(key, params) ?? key;
+  }
+
+  /**
+   * Log helper
+   */
+  log(level, message, data) {
+    const prefix = `[Plugin:${this.id}]`;
+    if (level === 'error') {
+      console.error(prefix, message, data);
+    } else if (level === 'warn') {
+      console.warn(prefix, message, data);
+    } else {
+      console.log(prefix, message, data);
     }
   }
 }

@@ -151,6 +151,22 @@ export class PluginStorage {
       request.onerror = () => reject(request.error);
     });
   }
+
+  /**
+   * Get total number of stored entries
+   */
+  async size() {
+    const db = await this._init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, 'readonly');
+      const store = tx.objectStore(this.storeName);
+      const request = store.count();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
   
   /**
    * Close the database connection
