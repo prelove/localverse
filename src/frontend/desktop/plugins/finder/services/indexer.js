@@ -109,11 +109,16 @@ export class FinderIndexer {
       Date.now()
     ]);
 
-    if (content) {
+    const row = await this.db.queryOne(
+      'SELECT rowid FROM finder_index WHERE path = ?',
+      [file.path]
+    );
+
+    if (row?.rowid) {
       await this.db.execute(`
-        INSERT INTO finder_fts(rowid, name, path, content)
-        VALUES (last_insert_rowid(), ?, ?, ?)
-      `, [file.name, file.path, content]);
+        INSERT OR REPLACE INTO finder_fts(rowid, name, path, content)
+        VALUES (?, ?, ?, ?)
+      `, [row.rowid, file.name, file.path, content || '']);
     }
   }
 

@@ -2,11 +2,15 @@
 
 ## 快速开始
 
-### 1. 启动开发服务器
+### 1. 直接双击打开
 
-由于 ES6 模块的安全限制，不能直接用 `file://` 协议打开，需要使用 HTTP 服务器。
+桌面端默认加载已打包的 `app.bundle.js`，可以直接双击 `index.html` 使用（`file://` 模式）。如果需要联调后端或使用 ES 模块开发方式，可改用 HTTP 服务器。
 
-#### 方法一：使用 Node.js (推荐)
+### 2. 启动开发服务器（可选）
+
+如果要使用模块化源码（`app.js`）进行开发，建议通过 HTTP 服务器访问：
+
+#### 方法一：使用 Node.js
 
 ```bash
 # 在 desktop 目录下运行
@@ -36,7 +40,8 @@ python -m SimpleHTTPServer 8080
 ```
 desktop/
 ├── index.html              # 入口页面
-├── app.js                  # 应用入口
+├── app.js                  # 应用入口（ES 模块）
+├── app.bundle.js           # 预打包入口（file:// 可直接使用）
 ├── style.css               # 全局样式
 ├── start-server.js         # 开发服务器
 ├── core/                   # 核心框架
@@ -94,7 +99,7 @@ java -jar launcher.jar
 ## 常见问题
 
 ### Q: 打开页面空白，控制台显示 CORS 错误
-**A**: 必须使用 HTTP 服务器访问，不能用 `file://` 协议直接打开。请使用 `node start-server.js` 启动服务器。
+**A**: 直接双击 `index.html` 会加载 `app.bundle.js`，避免 `file://` 模块限制。如果使用模块化源码（`app.js`）进行开发，则需要通过 HTTP 服务器访问。
 
 ### Q: 插件无法加载
 **A**: 检查后端是否已启动（Full 模式），或检查插件 manifest.json 是否正确。

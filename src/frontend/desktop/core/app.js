@@ -96,6 +96,9 @@ class LocalverseApp {
    */
   async checkJarService() {
     try {
+      if (typeof window !== 'undefined' && window.location?.protocol === 'file:') {
+        return false;
+      }
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 2000);
       
@@ -288,7 +291,8 @@ class LocalverseApp {
    */
   async initPluginSystem() {
     try {
-      const pluginsDir = new URL('../plugins', import.meta.url).pathname;
+      const baseUrl = typeof document !== 'undefined' ? document.baseURI : window.location?.href;
+      const pluginsDir = new URL('plugins/', baseUrl);
 
       this.pluginLoader = new PluginLoader({
         pluginsDir,

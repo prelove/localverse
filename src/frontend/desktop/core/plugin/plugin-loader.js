@@ -5,10 +5,12 @@
 
 import { PluginContext } from './plugin-context.js';
 import { PluginI18n } from './plugin-i18n.js';
+import { embeddedManifests, embeddedPluginIds } from './embedded-plugin-data.js';
+import { embeddedPluginModules } from './embedded-plugin-modules.js';
 
 export class PluginLoader {
   constructor(context = {}) {
-    this.pluginsDir = context.pluginsDir || '/plugins';
+    this.pluginsBaseUrl = this.normalizePluginsBaseUrl(context.pluginsDir);
     this.services = context.services || {};
     this.eventBus = context.eventBus;
     this.permissionManager = context.permissionManager;
@@ -52,8 +54,12 @@ export class PluginLoader {
    * Discover available plugins
    */
   async discoverPlugins() {
+    if (this.isFileProtocol()) {
+      return embeddedPluginIds;
+    }
+
     try {
-      const response = await fetch(`${this.pluginsDir}/manifest.json`);
+      const response = await fetch(this.resolvePluginUrl('manifest.json'));
       if (response.ok) {
         const manifest = await response.json();
         return manifest.plugins || [];
@@ -81,8 +87,17 @@ export class PluginLoader {
     this._manifests.set(pluginId, manifest);
 
     // Load module
-    const entry = this.resolveEntry(manifest);
-    const module = await import(`${this.pluginsDir}/${pluginId}/${entry}`);
+    let module;
+    if (this.isFileProtocol()) {
+      module = embeddedPluginModules[pluginId];
+      if (!module) {
+        throw new Error(`Embedded module not found for plugin ${pluginId}`);
+      }
+    } else {
+      const entry = this.resolveEntry(manifest);
+      const moduleUrl = this.resolvePluginUrl(`${pluginId}/${entry}`);
+      module = await import(moduleUrl);
+    }
     
     // Create instance
     const PluginClass = module.default || module[Object.keys(module)[0]];
@@ -139,7 +154,14 @@ export class PluginLoader {
    * Load plugin manifest
    */
   async loadManifest(pluginId) {
-    const response = await fetch(`${this.pluginsDir}/${pluginId}/manifest.json`);
+    if (this.isFileProtocol()) {
+      const embedded = embeddedManifests[pluginId];
+      if (embedded) {
+        return JSON.parse(JSON.stringify(embedded));
+      }
+    }
+
+    const response = await fetch(this.resolvePluginUrl(`${pluginId}/manifest.json`));
     if (!response.ok) {
       throw new Error(`Manifest not found for plugin ${pluginId}`);
     }
@@ -191,7 +213,7 @@ export class PluginLoader {
    */
   async createContext(manifest) {
     const pluginI18n = new PluginI18n(manifest);
-    await pluginI18n.loadLocales(this.pluginsDir);
+    await pluginI18n.loadLocales(this.pluginsBaseUrl);
 
     return new PluginContext(manifest, {
       app: this.app,
@@ -214,6 +236,24 @@ export class PluginLoader {
         }
       }
     };
+  }
+
+  normalizePluginsBaseUrl(base) {
+    if (base instanceof URL) {
+      return base;
+    }
+    if (typeof base === 'string') {
+      return new URL(base, window.location.href);
+    }
+    return new URL('/plugins/', window.location.href);
+  }
+
+  resolvePluginUrl(path) {
+    return new URL(path, this.pluginsBaseUrl).href;
+  }
+
+  isFileProtocol() {
+    return typeof window !== 'undefined' && window.location?.protocol === 'file:';
   }
 
   /**

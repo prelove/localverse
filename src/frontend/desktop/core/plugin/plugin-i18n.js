@@ -16,10 +16,24 @@ export class PluginI18n {
    */
   async loadLocales(basePath = '/plugins') {
     const locales = ['zh', 'en', 'ja'];
+
+    if (this.isFileProtocol()) {
+      const { embeddedLocales } = await import('./embedded-plugin-data.js');
+      const embedded = embeddedLocales[this.pluginId];
+      if (embedded) {
+        for (const locale of locales) {
+          if (embedded[locale]) {
+            this.messages[locale] = embedded[locale];
+            this._loaded.add(locale);
+          }
+        }
+      }
+      return;
+    }
     
     for (const locale of locales) {
       try {
-        const response = await fetch(`${basePath}/${this.pluginId}/locales/${locale}.json`);
+        const response = await fetch(new URL(`${this.pluginId}/locales/${locale}.json`, basePath).href);
         if (response.ok) {
           this.messages[locale] = await response.json();
           this._loaded.add(locale);
@@ -99,6 +113,10 @@ export class PluginI18n {
    */
   getAvailableLocales() {
     return Array.from(this._loaded);
+  }
+
+  isFileProtocol() {
+    return typeof window !== 'undefined' && window.location?.protocol === 'file:';
   }
 
   /**

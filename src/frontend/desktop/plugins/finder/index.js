@@ -63,7 +63,8 @@ export default class FinderPlugin {
         settings: this.settings
       });
       this.previewService = new PreviewService({
-        fs: this.services.FileSystemService
+        fs: this.services.FileSystemService,
+        t: this.t.bind(this)
       });
 
       // Create file index tables
@@ -255,7 +256,8 @@ export default class FinderPlugin {
         ↑↓ ${this.t('navigate') || 'navigate'} · 
         Enter ${this.t('open') || 'open'} · 
         ${this.t('previewShortcut') || 'Space preview'} ·
-        Ctrl+C ${this.t('copyPath') || 'copy path'}
+        Ctrl+C ${this.t('copyPath') || 'copy path'} ·
+        Esc ${this.t('closeOrClear') || 'close/clear'}
       </span>
     `;
   }
@@ -364,11 +366,13 @@ export default class FinderPlugin {
     
     switch (e.key) {
       case 'ArrowUp':
+        if (results.length === 0) return;
         e.preventDefault();
         this.selectResult(Math.max(0, selectedIndex - 1));
         break;
         
       case 'ArrowDown':
+        if (results.length === 0) return;
         e.preventDefault();
         this.selectResult(Math.min(results.length - 1, selectedIndex + 1));
         break;
@@ -380,8 +384,10 @@ export default class FinderPlugin {
         
       case 'Escape':
         if (this.state.preview) {
+          this.previewData = null;
           this.setState({ preview: null });
         } else {
+          this.previewData = null;
           this.setState({ query: '', results: [] });
         }
         break;
@@ -426,6 +432,10 @@ export default class FinderPlugin {
         // Full mode: search through local service when available
         try {
           results = await this.searchFilesystem(query);
+          if (this.getSetting('enableContentSearch') !== false) {
+            const localResults = await this.searchLocalIndex(query);
+            results = this.mergeResults(results, localResults);
+          }
         } catch (error) {
           console.error('Finder plugin: Full-mode search failed, falling back', error);
           results = await this.searchLocalIndex(query);
@@ -436,8 +446,9 @@ export default class FinderPlugin {
         results = await this.searchLocalIndex(query);
       }
       
+      const normalizedResults = this.normalizeResults(results);
       // Apply filters
-      results = this.applyFilters(results, filters);
+      results = this.applyFilters(normalizedResults, filters);
       
       this.setState({
         results,
@@ -455,11 +466,12 @@ export default class FinderPlugin {
   async searchFilesystem(query) {
     // Search through FileSystemService
     // This is a simplified implementation - actual implementation would depend on the service API
-    return await this.services.SearchService.searchFiles(query, {
+    const results = await this.services.SearchService.searchFiles(query, {
       maxResults: this.getSetting('maxResults') || 100,
       includeHidden: this.getSetting('includeHidden') || false,
       includeContent: this.getSetting('enableContentSearch') || false
     });
+    return results || [];
   }
   
   async searchLocalIndex(query) {
@@ -468,6 +480,70 @@ export default class FinderPlugin {
     if (!this.indexer) return [];
 
     return this.indexer.searchIndex(query, maxResults);
+  }
+
+  normalizeResults(results = []) {
+    return results
+      .map(result => this.normalizeResult(result))
+      .filter(Boolean);
+  }
+
+  normalizeResult(result) {
+    if (!result) return null;
+
+    if (result.path && result.name) {
+      return {
+        ...result,
+        extension: result.extension || this.getExtension(result.name || result.path || ''),
+        modifiedAt: result.modifiedAt || result.updatedAt || result.modified_at
+      };
+    }
+
+    const metadata = result.metadata || {};
+    const path = metadata.path || result.path || result.snippet || '';
+    const name = result.title || result.name || this.getBasename(path) || path;
+    const extension = this.getExtension(name || path);
+
+    return {
+      id: result.id,
+      path,
+      name,
+      extension,
+      size: metadata.size ?? result.size,
+      mimeType: metadata.mimeType ?? result.mimeType ?? result.mime_type,
+      modifiedAt: result.updatedAt || result.modifiedAt || result.updated_at,
+      snippet: result.snippet,
+      score: result.score
+    };
+  }
+
+  getExtension(filename) {
+    if (!filename) return '';
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+  }
+
+  getBasename(path) {
+    if (!path) return '';
+    return path.split(/[/\\]/).pop();
+  }
+
+  mergeResults(primary = [], secondary = []) {
+    const merged = new Map();
+    for (const result of primary) {
+      const normalized = this.normalizeResult(result);
+      if (normalized?.path) {
+        merged.set(normalized.path, normalized);
+      }
+    }
+    for (const result of secondary) {
+      const normalized = this.normalizeResult(result);
+      if (!normalized?.path) continue;
+      if (!merged.has(normalized.path)) {
+        merged.set(normalized.path, normalized);
+      }
+    }
+    return Array.from(merged.values());
   }
   
   applyFilters(results, filters) {
