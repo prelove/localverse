@@ -57,19 +57,19 @@ class LocalverseApp {
   async init() {
     try {
       this.showSplash();
+
+      // 1. Initialize i18n early to avoid missing translation warnings
+      await this.i18n.init();
       
-      // 1. Detect mode
+      // 2. Detect mode
       this.mode = await this.detectMode();
       this.store.set('mode', this.mode);
       this.updateSplash(this.i18n.t('splash.detecting') || '检测环境...');
       
-      // 2. Load configuration
+      // 3. Load configuration
       await this.loadConfig();
       this.updateSplash(this.i18n.t('splash.loading_config') || '加载配置...');
-      
-      // 3. Initialize i18n
-      await this.i18n.init();
-      
+
       // 4. Initialize theme
       this.theme.init();
       
@@ -119,6 +119,12 @@ class LocalverseApp {
     try {
       if (typeof window !== 'undefined' && window.location?.protocol === 'file:') {
         return false;
+      }
+      if (typeof window !== 'undefined') {
+        const host = window.location?.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+          return false;
+        }
       }
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 2000);
@@ -170,51 +176,69 @@ class LocalverseApp {
    * Initialize services
    */
   async initServices() {
-    try {
-      // Always load communication layer
-      const { CommunicationLayer } = await Promise.resolve(__require('./services/comm/index.js'));
-      this.services.CommunicationLayer = new CommunicationLayer({
-        serverUrl: 'http://127.0.0.1:8765'
-      });
-      
-      // Load database service
-      const { default: DatabaseServiceFactory } = await Promise.resolve(__require('./services/database/index.js'));
-      this.services.DatabaseService = await DatabaseServiceFactory.create(this.mode);
-      
-      // Load search service if available
-      try {
-        const { SearchService } = await Promise.resolve(__require('./services/search/index.js'));
-        this.services.SearchService = new SearchService();
-      } catch {
-        console.log('[App] Search service not available');
-      }
-      
-      // Load auth service
-      try {
-        const { AuthService } = await Promise.resolve(__require('./services/auth/index.js'));
-        this.services.AuthService = new AuthService();
-      } catch {
-        console.log('[App] Auth service not available');
-      }
+    this.services = {};
 
-      if (this.mode === 'full' && this.services.CommunicationLayer) {
-        try {
-          await this.services.CommunicationLayer.connect();
-        } catch (error) {
-          console.warn('[App] Communication layer connection failed:', error);
-        }
+    if (this.mode === 'full') {
+      try {
+        const { CommunicationLayer } = await Promise.resolve(__require('./services/comm/index.js'));
+        this.services.CommunicationLayer = new CommunicationLayer({
+          serverUrl: 'http://127.0.0.1:8765'
+        });
+      } catch {
+        // Communication layer unavailable in this environment.
       }
-      
-      console.log('[App] Services initialized:', Object.keys(this.services));
-    } catch (error) {
-      console.error('[App] Failed to initialize services:', error);
-      // Continue with mock services
-      this.services = {
-        database: { query: () => Promise.resolve([]) },
-        filesystem: { list: () => Promise.resolve([]) },
-        search: { search: () => Promise.resolve([]) }
+    }
+
+    try {
+      const { default: DatabaseServiceFactory, MockDatabaseService } = await Promise.resolve(__require('./services/database/index.js'));
+      this.services.DatabaseService = await DatabaseServiceFactory.create(this.mode);
+      if (!this.services.DatabaseService) {
+        const mockDb = new MockDatabaseService();
+        await mockDb.init();
+        this.services.DatabaseService = mockDb;
+      }
+    } catch {
+      const { MockDatabaseService } = await Promise.resolve(__require('./services/database/index.js'));
+      const mockDb = new MockDatabaseService();
+      await mockDb.init();
+      this.services.DatabaseService = mockDb;
+    }
+
+    try {
+      const { SearchService } = await Promise.resolve(__require('./services/search/index.js'));
+      this.services.SearchService = new SearchService();
+    } catch {
+      this.services.SearchService = {
+        searchFiles: async () => []
       };
     }
+
+    try {
+      const { AuthService } = await Promise.resolve(__require('./services/auth/index.js'));
+      this.services.AuthService = new AuthService();
+    } catch {
+      this.services.AuthService = null;
+    }
+
+    if (!this.services.FileSystemService) {
+      this.services.FileSystemService = {
+        list: async () => [],
+        readFile: async () => null,
+        writeFile: async () => null,
+        openFile: async () => null,
+        watch: async () => ({ close() {} })
+      };
+    }
+
+    if (this.mode === 'full' && this.services.CommunicationLayer) {
+      try {
+        await this.services.CommunicationLayer.connect();
+      } catch (error) {
+        console.warn('[App] Communication layer connection failed:', error);
+      }
+    }
+
+    console.log('[App] Services initialized:', Object.keys(this.services));
   }
 
   /**
@@ -3129,7 +3153,7 @@ __define('./plugins/finder/index.js', function(module, exports){
 
 const { getFileCategory } = __require('./plugins/finder/utils/file-icons.js');
 const { formatSize, formatDate } = __require('./plugins/finder/utils/formatters.js');
-const { t as translate } = __require('./plugins/finder/i18n.js');
+const { t } = __require('./plugins/finder/i18n.js');
 const { FinderIndexer } = __require('./plugins/finder/services/indexer.js');
 const { PreviewService } = __require('./plugins/finder/services/preview.js');
 const { renderSearchBox } = __require('./plugins/finder/components/search-box.js');
@@ -3815,7 +3839,7 @@ class FinderPlugin {
   
   t(key) {
     // Translation helper using the i18n module
-    return translate(key, this.locale);
+    return t(key, this.locale);
   }
   
   emit(event, data) {
@@ -7366,7 +7390,6 @@ exports.default = PermissionManager;
 
 exports.PERMISSIONS = PERMISSIONS;
 exports.PermissionManager = PermissionManager;
-exports.perm = perm;
 exports.permissionManager = permissionManager;
 });
 __define('./core/plugin/plugin-registry.js', function(module, exports){
@@ -8304,11 +8327,9 @@ const migrations = [
   },
   {
     version: 5,
-    name: 'add_plugin_installs',
-    sql: `
-      -- Plugin installation records table
     name: 'add_plugin_system',
     sql: `
+      -- Plugin installation records table
       -- 插件安装记录表
       CREATE TABLE plugin_installs (
         plugin_id TEXT PRIMARY KEY,
