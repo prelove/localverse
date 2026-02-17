@@ -25,8 +25,8 @@ public class LocalWebSocketServer extends WebSocketServer {
 
     public LocalWebSocketServer(Config config) {
         super(new InetSocketAddress(
-            config.client().bindAddress(), 
-            config.client().wsPort()
+            config.isServerMode() ? config.server().bindAddress() : config.client().bindAddress(),
+            config.isServerMode() ? config.server().wsPort() : config.client().wsPort()
         ));
         
         this.config = config;
@@ -79,9 +79,9 @@ public class LocalWebSocketServer extends WebSocketServer {
 
     @Override
     public void onStart() {
-        System.out.println("WebSocket Server started on " + 
-                          config.client().bindAddress() + ":" + 
-                          config.client().wsPort());
+        String bindAddress = config.isServerMode() ? config.server().bindAddress() : config.client().bindAddress();
+        int wsPort = config.isServerMode() ? config.server().wsPort() : config.client().wsPort();
+        System.out.println("WebSocket Server started on " + bindAddress + ":" + wsPort);
         
         // 启动心跳
         startHeartbeat();

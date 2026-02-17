@@ -65,9 +65,11 @@ public class ConfigLoader {
             try {
                 String json = Files.readString(path);
                 Config config = gson.fromJson(json, Config.class);
+                // 在启动阶段也执行一次配置校验，避免无效配置进入运行态。
+                validateConfig(config);
                 System.out.println("✓ Configuration loaded from: " + path.toAbsolutePath());
                 return config;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.err.println("⚠ Failed to load config: " + e.getMessage());
                 System.err.println("  Using default configuration");
                 return Config.defaults();
@@ -111,10 +113,45 @@ public class ConfigLoader {
      * Merge command line arguments into configuration
      */
     public static Config merge(Config config, String[] args) {
-        // Command line arguments can override config file settings
-        // For now, just return the config as-is
-        // Future: Parse --mode, --port, etc.
-        return config;
+        String modeOverride = null;
+
+        for (int i = 0; i < args.length; i++) {
+            if ("--mode".equals(args[i]) && i + 1 < args.length) {
+                modeOverride = args[i + 1];
+                break;
+            }
+
+            if (args[i].startsWith("--mode=")) {
+                modeOverride = args[i].substring("--mode=".length());
+                break;
+            }
+        }
+
+        if (modeOverride == null || modeOverride.isBlank()) {
+            return config;
+        }
+
+        String normalizedMode = modeOverride.trim().toLowerCase();
+        if (!"client".equals(normalizedMode) && !"server".equals(normalizedMode)) {
+            System.err.println("⚠ Ignoring invalid mode override: " + modeOverride);
+            return config;
+        }
+
+        if (normalizedMode.equals(config.mode())) {
+            return config;
+        }
+
+        System.out.println("✓ Mode overridden by CLI: " + normalizedMode);
+        return new Config(
+            normalizedMode,
+            config.client(),
+            config.server(),
+            config.database(),
+            config.filesystem(),
+            config.security(),
+            config.user(),
+            config.logging()
+        );
     }
 
     /**

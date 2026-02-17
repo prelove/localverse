@@ -1,6 +1,7 @@
 package server;
 
 import com.sun.net.httpserver.HttpServer;
+import models.Message;
 import config.Config;
 import server.handlers.*;
 import services.BackupService;
@@ -12,6 +13,7 @@ import services.ProcessService;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
@@ -26,6 +28,7 @@ public class LocalHttpServer {
     private SearchService searchService;
     private BackupService backupService;
     private ProcessService processService;
+    private SyncServerHandler syncServerHandler;
     private HttpServer server;
 
     public LocalHttpServer(Config config, 
@@ -48,8 +51,8 @@ public class LocalHttpServer {
      * 启动服务器
      */
     public void start() throws IOException {
-        int port = config.client().httpPort();
-        String bindAddress = config.client().bindAddress();
+        int port = config.isServerMode() ? config.server().httpPort() : config.client().httpPort();
+        String bindAddress = config.isServerMode() ? config.server().bindAddress() : config.client().bindAddress();
 
         server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
 
@@ -63,7 +66,9 @@ public class LocalHttpServer {
         server.start();
 
         System.out.println("✓ HTTP Server started on http://" + bindAddress + ":" + port);
-        System.out.println("  → Open http://" + bindAddress + ":" + port + " in your browser");
+        if (config.isClientMode()) {
+            System.out.println("  → Open http://" + bindAddress + ":" + port + " in your browser");
+        }
     }
 
     /**
@@ -82,60 +87,97 @@ public class LocalHttpServer {
     }
 
     /**
+     * 为兼容旧客户端，统一注册本地 API 前缀和简化前缀。
+     * 说明：server 模式下新接口优先使用 /api/*，client 模式保留 /api/local/*。
+     */
+    private void createApiContext(String suffix, com.sun.net.httpserver.HttpHandler handler) {
+        // 旧前缀：保持现有前端与插件调用不受影响。
+        server.createContext("/api/local" + suffix, handler);
+
+        // 新前缀：为 Phase 2 服务端模式提供更简洁的 API 路径。
+        server.createContext("/api" + suffix, handler);
+    }
+
+    /**
      * 注册所有处理器
      */
     private void registerHandlers() {
-        // Initialize process service
+        // 初始化流程引擎，client/server 两种模式都复用同一套执行能力。
         this.processService = new ProcessService();
-        
-        // ========== 静态文件服务 (必须放在最前面，根路径) ==========
+
+        // 静态资源入口：保留根路径用于桌面端页面与资源加载。
         server.createContext("/", new StaticHandler(config));
         System.out.println("✓ Static file server enabled");
 
-        // ========== API 接口 ==========
-        
-        // 健康检查
-        server.createContext("/api/local/health", 
-            new HealthHandler(config));
+        // 健康检查与基础管理接口。
+        createApiContext("/health", new HealthHandler(config));
+        createApiContext("/config", new ConfigHandler(config));
+        createApiContext("/files", new FileHandler(config, fileSystemService));
+        createApiContext("/db", new DatabaseHandler(config, databaseService));
 
-        // 配置管理
-        server.createContext("/api/local/config", 
-            new ConfigHandler(config));
-
-        // 文件操作
-        server.createContext("/api/local/files", 
-            new FileHandler(config, fileSystemService));
-
-        // 数据库操作
-        server.createContext("/api/local/db", 
-            new DatabaseHandler(config, databaseService));
-
-        // 搜索操作 (if database is available)
+        // 搜索接口依赖数据库连接，缺失时仅跳过该能力。
         if (searchService != null) {
-            server.createContext("/api/local/search", 
-                new SearchHandler(searchService));
+            createApiContext("/search", new SearchHandler(searchService));
             System.out.println("✓ Search service enabled");
         }
-        
-        // 流程引擎
-        server.createContext("/api/local/process", 
-            new ProcessHandler(processService));
+
+        // 流程引擎接口。
+        createApiContext("/process", new ProcessHandler(processService));
         System.out.println("✓ Process engine enabled");
 
-        // 备份与恢复 (if database is available)
+        // 备份接口依赖数据库连接。
         if (backupService != null) {
-            server.createContext("/api/local/backup", 
-                new BackupHandler(backupService));
+            createApiContext("/backup", new BackupHandler(backupService));
             System.out.println("✓ Backup service enabled");
         }
 
-        // 代理转发
-        server.createContext("/api/sync", 
-            new ProxyHandler(config, proxyService));
+        // sync 路由按模式分流，并同时兼容 /api/* 与 /api/local/* 两种前缀。
+        // - client 模式：转发到远端 Sync Server
+        // - server 模式：直接提供本地同步 API
+        if (config.isClientMode()) {
+            ProxyHandler proxyHandler = new ProxyHandler(config, proxyService);
+
+            // 兼容旧路径，避免现有客户端请求 /api/local/sync 时 404。
+            server.createContext("/api/local/sync", proxyHandler);
+            server.createContext("/api/sync", proxyHandler);
+            System.out.println("✓ Sync proxy enabled");
+        } else {
+            // server 模式使用本地同步处理器（含 pull/push/status），后续再绑定 WS 广播器。
+            syncServerHandler = new SyncServerHandler(config, databaseService);
+
+            // 同时暴露两种前缀，便于渐进迁移。
+            server.createContext("/api/local/sync", syncServerHandler);
+            server.createContext("/api/sync", syncServerHandler);
+            System.out.println("✓ Sync server API enabled");
+        }
 
         System.out.println("✓ All HTTP handlers registered");
     }
-    
+
+    /**
+     * 绑定 WebSocket 广播能力给同步处理器。
+     *
+     * <p>说明：HTTP 与 WS 启动顺序不同，因此在 Main 启动 WS 后再进行注入。
+     */
+    public void bindWebSocketBroadcaster(LocalWebSocketServer webSocketServer) {
+        if (syncServerHandler == null || webSocketServer == null) {
+            return;
+        }
+
+        syncServerHandler.setBroadcaster((entity, accepted, conflicts) -> {
+            Message message = Message.event("sync-updated", Map.of(
+                "entity", entity,
+                "accepted", accepted,
+                "conflicts", conflicts,
+                "timestamp", System.currentTimeMillis()
+            ));
+
+            webSocketServer.broadcast(message);
+        });
+
+        System.out.println("✓ Sync broadcast bridge enabled");
+    }
+
     /**
      * Get the process service
      */
