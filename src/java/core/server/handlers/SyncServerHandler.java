@@ -139,30 +139,37 @@ public class SyncServerHandler implements HttpHandler {
             return;
         }
 
-        List<Map<String, Object>> accepted;
+        // 冲突检测结果与接受结果分开返回，便于客户端执行重试或提示用户。
+        Map<String, List<Map<String, Object>>> result;
         try {
-            accepted = appendChanges(entity, rawList);
+            result = appendChanges(entity, rawList);
         } catch (SQLException e) {
             sendError(exchange, 500, "Failed to append changes: " + e.getMessage());
             return;
         }
 
+        List<Map<String, Object>> accepted = result.getOrDefault("accepted", List.of());
+        List<Map<String, Object>> conflicts = result.getOrDefault("conflicts", List.of());
+
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("entity", entity);
         payload.put("accepted", accepted.size());
+        payload.put("conflicts", conflicts.size());
         payload.put("changes", accepted);
+        payload.put("conflictDetails", conflicts);
 
         sendResponse(exchange, 200, JsonUtil.success(payload));
     }
 
     /**
-     * 将变更批量写入数据库并回填 version/timestamp。
+     * 将变更批量写入数据库并回填 version/timestamp，同时返回冲突明细。
      *
      * <p>说明：此处使用 synchronized 保证同一 JVM 进程内版本分配连续，
      * 后续若扩展多实例部署，可替换为数据库事务 + 悲观锁策略。
      */
-    private synchronized List<Map<String, Object>> appendChanges(String entity, List<?> rawList) throws SQLException {
-        List<Map<String, Object>> normalized = new ArrayList<>();
+    private synchronized Map<String, List<Map<String, Object>>> appendChanges(String entity, List<?> rawList) throws SQLException {
+        List<Map<String, Object>> accepted = new ArrayList<>();
+        List<Map<String, Object>> conflicts = new ArrayList<>();
         long version = getCurrentVersion(entity);
 
         for (Object item : rawList) {
@@ -170,24 +177,42 @@ public class SyncServerHandler implements HttpHandler {
                 continue;
             }
 
+            Map<String, Object> incoming = new LinkedHashMap<>();
+            mapItem.forEach((k, v) -> incoming.put(String.valueOf(k), v));
+
+            // 基线冲突检测：客户端若携带 baseVersion，且其版本落后于当前服务端版本，则判定冲突。
+            // 说明：后续可扩展为字段级 merge，这里先保证版本一致性语义。
+            long baseVersion = parseLongOrDefault(String.valueOf(incoming.getOrDefault("baseVersion", version)), version);
+            if (baseVersion < version) {
+                Map<String, Object> conflict = new LinkedHashMap<>();
+                conflict.put("reason", "stale_base_version");
+                conflict.put("entity", entity);
+                conflict.put("serverVersion", version);
+                conflict.put("clientBaseVersion", baseVersion);
+                conflict.put("change", incoming);
+                conflicts.add(conflict);
+                continue;
+            }
+
             version += 1;
             long now = System.currentTimeMillis();
 
-            Map<String, Object> change = new LinkedHashMap<>();
-            mapItem.forEach((k, v) -> change.put(String.valueOf(k), v));
-            change.put("version", version);
-            change.put("serverTimestamp", now);
+            incoming.put("version", version);
+            incoming.put("serverTimestamp", now);
 
-            String payloadJson = JsonUtil.toCompactJson(change);
+            String payloadJson = JsonUtil.toCompactJson(incoming);
             databaseService.execute(
                 "INSERT INTO sync_change_log(entity_type, version, payload, server_timestamp) VALUES (?, ?, ?, ?)",
                 new Object[]{entity, version, payloadJson, now}
             );
 
-            normalized.add(change);
+            accepted.add(incoming);
         }
 
-        return normalized;
+        Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
+        result.put("accepted", accepted);
+        result.put("conflicts", conflicts);
+        return result;
     }
 
     /**
