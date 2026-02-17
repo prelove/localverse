@@ -217,6 +217,24 @@ class LocalverseApp {
       }
     }
 
+    // 初始化同步引擎：在 full 模式且通信层可用时启用。
+    if (this.mode === 'full' && this.services.CommunicationLayer) {
+      try {
+        const { SyncEngine } = await import('../services/sync/index.js');
+        this.services.SyncEngine = new SyncEngine({
+          communicationLayer: this.services.CommunicationLayer,
+          eventBus: this.eventBus,
+          config: {
+            entityTypes: ['cards', 'tasks', 'chat_messages', 'files']
+          }
+        });
+
+        await this.services.SyncEngine.start();
+      } catch (error) {
+        console.warn('[App] Sync engine initialization failed:', error);
+      }
+    }
+
     console.log('[App] Services initialized:', Object.keys(this.services));
   }
 
@@ -413,6 +431,9 @@ class LocalverseApp {
         sidebar.setPlugins(pluginList);
         sidebar.addEventListener('plugin-select', this.handlePluginSelect);
       }
+
+      // 绑定同步状态到 Header，保证 UI 实时显示同步计数。
+      this.bindSyncStatusUI();
     } catch (error) {
       console.error('[App] Failed to initialize components:', error);
     }
@@ -426,6 +447,56 @@ class LocalverseApp {
     const { pluginId } = event.detail;
     if (pluginId) {
       this.router.navigate(`/plugin/${pluginId}`);
+    }
+  }
+
+
+  /**
+   * 绑定同步状态到 Header 展示。
+   */
+  bindSyncStatusUI() {
+    const header = document.querySelector('lv-header');
+    const syncEngine = this.services.SyncEngine;
+    const comm = this.services.CommunicationLayer;
+    if (!header) {
+      return;
+    }
+
+    const applySyncStatus = () => {
+      const status = syncEngine?.getStatus?.() || {};
+      header.updateSyncStatus?.({
+        syncing: status.syncing,
+        pending: status.pendingCount,
+        conflicts: status.conflictCount,
+        failed: status.failedCount
+      });
+
+      // 同步写入全局 store，便于其他组件或调试面板读取。
+      this.store.set('sync.pending', Number(status.pendingCount || 0));
+      this.store.set('sync.conflicts', Number(status.conflictCount || 0));
+      this.store.set('sync.lastSync', Number(status.lastPullTime || status.lastPushTime || 0) || null);
+    };
+
+    // 初始化时立即渲染一次。
+    applySyncStatus();
+
+    // 当同步流程变化时更新展示。
+    if (this.eventBus?.on) {
+      this.eventBus.on('sync:start', applySyncStatus);
+      this.eventBus.on('sync:complete', applySyncStatus);
+      this.eventBus.on('sync:error', applySyncStatus);
+    }
+
+    // 连接状态变化时刷新 Header 指示器。
+    if (comm?.on) {
+      comm.on('connected', () => header.updateConnectionStatus?.('online'));
+      comm.on('disconnected', () => header.updateConnectionStatus?.('offline'));
+      comm.on('connection_state', (event) => {
+        const state = event?.detail || event;
+        if (state?.status === 'connecting' || state?.status === 'reconnecting') {
+          header.updateConnectionStatus?.('connecting');
+        }
+      });
     }
   }
 

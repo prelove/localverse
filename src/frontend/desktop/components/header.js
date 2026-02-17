@@ -129,6 +129,30 @@ class LVHeader extends LVComponent {
         background: var(--primary-dark, #1565c0);
       }
       
+
+      .sync-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-radius: var(--radius-sm, 4px);
+        background: var(--surface-color, #f5f5f5);
+        color: var(--text-secondary, #757575);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .sync-badge.syncing {
+        color: var(--primary-color, #1976d2);
+        border-color: var(--primary-color, #1976d2);
+      }
+
+      .sync-badge.error {
+        color: var(--error-color, #f44336);
+        border-color: var(--error-color, #f44336);
+      }
+
       @media (max-width: 768px) {
         .search-box {
           max-width: 200px;
@@ -176,6 +200,10 @@ class LVHeader extends LVComponent {
             <span>${modeLabels[mode]}</span>
           </div>
           
+          <div class="sync-badge" id="syncBadge" title="Sync status">
+            <span id="syncText">Sync: idle</span>
+          </div>
+
           <div class="status-indicator" id="statusIndicator" title="Connection status"></div>
           
           <button class="user-button" id="userButton" title="User menu">
@@ -227,6 +255,39 @@ class LVHeader extends LVComponent {
   getUserInitial() {
     const userName = window.app?.user?.name || 'User';
     return userName.charAt(0).toUpperCase();
+  }
+
+
+  /**
+   * 更新同步状态显示。
+   * @param {{ syncing?: boolean, pending?: number, conflicts?: number, failed?: number }} state
+   */
+  updateSyncStatus(state = {}) {
+    const badge = this.$('#syncBadge');
+    const text = this.$('#syncText');
+    if (!badge || !text) {
+      return;
+    }
+
+    const syncing = Boolean(state.syncing);
+    const pending = Number(state.pending || 0);
+    const conflicts = Number(state.conflicts || 0);
+    const failed = Number(state.failed || 0);
+
+    badge.classList.remove('syncing', 'error');
+    if (syncing) {
+      badge.classList.add('syncing');
+      text.textContent = `Syncing… P:${pending} C:${conflicts}`;
+      return;
+    }
+
+    if (failed > 0) {
+      badge.classList.add('error');
+      text.textContent = `Sync error F:${failed} P:${pending}`;
+      return;
+    }
+
+    text.textContent = `Sync P:${pending} C:${conflicts}`;
   }
 
   /**
