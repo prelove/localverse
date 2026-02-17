@@ -1062,6 +1062,7 @@ public class ServerMigrations {
 
 ## 进度更新
 
+- 2026-02-17 04:57 UTC: `/api/sync` 增加 `/api/local/sync` 兼容路由，client/server 两种模式统一支持双前缀访问。
 - 2026-02-17 04:49 UTC: 新增 `GET /api/sync/status`，可查看总变更数与各实体最新版本。
 - 2026-02-17 04:49 UTC: 修正批量 push 冲突判定基线，避免同批次后续变更被误判冲突。
 - 2026-02-17 04:41 UTC: 打通 `/api/sync` -> WebSocket 广播桥，push 后实时下发 `sync-updated` 事件。

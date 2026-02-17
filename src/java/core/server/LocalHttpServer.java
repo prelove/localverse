@@ -131,15 +131,22 @@ public class LocalHttpServer {
             System.out.println("✓ Backup service enabled");
         }
 
-        // sync 路由按模式分流：
+        // sync 路由按模式分流，并同时兼容 /api/* 与 /api/local/* 两种前缀。
         // - client 模式：转发到远端 Sync Server
-        // - server 模式：直接提供本地同步 API（Phase 2 初始实现）
+        // - server 模式：直接提供本地同步 API
         if (config.isClientMode()) {
-            server.createContext("/api/sync", new ProxyHandler(config, proxyService));
+            ProxyHandler proxyHandler = new ProxyHandler(config, proxyService);
+
+            // 兼容旧路径，避免现有客户端请求 /api/local/sync 时 404。
+            server.createContext("/api/local/sync", proxyHandler);
+            server.createContext("/api/sync", proxyHandler);
             System.out.println("✓ Sync proxy enabled");
         } else {
-            // server 模式使用本地同步处理器，后续会绑定 WS 广播器。
+            // server 模式使用本地同步处理器（含 pull/push/status），后续再绑定 WS 广播器。
             syncServerHandler = new SyncServerHandler(config, databaseService);
+
+            // 同时暴露两种前缀，便于渐进迁移。
+            server.createContext("/api/local/sync", syncServerHandler);
             server.createContext("/api/sync", syncServerHandler);
             System.out.println("✓ Sync server API enabled");
         }
