@@ -65,9 +65,11 @@ public class ConfigLoader {
             try {
                 String json = Files.readString(path);
                 Config config = gson.fromJson(json, Config.class);
+                // 在启动阶段也执行一次配置校验，避免无效配置进入运行态。
+                validateConfig(config);
                 System.out.println("✓ Configuration loaded from: " + path.toAbsolutePath());
                 return config;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.err.println("⚠ Failed to load config: " + e.getMessage());
                 System.err.println("  Using default configuration");
                 return Config.defaults();
