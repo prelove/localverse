@@ -128,12 +128,15 @@ public class LocalHttpServer {
             System.out.println("✓ Backup service enabled");
         }
 
-        // 仅 client 模式需要代理转发到远端 sync 服务；server 模式不注册该路由，避免自代理。
+        // sync 路由按模式分流：
+        // - client 模式：转发到远端 Sync Server
+        // - server 模式：直接提供本地同步 API（Phase 2 初始实现）
         if (config.isClientMode()) {
             server.createContext("/api/sync", new ProxyHandler(config, proxyService));
             System.out.println("✓ Sync proxy enabled");
         } else {
-            System.out.println("✓ Server mode detected, sync proxy disabled");
+            server.createContext("/api/sync", new SyncServerHandler(config));
+            System.out.println("✓ Sync server API enabled");
         }
 
         System.out.println("✓ All HTTP handlers registered");
