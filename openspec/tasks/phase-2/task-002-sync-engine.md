@@ -10,7 +10,7 @@
 | 预估工时 | 20 小时 |
 | 依赖 | task-001-sync-server |
 | 产出 | 前端同步引擎模块 |
-| 状态 | 🔵 开发中（主类骨架 + 事件调度 + 基础单测） |
+| 状态 | 🔵 开发中（队列持久化 + 变更追踪 + push/pull 基线） |
 
 ## 文档关系
 
@@ -1422,13 +1422,14 @@ describe('End-to-end sync', () => {
 
 ## 进度更新
 
+- 2026-02-17 08:15 UTC: 完成 `SyncQueue`（localStorage 持久化）与 `ChangeTracker/PushService/PullService` 基线实现，`SyncEngine` 接入 trackLocalChange + queue 统计刷新。
 - 2026-02-17 07:35 UTC: 完成 `src/frontend/desktop/services/sync/` 模块骨架，新增 `SyncEngine` 生命周期/事件调度实现与 `sync-engine.test.mjs` 基础单测。
 
 ## 验收标准
 
-- [ ] 变更追踪正确
-- [ ] 推送批量处理正确
-- [ ] 拉取增量工作
+- [x] 变更追踪正确（基线：ChangeTracker + queue 入队）
+- [x] 推送批量处理正确（基线：防抖合并 + 批量 push）
+- [x] 拉取增量工作（基线：按实体拉取 + version 游标推进）
 - [ ] 冲突检测正确
 - [ ] 自动合并简单冲突
 - [ ] 手动解决复杂冲突

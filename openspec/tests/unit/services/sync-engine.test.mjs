@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict';
 import { SyncEngine } from '../../../../src/frontend/desktop/services/sync/sync-engine.js';
+import { SyncQueue } from '../../../../src/frontend/desktop/services/sync/sync-queue.js';
+
+class MemoryStorage {
+  constructor() {
+    this.map = new Map();
+  }
+  getItem(k) { return this.map.get(k) ?? null; }
+  setItem(k, v) { this.map.set(k, String(v)); }
+}
 
 class MockComm {
   constructor() {
@@ -29,31 +38,40 @@ class MockComm {
 
   async sendAndWait(payload) {
     this.calls.push(payload);
+
+    if (payload.action === 'sync:pull') {
+      return {
+        payload: {
+          changes: [{ version: 1 }]
+        }
+      };
+    }
+
+    if (payload.action === 'sync:push') {
+      return {
+        payload: {
+          accepted: payload.payload.changes.length,
+          conflictDetails: []
+        }
+      };
+    }
+
     return { ok: true };
-  }
-}
-
-class MockBus {
-  constructor() {
-    this.events = [];
-  }
-
-  emit(name, detail) {
-    this.events.push({ name, detail });
   }
 }
 
 async function testStartAndSyncNow() {
   const comm = new MockComm();
-  const bus = new MockBus();
   comm.online = true;
 
   const engine = new SyncEngine({
     communicationLayer: comm,
-    eventBus: bus,
     config: {
       entityTypes: ['notes'],
       pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
     }
   });
 
@@ -70,7 +88,7 @@ async function testStartAndSyncNow() {
   engine.stop();
 }
 
-async function testPushDebounce() {
+async function testTrackChangeAndDebouncedPush() {
   const comm = new MockComm();
   comm.online = true;
 
@@ -80,23 +98,42 @@ async function testPushDebounce() {
       entityTypes: ['notes'],
       pushDebounce: 50,
       pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
     }
   });
 
   await engine.start();
   const baselineCalls = comm.calls.length;
 
-  // 连续两次 requestPush，防抖后应合并为一次 push + 一次 pull。
-  engine.requestPush();
-  engine.requestPush();
-  await new Promise((resolve) => setTimeout(resolve, 90));
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'n-1',
+    operation: 'upsert',
+    payload: { title: 'hello' }
+  });
+
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'n-2',
+    operation: 'upsert',
+    payload: { title: 'world' }
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 120));
 
   const extraCalls = comm.calls.slice(baselineCalls);
   const pushCalls = extraCalls.filter((x) => x.action === 'sync:push');
   const pullCalls = extraCalls.filter((x) => x.action === 'sync:pull');
 
+  // 两次变更经防抖后合并为一次 push（批量 2 条）。
   assert.equal(pushCalls.length, 1);
+  assert.equal(pushCalls[0].payload.changes.length, 2);
   assert.equal(pullCalls.length, 1);
+
+  const status = engine.getStatus();
+  assert.equal(status.pendingCount, 0);
 
   engine.stop();
 }
@@ -110,6 +147,9 @@ async function testRemoteSyncUpdatedPullsEntity() {
     config: {
       entityTypes: ['notes'],
       pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
     }
   });
 
@@ -127,10 +167,31 @@ async function testRemoteSyncUpdatedPullsEntity() {
   engine.stop();
 }
 
+async function testSyncQueuePersistence() {
+  const storage = new MemoryStorage();
+  const queueA = new SyncQueue({ storage });
+  await queueA.init();
+
+  await queueA.enqueue({
+    entityType: 'cards',
+    entityId: 'c-1',
+    operation: 'upsert',
+    payload: { title: 'A' }
+  });
+
+  const queueB = new SyncQueue({ storage });
+  await queueB.init();
+
+  const batch = await queueB.getPendingBatch(10);
+  assert.equal(batch.length, 1);
+  assert.equal(batch[0].entityId, 'c-1');
+}
+
 async function run() {
   await testStartAndSyncNow();
-  await testPushDebounce();
+  await testTrackChangeAndDebouncedPush();
   await testRemoteSyncUpdatedPullsEntity();
+  await testSyncQueuePersistence();
   console.log('sync-engine.test: PASS');
 }
 

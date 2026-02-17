@@ -1,11 +1,45 @@
 /**
  * ChangeTracker
  *
- * task-002 后续将接入具体实体 CRUD 钩子。
- * 当前先保留接口契约，方便同步引擎先完成生命周期联调。
+ * 本地变更追踪器：
+ * 1) 接收业务层 CRUD 变更；
+ * 2) 归一化为同步队列条目；
+ * 3) 转交 SyncQueue 持久化与排队。
  */
 export class ChangeTracker {
-  async trackChange() {
-    // TODO(task-002): 持久化本地变更并写入 sync queue。
+  constructor(options = {}) {
+    this.syncQueue = options.syncQueue;
+  }
+
+  /**
+   * 记录一条变更。
+   */
+  async trackChange(change) {
+    this.validate(change);
+
+    return this.syncQueue.enqueue({
+      entityType: change.entityType,
+      entityId: change.entityId,
+      operation: change.operation,
+      payload: change.payload ?? {},
+      baseVersion: change.baseVersion ?? 0
+    });
+  }
+
+  validate(change) {
+    if (!this.syncQueue) {
+      throw new Error('ChangeTracker requires syncQueue');
+    }
+
+    if (!change || typeof change !== 'object') {
+      throw new Error('Invalid change payload');
+    }
+
+    const requiredFields = ['entityType', 'entityId', 'operation'];
+    for (const field of requiredFields) {
+      if (!change[field]) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
   }
 }

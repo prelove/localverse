@@ -1,4 +1,9 @@
 import { SyncStatusStore } from './sync-status.js';
+import { SyncQueue } from './sync-queue.js';
+import { ChangeTracker } from './change-tracker.js';
+import { PushService } from './push-service.js';
+import { PullService } from './pull-service.js';
+import { ConflictResolver } from './conflict-resolver.js';
 
 /**
  * SyncEngine（Phase 2 / task-002）
@@ -6,7 +11,7 @@ import { SyncStatusStore } from './sync-status.js';
  * 当前实现目标：
  * 1) 提供客户端同步生命周期骨架（start/stop/syncNow）；
  * 2) 接入通信层在线状态与远端变更通知；
- * 3) 提供 push 防抖触发与 pull 定时调度；
+ * 3) 实现本地 queue + push/pull 服务协作；
  * 4) 向 eventBus 输出同步过程事件，便于 UI/调试观测。
  */
 export class SyncEngine {
@@ -18,10 +23,24 @@ export class SyncEngine {
       pullInterval: 30000,
       pushDebounce: 800,
       entityTypes: ['cards', 'tasks', 'chat_messages', 'files'],
+      pushBatchSize: 50,
       ...options.config
     };
 
     this.statusStore = new SyncStatusStore();
+
+    // 核心子模块：支持外部注入（便于后续在业务侧替换为更强实现）。
+    this.syncQueue = options.syncQueue ?? new SyncQueue(options.queueOptions);
+    this.changeTracker = options.changeTracker ?? new ChangeTracker({ syncQueue: this.syncQueue });
+    this.pushService = options.pushService ?? new PushService({
+      communicationLayer: this.comm,
+      syncQueue: this.syncQueue,
+      batchSize: this.config.pushBatchSize
+    });
+    this.pullService = options.pullService ?? new PullService({
+      communicationLayer: this.comm
+    });
+    this.conflictResolver = options.conflictResolver ?? new ConflictResolver();
 
     this.pullTimer = null;
     this.pushDebounceTimer = null;
@@ -39,6 +58,9 @@ export class SyncEngine {
     if (this.statusStore.snapshot().running) {
       return;
     }
+
+    await this.syncQueue.init();
+    await this.refreshQueueStats();
 
     this.statusStore.patch({
       running: true,
@@ -78,6 +100,16 @@ export class SyncEngine {
   }
 
   /**
+   * 业务层记录本地变更入口。
+   */
+  async trackLocalChange(change) {
+    const record = await this.changeTracker.trackChange(change);
+    await this.refreshQueueStats();
+    this.requestPush();
+    return record;
+  }
+
+  /**
    * 立即执行一次“先推后拉”的同步流程。
    */
   async syncNow() {
@@ -92,6 +124,7 @@ export class SyncEngine {
     try {
       await this.pushPending();
       await this.pullAll();
+      await this.refreshQueueStats();
       this.emit('sync:complete', this.getStatus());
     } catch (error) {
       this.statusStore.patch({
@@ -108,9 +141,6 @@ export class SyncEngine {
    * 记录“有本地变更待推送”，并进行防抖合并。
    */
   requestPush() {
-    const pending = this.statusStore.snapshot().pendingCount + 1;
-    this.statusStore.patch({ pendingCount: pending });
-
     this.stopPushDebounce();
     this.pushDebounceTimer = setTimeout(() => {
       this.syncNow();
@@ -119,26 +149,23 @@ export class SyncEngine {
 
   /**
    * 推送本地待同步数据。
-   * 当前为引擎骨架：通过通信层 action=sync:push 调用，后续接入真正 queue/tracker。
    */
   async pushPending() {
-    const pendingCount = this.statusStore.snapshot().pendingCount;
-    if (pendingCount <= 0) {
-      return;
+    const result = await this.pushService.pushAll();
+
+    // 将服务端冲突明细转交冲突处理器。
+    for (const conflict of result.conflicts) {
+      await this.conflictResolver.createConflict(conflict);
     }
 
-    await this.comm.sendAndWait({
-      type: 'event',
-      action: 'sync:push',
-      payload: {
-        batchSize: pendingCount
-      }
+    const conflictCount = await this.conflictResolver.getConflictCount();
+    this.statusStore.patch({
+      conflictCount,
+      lastPushTime: Date.now(),
+      failedCount: this.statusStore.snapshot().failedCount + result.failed
     });
 
-    this.statusStore.patch({
-      pendingCount: 0,
-      lastPushTime: Date.now()
-    });
+    return result;
   }
 
   /**
@@ -157,11 +184,7 @@ export class SyncEngine {
    * @param {string} entityType
    */
   async pullEntity(entityType) {
-    await this.comm.sendAndWait({
-      type: 'event',
-      action: 'sync:pull',
-      payload: { entityType }
-    });
+    return this.pullService.pullEntity(entityType);
   }
 
   /**
@@ -200,6 +223,13 @@ export class SyncEngine {
    */
   getStatus() {
     return this.statusStore.snapshot();
+  }
+
+  async refreshQueueStats() {
+    const stats = await this.syncQueue.getStats();
+    this.statusStore.patch({
+      pendingCount: stats.pending
+    });
   }
 
   bindCommEvents() {
