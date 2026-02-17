@@ -17,6 +17,7 @@ class MockComm {
     this.online = false;
     this.calls = [];
     this.pushConflictMode = false;
+    this.pushThrowMode = false;
   }
 
   on(event, handler) {
@@ -50,6 +51,10 @@ class MockComm {
     }
 
     if (payload.action === 'sync:push') {
+      if (this.pushThrowMode) {
+        throw new Error('network down');
+      }
+
       if (this.pushConflictMode) {
         return {
           payload: {
@@ -242,6 +247,86 @@ async function testConflictFlowInEngine() {
   engine.stop();
 }
 
+
+async function testReconnectAutoSyncFromOfflineQueue() {
+  const comm = new MockComm();
+  comm.online = false;
+
+  const engine = new SyncEngine({
+    communicationLayer: comm,
+    config: {
+      entityTypes: ['notes'],
+      pushDebounce: 20,
+      pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
+    }
+  });
+
+  await engine.start();
+
+  // 离线期间记录变更：应仅入队，不会立即发请求。
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'offline-1',
+    operation: 'upsert',
+    payload: { title: 'offline' }
+  });
+  const callsBeforeReconnect = comm.calls.length;
+
+  // 连接恢复后应自动触发一次同步（push + pull）。
+  comm.online = true;
+  comm.emit('connected', {});
+  await new Promise((resolve) => setTimeout(resolve, 40));
+
+  const reconnectCalls = comm.calls.slice(callsBeforeReconnect);
+  assert.equal(reconnectCalls.some((x) => x.action === 'sync:push'), true);
+  assert.equal(reconnectCalls.some((x) => x.action === 'sync:pull'), true);
+
+  engine.stop();
+}
+
+async function testFailedQueueRetryOnReconnect() {
+  const comm = new MockComm();
+  comm.online = true;
+  comm.pushThrowMode = true;
+
+  const engine = new SyncEngine({
+    communicationLayer: comm,
+    config: {
+      entityTypes: ['notes'],
+      pushDebounce: 20,
+      pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
+    }
+  });
+
+  await engine.start();
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'retry-1',
+    operation: 'upsert',
+    payload: { title: 'retry' }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  // 首次失败后应进入 failed 计数。
+  assert.equal(engine.getStatus().failedCount >= 1, true);
+
+  // 模拟重连：failed -> pending -> push 成功。
+  comm.pushThrowMode = false;
+  comm.emit('connected', {});
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  assert.equal(engine.getStatus().pendingCount, 0);
+  assert.equal(engine.getStatus().failedCount, 0);
+
+  engine.stop();
+}
+
 async function testConflictResolverAutoMerge() {
   const resolver = new ConflictResolver({ now: () => 100 });
 
@@ -272,6 +357,8 @@ async function run() {
   await testRemoteSyncUpdatedPullsEntity();
   await testSyncQueuePersistence();
   await testConflictFlowInEngine();
+  await testReconnectAutoSyncFromOfflineQueue();
+  await testFailedQueueRetryOnReconnect();
   await testConflictResolverAutoMerge();
   console.log('sync-engine.test: PASS');
 }

@@ -46,7 +46,9 @@ export class SyncEngine {
     this.pushDebounceTimer = null;
 
     // 统一缓存绑定后的监听器，stop 时可以可靠解绑。
-    this.onConnectedBound = () => this.onOnline();
+    this.onConnectedBound = () => {
+      this.onOnline().catch((error) => this.emit('sync:error', error));
+    };
     this.onDisconnectedBound = () => this.onOffline();
     this.onSyncUpdatedBound = (event) => this.onRemoteSyncUpdated(event);
   }
@@ -190,9 +192,12 @@ export class SyncEngine {
   /**
    * 通信层在线回调。
    */
-  onOnline() {
+  async onOnline() {
+    // 重连后先将 failed 回退为 pending，再统一触发一次同步。
+    await this.syncQueue.retryFailed();
+    await this.refreshQueueStats();
     this.statusStore.patch({ online: true });
-    this.syncNow();
+    await this.syncNow();
   }
 
   /**
@@ -245,7 +250,8 @@ export class SyncEngine {
   async refreshQueueStats() {
     const stats = await this.syncQueue.getStats();
     this.statusStore.patch({
-      pendingCount: stats.pending
+      pendingCount: stats.pending,
+      failedCount: stats.failed
     });
   }
 

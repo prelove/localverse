@@ -77,14 +77,27 @@ export class SyncQueue {
   }
 
   /**
-   * 标记发送失败并回到 pending，等待重试。
+   * 标记发送失败并保留在 failed，等待在线重试阶段回退为 pending。
    */
   async markFailed(ids, errorMessage) {
     this.updateByIds(ids, (item) => {
-      item.status = 'pending';
+      item.status = 'failed';
       item.retries += 1;
       item.updatedAt = this.now();
       item.error = errorMessage || 'unknown_error';
+    });
+    this.persist();
+  }
+
+  /**
+   * 在线恢复时将 failed 重新放回 pending。
+   */
+  async retryFailed() {
+    this.items.forEach((item) => {
+      if (item.status === 'failed') {
+        item.status = 'pending';
+        item.updatedAt = this.now();
+      }
     });
     this.persist();
   }
