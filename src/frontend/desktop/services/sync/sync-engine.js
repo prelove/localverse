@@ -218,6 +218,23 @@ export class SyncEngine {
     });
   }
 
+
+  /**
+   * 查询未解决冲突列表。
+   */
+  async listConflicts() {
+    return this.conflictResolver.listConflicts();
+  }
+
+  /**
+   * 手动解决冲突，并刷新冲突计数。
+   */
+  async resolveConflict(conflictId, mergedPayload = null) {
+    await this.conflictResolver.resolveConflict(conflictId, mergedPayload);
+    const conflictCount = await this.conflictResolver.getConflictCount();
+    this.statusStore.patch({ conflictCount });
+  }
+
   /**
    * 暴露当前状态快照。
    */

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { SyncEngine } from '../../../../src/frontend/desktop/services/sync/sync-engine.js';
 import { SyncQueue } from '../../../../src/frontend/desktop/services/sync/sync-queue.js';
+import { ConflictResolver } from '../../../../src/frontend/desktop/services/sync/conflict-resolver.js';
 
 class MemoryStorage {
   constructor() {
@@ -15,6 +16,7 @@ class MockComm {
     this.handlers = new Map();
     this.online = false;
     this.calls = [];
+    this.pushConflictMode = false;
   }
 
   on(event, handler) {
@@ -48,6 +50,21 @@ class MockComm {
     }
 
     if (payload.action === 'sync:push') {
+      if (this.pushConflictMode) {
+        return {
+          payload: {
+            accepted: 0,
+            conflictDetails: [
+              {
+                reason: 'stale_base_version',
+                entity: 'notes',
+                change: { id: 'n-1' }
+              }
+            ]
+          }
+        };
+      }
+
       return {
         payload: {
           accepted: payload.payload.changes.length,
@@ -187,11 +204,75 @@ async function testSyncQueuePersistence() {
   assert.equal(batch[0].entityId, 'c-1');
 }
 
+async function testConflictFlowInEngine() {
+  const comm = new MockComm();
+  comm.online = true;
+  comm.pushConflictMode = true;
+
+  const engine = new SyncEngine({
+    communicationLayer: comm,
+    config: {
+      entityTypes: ['notes'],
+      pushDebounce: 30,
+      pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
+    }
+  });
+
+  await engine.start();
+
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'n-1',
+    operation: 'upsert',
+    payload: { title: 'need-conflict' }
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 80));
+
+  const conflicts = await engine.listConflicts();
+  assert.equal(conflicts.length, 1);
+  assert.equal(engine.getStatus().conflictCount, 1);
+
+  await engine.resolveConflict(conflicts[0].id, { title: 'resolved' });
+  assert.equal(engine.getStatus().conflictCount, 0);
+
+  engine.stop();
+}
+
+async function testConflictResolverAutoMerge() {
+  const resolver = new ConflictResolver({ now: () => 100 });
+
+  const record = await resolver.createConflict({
+    reason: 'field_overlap_check',
+    localChange: {
+      payload: { title: 'A' }
+    },
+    serverChange: {
+      payload: { content: 'B' }
+    }
+  });
+
+  // 字段无重叠时走自动合并。
+  assert.equal(record.resolved, true);
+  assert.deepEqual(record.mergedPayload, {
+    content: 'B',
+    title: 'A'
+  });
+
+  const unresolved = await resolver.getConflictCount();
+  assert.equal(unresolved, 0);
+}
+
 async function run() {
   await testStartAndSyncNow();
   await testTrackChangeAndDebouncedPush();
   await testRemoteSyncUpdatedPullsEntity();
   await testSyncQueuePersistence();
+  await testConflictFlowInEngine();
+  await testConflictResolverAutoMerge();
   console.log('sync-engine.test: PASS');
 }
 

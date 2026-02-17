@@ -40,7 +40,26 @@ export class PushService {
       });
 
       const detail = this.extractDetail(response);
-      const conflicts = detail?.payload?.conflictDetails ?? detail?.conflictDetails ?? [];
+      const rawConflictDetails = detail?.payload?.conflictDetails ?? detail?.conflictDetails ?? [];
+
+      // 统一冲突结构：补齐 localChange 便于后续自动/手动冲突处理。
+      const conflicts = rawConflictDetails.map((conflict) => {
+        const localItem = pending.find((item) => item.entityId === conflict?.change?.id);
+        return {
+          ...conflict,
+          entityType: conflict?.entity ?? localItem?.entityType,
+          localChange: localItem
+            ? {
+                id: localItem.entityId,
+                payload: localItem.payload,
+                operation: localItem.operation,
+                baseVersion: localItem.baseVersion
+              }
+            : null,
+          serverChange: conflict?.serverChange ?? null
+        };
+      });
+
       const conflictEntityIds = new Set(conflicts.map((x) => x?.change?.id).filter(Boolean));
 
       const successIds = pending
