@@ -106,6 +106,9 @@ public class Main {
         wsServer = new LocalWebSocketServer(config);
         wsServer.start();
 
+        // 将 WS 广播能力注入同步处理器，实现 push 后即时广播。
+        httpServer.bindWebSocketBroadcaster(wsServer);
+
         System.out.println("Servers started");
     }
 

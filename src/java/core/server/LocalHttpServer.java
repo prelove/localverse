@@ -1,6 +1,7 @@
 package server;
 
 import com.sun.net.httpserver.HttpServer;
+import models.Message;
 import config.Config;
 import server.handlers.*;
 import services.BackupService;
@@ -12,6 +13,7 @@ import services.ProcessService;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
@@ -26,6 +28,7 @@ public class LocalHttpServer {
     private SearchService searchService;
     private BackupService backupService;
     private ProcessService processService;
+    private SyncServerHandler syncServerHandler;
     private HttpServer server;
 
     public LocalHttpServer(Config config, 
@@ -135,11 +138,37 @@ public class LocalHttpServer {
             server.createContext("/api/sync", new ProxyHandler(config, proxyService));
             System.out.println("✓ Sync proxy enabled");
         } else {
-            server.createContext("/api/sync", new SyncServerHandler(config, databaseService));
+            // server 模式使用本地同步处理器，后续会绑定 WS 广播器。
+            syncServerHandler = new SyncServerHandler(config, databaseService);
+            server.createContext("/api/sync", syncServerHandler);
             System.out.println("✓ Sync server API enabled");
         }
 
         System.out.println("✓ All HTTP handlers registered");
+    }
+
+    /**
+     * 绑定 WebSocket 广播能力给同步处理器。
+     *
+     * <p>说明：HTTP 与 WS 启动顺序不同，因此在 Main 启动 WS 后再进行注入。
+     */
+    public void bindWebSocketBroadcaster(LocalWebSocketServer webSocketServer) {
+        if (syncServerHandler == null || webSocketServer == null) {
+            return;
+        }
+
+        syncServerHandler.setBroadcaster((entity, accepted, conflicts) -> {
+            Message message = Message.event("sync-updated", Map.of(
+                "entity", entity,
+                "accepted", accepted,
+                "conflicts", conflicts,
+                "timestamp", System.currentTimeMillis()
+            ));
+
+            webSocketServer.broadcast(message);
+        });
+
+        System.out.println("✓ Sync broadcast bridge enabled");
     }
 
     /**

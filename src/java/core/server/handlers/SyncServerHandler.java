@@ -33,11 +33,31 @@ public class SyncServerHandler implements HttpHandler {
     private final Config config;
     private final DatabaseService databaseService;
 
+    /**
+     * 广播回调：用于将同步结果通知到 WS/SSE 等通道。
+     */
+    private SyncBroadcastBroadcaster broadcaster;
+
+    /**
+     * 同步广播回调接口。
+     */
+    @FunctionalInterface
+    public interface SyncBroadcastBroadcaster {
+        void broadcast(String entity, List<Map<String, Object>> accepted, List<Map<String, Object>> conflicts);
+    }
+
     public SyncServerHandler(Config config, DatabaseService databaseService) {
         this.config = config;
         this.databaseService = databaseService;
         // 启动时确保同步日志表存在，避免首次请求才失败。
         initializeSchema();
+    }
+
+    /**
+     * 注入广播器：由外层服务器在 WebSocket 启动后绑定。
+     */
+    public void setBroadcaster(SyncBroadcastBroadcaster broadcaster) {
+        this.broadcaster = broadcaster;
     }
 
     @Override
@@ -157,6 +177,11 @@ public class SyncServerHandler implements HttpHandler {
         payload.put("conflicts", conflicts.size());
         payload.put("changes", accepted);
         payload.put("conflictDetails", conflicts);
+
+        // 推送完成后广播同步结果，便于在线客户端即时刷新。
+        if (broadcaster != null && (!accepted.isEmpty() || !conflicts.isEmpty())) {
+            broadcaster.broadcast(entity, accepted, conflicts);
+        }
 
         sendResponse(exchange, 200, JsonUtil.success(payload));
     }

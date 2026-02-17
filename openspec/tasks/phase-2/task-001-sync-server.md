@@ -10,7 +10,7 @@
 | 预估工时 | 24 小时 |
 | 依赖 | Phase 0 + Phase 1 完成 |
 | 产出 | localverse.jar (服务端模式) |
-| 状态 | 🔵 开发中（持久化 + 冲突检测基线已接入） |
+| 状态 | 🔵 开发中（持久化 + 冲突检测 + 广播基线已接入） |
 
 ## 文档关系
 
@@ -1062,6 +1062,7 @@ public class ServerMigrations {
 
 ## 进度更新
 
+- 2026-02-17 04:41 UTC: 打通 `/api/sync` -> WebSocket 广播桥，push 后实时下发 `sync-updated` 事件。
 - 2026-02-17 04:29 UTC: 新增 `baseVersion` 基线冲突检测，推送接口返回 `conflictDetails` 供客户端重试与提示。
 - 2026-02-06 10:52 UTC: 完成 `/api/sync` SQLite 持久化改造，服务重启后可继续按版本增量拉取。
 - 2026-02-06 10:26 UTC: 完成 server 模式 `/api/sync` 基础实现（支持 GET 拉取、POST 推送），并保留 client 模式代理转发路径。
@@ -1075,7 +1076,7 @@ public class ServerMigrations {
 - [x] 同步推送正确（SQLite 持久化基线）
 - [x] 同步拉取正确（SQLite 持久化基线）
 - [x] 冲突检测正常（基线版本冲突检测）
-- [ ] 广播功能正常
+- [x] 广播功能正常（WebSocket 基线广播）
 - [ ] 静态文件托管正常
 - [ ] 多客户端并发测试通过
 
