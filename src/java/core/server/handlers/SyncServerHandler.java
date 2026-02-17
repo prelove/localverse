@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.net.URLDecoder;
+import java.net.URI;
 
 /**
  * 服务端同步处理器（Phase 2 持久化基线实现）。
@@ -77,6 +78,14 @@ public class SyncServerHandler implements HttpHandler {
 
         try {
             String method = exchange.getRequestMethod();
+            URI uri = exchange.getRequestURI();
+            String path = uri == null ? "" : uri.getPath();
+
+            // 支持 /api/sync/status 查询服务端同步统计信息。
+            if ("GET".equals(method) && path != null && path.endsWith("/status")) {
+                handleStatus(exchange);
+                return;
+            }
 
             switch (method) {
                 case "GET" -> handlePull(exchange);
@@ -112,6 +121,27 @@ public class SyncServerHandler implements HttpHandler {
             databaseService.execute(index, null);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize sync schema", e);
+        }
+    }
+
+    /**
+     * 同步状态接口：GET /api/sync/status
+     * 返回全局变更量与按实体的最新版本，便于运维与联调观察。
+     */
+    private void handleStatus(HttpExchange exchange) throws IOException {
+        try {
+            long totalChanges = queryTotalChanges();
+            List<Map<String, Object>> entityVersions = queryEntityVersions();
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("status", "ok");
+            payload.put("totalChanges", totalChanges);
+            payload.put("entityVersions", entityVersions);
+            payload.put("serverTime", System.currentTimeMillis());
+
+            sendResponse(exchange, 200, JsonUtil.success(payload));
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Failed to query sync status: " + e.getMessage());
         }
     }
 
@@ -195,7 +225,10 @@ public class SyncServerHandler implements HttpHandler {
     private synchronized Map<String, List<Map<String, Object>>> appendChanges(String entity, List<?> rawList) throws SQLException {
         List<Map<String, Object>> accepted = new ArrayList<>();
         List<Map<String, Object>> conflicts = new ArrayList<>();
-        long version = getCurrentVersion(entity);
+
+        // 记录请求开始时的服务端版本：用于判断客户端是否基于过期快照提交。
+        long initialServerVersion = getCurrentVersion(entity);
+        long version = initialServerVersion;
 
         for (Object item : rawList) {
             if (!(item instanceof Map<?, ?> mapItem)) {
@@ -205,14 +238,17 @@ public class SyncServerHandler implements HttpHandler {
             Map<String, Object> incoming = new LinkedHashMap<>();
             mapItem.forEach((k, v) -> incoming.put(String.valueOf(k), v));
 
-            // 基线冲突检测：客户端若携带 baseVersion，且其版本落后于当前服务端版本，则判定冲突。
-            // 说明：后续可扩展为字段级 merge，这里先保证版本一致性语义。
-            long baseVersion = parseLongOrDefault(String.valueOf(incoming.getOrDefault("baseVersion", version)), version);
-            if (baseVersion < version) {
+            // 基线冲突检测：客户端若携带 baseVersion，且落后于请求开始时的服务端版本，则判定冲突。
+            // 说明：这里使用 initialServerVersion，避免同一批次内后续变更被前序写入“误判冲突”。
+            long baseVersion = parseLongOrDefault(
+                String.valueOf(incoming.getOrDefault("baseVersion", initialServerVersion)),
+                initialServerVersion
+            );
+            if (baseVersion < initialServerVersion) {
                 Map<String, Object> conflict = new LinkedHashMap<>();
                 conflict.put("reason", "stale_base_version");
                 conflict.put("entity", entity);
-                conflict.put("serverVersion", version);
+                conflict.put("serverVersion", initialServerVersion);
                 conflict.put("clientBaseVersion", baseVersion);
                 conflict.put("change", incoming);
                 conflicts.add(conflict);
@@ -282,6 +318,54 @@ public class SyncServerHandler implements HttpHandler {
         }
 
         return parseLongOrDefault(String.valueOf(value), 0L);
+    }
+
+    /**
+     * 查询同步日志总数。
+     */
+    private long queryTotalChanges() throws SQLException {
+        List<List<Object>> rows = databaseService.query(
+            "SELECT COUNT(1) FROM sync_change_log",
+            null
+        );
+
+        if (rows.isEmpty() || rows.get(0).isEmpty() || rows.get(0).get(0) == null) {
+            return 0L;
+        }
+
+        Object value = rows.get(0).get(0);
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+
+        return parseLongOrDefault(String.valueOf(value), 0L);
+    }
+
+    /**
+     * 查询每个实体类型的最新版本。
+     */
+    private List<Map<String, Object>> queryEntityVersions() throws SQLException {
+        List<List<Object>> rows = databaseService.query(
+            "SELECT entity_type, COALESCE(MAX(version), 0) FROM sync_change_log GROUP BY entity_type ORDER BY entity_type ASC",
+            null
+        );
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (List<Object> row : rows) {
+            if (row.size() < 2) {
+                continue;
+            }
+
+            String entity = String.valueOf(row.get(0));
+            long version = parseLongOrDefault(String.valueOf(row.get(1)), 0L);
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("entity", entity);
+            item.put("latestVersion", version);
+            result.add(item);
+        }
+
+        return result;
     }
 
     /**
