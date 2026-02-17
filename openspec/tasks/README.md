@@ -3,6 +3,7 @@
 ## 📊 当前进度概览
 
 **最后更新**: 2026-02-17 (09:35 UTC)
+**最后更新**: 2026-02-17 (09:00 UTC)
 
 ### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
 - ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
@@ -15,6 +16,7 @@
 ### Phase 2: 服务端与同步 - 进行中
 - ✅ 已完成: Sync Server（持久化 + 冲突检测 + 状态接口 + 双前缀路由 + 冒烟并发验证）
 - 🔵 开发中: Sync Engine（队列持久化 + 冲突处理 + 重连自动同步基线）
+- 🔵 开发中: Sync Engine（队列持久化 + push/pull + 冲突处理基线）
 - 待创建: Chat Plugin, Task Plugin
 
 ---
