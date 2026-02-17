@@ -10,7 +10,7 @@
 | 预估工时 | 24 小时 |
 | 依赖 | Phase 0 + Phase 1 完成 |
 | 产出 | localverse.jar (服务端模式) |
-| 状态 | 🟡 收口中（持久化 + 冲突检测 + 广播 + 冒烟/并发验证） |
+| 状态 | ✅ 已完成（持久化 + 冲突检测 + 广播 + 冒烟/并发验证） |
 
 ## 文档关系
 
@@ -1062,6 +1062,7 @@ public class ServerMigrations {
 
 ## 进度更新
 
+- 2026-02-17 07:35 UTC: 验收标准全部完成，task-001 收口并切换到 task-002-sync-engine。
 - 2026-02-17 06:55 UTC: 扩展冒烟脚本覆盖静态文件托管与双客户端并发 push，收口“静态托管正常 / 多客户端并发测试通过”验收项。
 - 2026-02-17 06:20 UTC: 新增 `openspec/tests/integration/sync-server-smoke.test.mjs` 冒烟脚本，验证 server 启动、双前缀 sync API、status 接口与 WebSocket `sync-updated` 广播。
 - 2026-02-17 04:57 UTC: `/api/sync` 增加 `/api/local/sync` 兼容路由，client/server 两种模式统一支持双前缀访问。

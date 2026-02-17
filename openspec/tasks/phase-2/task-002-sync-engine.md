@@ -10,6 +10,7 @@
 | 预估工时 | 20 小时 |
 | 依赖 | task-001-sync-server |
 | 产出 | 前端同步引擎模块 |
+| 状态 | 🔵 开发中（主类骨架 + 事件调度 + 基础单测） |
 
 ## 文档关系
 
@@ -1417,6 +1418,11 @@ describe('End-to-end sync', () => {
   test('offline changes sync on reconnect');
 });
 ```
+
+
+## 进度更新
+
+- 2026-02-17 07:35 UTC: 完成 `src/frontend/desktop/services/sync/` 模块骨架，新增 `SyncEngine` 生命周期/事件调度实现与 `sync-engine.test.mjs` 基础单测。
 
 ## 验收标准
 
