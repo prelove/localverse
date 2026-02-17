@@ -4,40 +4,40 @@ import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import config.Config;
+import services.DatabaseService;
 import utils.JsonUtil;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.net.URLDecoder;
 
 /**
- * 服务端同步处理器（Phase 2 初始实现）。
+ * 服务端同步处理器（Phase 2 持久化基线实现）。
  *
  * <p>当前阶段目标：
- * 1) 提供 server 模式下可用的 /api/sync 基础接口，避免仅有 client 代理时的空路由问题。
- * 2) 给后续真正数据库驱动的同步逻辑保留稳定的请求/响应结构。
+ * 1) 提供 server 模式下可用的 /api/sync 基础接口；
+ * 2) 将推送变更持久化到 SQLite，保证服务重启后可拉取历史增量；
+ * 3) 保持与后续冲突处理/广播能力兼容的请求结构。
  */
 public class SyncServerHandler implements HttpHandler {
     // 用于解析 JSON body 的泛型类型声明。
     private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
 
     private final Config config;
+    private final DatabaseService databaseService;
 
-    /**
-     * 使用线程安全容器临时保存变更日志。
-     * key: 实体类型（如 card/task）
-     * value: 按时间追加的变更列表
-     */
-    private final Map<String, List<Map<String, Object>>> changeLogByEntity = new ConcurrentHashMap<>();
-
-    public SyncServerHandler(Config config) {
+    public SyncServerHandler(Config config, DatabaseService databaseService) {
         this.config = config;
+        this.databaseService = databaseService;
+        // 启动时确保同步日志表存在，避免首次请求才失败。
+        initializeSchema();
     }
 
     @Override
@@ -69,6 +69,33 @@ public class SyncServerHandler implements HttpHandler {
     }
 
     /**
+     * 初始化同步日志表。
+     */
+    private void initializeSchema() {
+        String ddl = """
+            CREATE TABLE IF NOT EXISTS sync_change_log (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              entity_type TEXT NOT NULL,
+              version INTEGER NOT NULL,
+              payload TEXT NOT NULL,
+              server_timestamp INTEGER NOT NULL
+            )
+            """;
+
+        String index = """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_change_log_entity_version
+            ON sync_change_log(entity_type, version)
+            """;
+
+        try {
+            databaseService.execute(ddl, null);
+            databaseService.execute(index, null);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to initialize sync schema", e);
+        }
+    }
+
+    /**
      * 处理增量拉取：GET /api/sync?entity=card&since=0&limit=100
      */
     private void handlePull(HttpExchange exchange) throws IOException {
@@ -76,26 +103,21 @@ public class SyncServerHandler implements HttpHandler {
         String entity = query.getOrDefault("entity", "default");
         long since = parseLongOrDefault(query.get("since"), 0L);
         int limit = (int) parseLongOrDefault(query.get("limit"), 100L);
+        int normalizedLimit = Math.max(1, Math.min(limit, 500));
 
-        List<Map<String, Object>> allChanges = changeLogByEntity.getOrDefault(entity, List.of());
-        List<Map<String, Object>> filtered = new ArrayList<>();
-
-        // 线性过滤 since + limit，先保证语义正确，后续可替换为数据库分页。
-        for (Map<String, Object> change : allChanges) {
-            long version = parseLongOrDefault(String.valueOf(change.getOrDefault("version", 0)), 0L);
-            if (version > since) {
-                filtered.add(change);
-            }
-            if (filtered.size() >= Math.max(1, limit)) {
-                break;
-            }
+        List<Map<String, Object>> changes;
+        try {
+            changes = loadChanges(entity, since, normalizedLimit);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Failed to load changes: " + e.getMessage());
+            return;
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("entity", entity);
         payload.put("since", since);
-        payload.put("count", filtered.size());
-        payload.put("changes", filtered);
+        payload.put("count", changes.size());
+        payload.put("changes", changes);
         payload.put("serverTime", System.currentTimeMillis());
 
         sendResponse(exchange, 200, JsonUtil.success(payload));
@@ -103,11 +125,6 @@ public class SyncServerHandler implements HttpHandler {
 
     /**
      * 处理变更推送：POST /api/sync
-     * body 示例：
-     * {
-     *   "entity": "card",
-     *   "changes": [{"id":"1","op":"upsert","data":{...}}]
-     * }
      */
     @SuppressWarnings("unchecked")
     private void handlePush(HttpExchange exchange) throws IOException {
@@ -122,40 +139,103 @@ public class SyncServerHandler implements HttpHandler {
             return;
         }
 
-        List<Map<String, Object>> normalized = new ArrayList<>();
-        List<Map<String, Object>> current = changeLogByEntity.computeIfAbsent(entity, ignored -> new ArrayList<>());
-
-        synchronized (current) {
-            long baseVersion = current.size();
-
-            for (int i = 0; i < rawList.size(); i++) {
-                Object item = rawList.get(i);
-                if (!(item instanceof Map<?, ?> mapItem)) {
-                    continue;
-                }
-
-                Map<String, Object> change = new LinkedHashMap<>();
-                mapItem.forEach((k, v) -> change.put(String.valueOf(k), v));
-
-                // 统一补齐服务端写入的元信息，便于后续冲突处理和排序。
-                change.put("version", baseVersion + i + 1);
-                change.put("serverTimestamp", System.currentTimeMillis());
-
-                current.add(change);
-                normalized.add(change);
-            }
+        List<Map<String, Object>> accepted;
+        try {
+            accepted = appendChanges(entity, rawList);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Failed to append changes: " + e.getMessage());
+            return;
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("entity", entity);
-        payload.put("accepted", normalized.size());
-        payload.put("changes", normalized);
+        payload.put("accepted", accepted.size());
+        payload.put("changes", accepted);
 
         sendResponse(exchange, 200, JsonUtil.success(payload));
     }
 
     /**
-     * 解析 URL query 参数。
+     * 将变更批量写入数据库并回填 version/timestamp。
+     *
+     * <p>说明：此处使用 synchronized 保证同一 JVM 进程内版本分配连续，
+     * 后续若扩展多实例部署，可替换为数据库事务 + 悲观锁策略。
+     */
+    private synchronized List<Map<String, Object>> appendChanges(String entity, List<?> rawList) throws SQLException {
+        List<Map<String, Object>> normalized = new ArrayList<>();
+        long version = getCurrentVersion(entity);
+
+        for (Object item : rawList) {
+            if (!(item instanceof Map<?, ?> mapItem)) {
+                continue;
+            }
+
+            version += 1;
+            long now = System.currentTimeMillis();
+
+            Map<String, Object> change = new LinkedHashMap<>();
+            mapItem.forEach((k, v) -> change.put(String.valueOf(k), v));
+            change.put("version", version);
+            change.put("serverTimestamp", now);
+
+            String payloadJson = JsonUtil.toCompactJson(change);
+            databaseService.execute(
+                "INSERT INTO sync_change_log(entity_type, version, payload, server_timestamp) VALUES (?, ?, ?, ?)",
+                new Object[]{entity, version, payloadJson, now}
+            );
+
+            normalized.add(change);
+        }
+
+        return normalized;
+    }
+
+    /**
+     * 拉取指定实体在某个版本之后的变更。
+     */
+    private List<Map<String, Object>> loadChanges(String entity, long since, int limit) throws SQLException {
+        List<List<Object>> rows = databaseService.query(
+            "SELECT payload FROM sync_change_log WHERE entity_type = ? AND version > ? ORDER BY version ASC LIMIT ?",
+            new Object[]{entity, since, limit}
+        );
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (List<Object> row : rows) {
+            if (row.isEmpty() || row.get(0) == null) {
+                continue;
+            }
+
+            String payloadJson = String.valueOf(row.get(0));
+            Map<String, Object> payload = JsonUtil.fromJson(payloadJson, MAP_TYPE);
+            result.add(payload);
+        }
+
+        return result;
+    }
+
+    /**
+     * 查询当前实体的最新版本号。
+     */
+    private long getCurrentVersion(String entity) throws SQLException {
+        List<List<Object>> rows = databaseService.query(
+            "SELECT COALESCE(MAX(version), 0) FROM sync_change_log WHERE entity_type = ?",
+            new Object[]{entity}
+        );
+
+        if (rows.isEmpty() || rows.get(0).isEmpty() || rows.get(0).get(0) == null) {
+            return 0L;
+        }
+
+        Object value = rows.get(0).get(0);
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+
+        return parseLongOrDefault(String.valueOf(value), 0L);
+    }
+
+    /**
+     * 解析 URL query 参数（包含 URL decode）。
      */
     private Map<String, String> parseQuery(String rawQuery) {
         Map<String, String> query = new LinkedHashMap<>();
@@ -166,11 +246,22 @@ public class SyncServerHandler implements HttpHandler {
         for (String pair : rawQuery.split("&")) {
             String[] kv = pair.split("=", 2);
             if (kv.length == 2) {
-                query.put(kv[0], kv[1]);
+                query.put(urlDecode(kv[0]), urlDecode(kv[1]));
             }
         }
 
         return query;
+    }
+
+    /**
+     * URL 解码工具方法，失败时返回原值。
+     */
+    private String urlDecode(String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            return value;
+        }
     }
 
     /**

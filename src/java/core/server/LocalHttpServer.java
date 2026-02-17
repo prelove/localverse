@@ -135,7 +135,7 @@ public class LocalHttpServer {
             server.createContext("/api/sync", new ProxyHandler(config, proxyService));
             System.out.println("✓ Sync proxy enabled");
         } else {
-            server.createContext("/api/sync", new SyncServerHandler(config));
+            server.createContext("/api/sync", new SyncServerHandler(config, databaseService));
             System.out.println("✓ Sync server API enabled");
         }
 

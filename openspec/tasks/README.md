@@ -2,7 +2,7 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-02-06 (10:26 UTC)
+**最后更新**: 2026-02-06 (10:52 UTC)
 
 ### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
 - ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
@@ -13,7 +13,7 @@
 - 🧪 测试中: Finder Plugin, Wiki Plugin
 
 ### Phase 2: 服务端与同步 - 进行中
-- 🔵 开发中: Sync Server（模式切换 + /api/sync 基线实现）
+- 🔵 开发中: Sync Server（/api/sync 已接入 SQLite 持久化）
 - 待开发: Sync Engine
 - 待创建: Chat Plugin, Task Plugin
 
@@ -54,7 +54,7 @@
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [task-001-sync-server](./phase-2/task-001-sync-server.md) | 同步服务器 | 24h | Phase 0 | 🔵 开发中（同步 API 基线） |
+| [task-001-sync-server](./phase-2/task-001-sync-server.md) | 同步服务器 | 24h | Phase 0 | 🔵 开发中（同步 API 持久化基线） |
 | [task-002-sync-engine](./phase-2/task-002-sync-engine.md) | 同步引擎 | 20h | 001 | 待开发 |
 | task-003-chat-plugin | 聊天插件 | 16h | 002 | 待创建 |
 | task-004-task-plugin | 任务插件 | 12h | 002 | 待创建 |
