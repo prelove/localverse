@@ -10,10 +10,11 @@
 
 ### Phase 1: 核心应用 - 50% 完成 (2/4)
 - ✅ 已完成: Frontend Core, Search Service
-- 🔵 开发中: Finder Plugin, Wiki Plugin
+- 🧪 测试中: Finder Plugin, Wiki Plugin
 
-### Phase 2: 服务端与同步 - 0% 完成
-- 待开发: Sync Server, Sync Engine
+### Phase 2: 服务端与同步 - 进行中
+- 🔵 开发中: Sync Server（服务端模式启动参数与端口切换已接入）
+- 待开发: Sync Engine
 - 待创建: Chat Plugin, Task Plugin
 
 ---
@@ -44,8 +45,8 @@
 |------|------|------|------|------|
 | [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | ✅ 已完成 |
 | [task-002-search-service](./phase-1/task-002-search-service.md) | 搜索服务 | 8h | 001 | ✅ 已完成 |
-| [task-003-finder-plugin](./phase-1/task-003-finder-plugin.md) | 文件搜索插件 | 12h | 002 | 🔵 开发中 |
-| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | 🔵 开发中 |
+| [task-003-finder-plugin](./phase-1/task-003-finder-plugin.md) | 文件搜索插件 | 12h | 002 | 测试中（基础单测完成） |
+| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | 测试中（服务层单测完成） |
 
 **Phase 1 总计：约 52 小时**
 
@@ -53,7 +54,7 @@
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [task-001-sync-server](./phase-2/task-001-sync-server.md) | 同步服务器 | 24h | Phase 0 | 待开发 |
+| [task-001-sync-server](./phase-2/task-001-sync-server.md) | 同步服务器 | 24h | Phase 0 | 🔵 开发中（基础模式切换） |
 | [task-002-sync-engine](./phase-2/task-002-sync-engine.md) | 同步引擎 | 20h | 001 | 待开发 |
 | task-003-chat-plugin | 聊天插件 | 16h | 002 | 待创建 |
 | task-004-task-plugin | 任务插件 | 12h | 002 | 待创建 |

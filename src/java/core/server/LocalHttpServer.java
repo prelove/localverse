@@ -48,8 +48,8 @@ public class LocalHttpServer {
      * 启动服务器
      */
     public void start() throws IOException {
-        int port = config.client().httpPort();
-        String bindAddress = config.client().bindAddress();
+        int port = config.isServerMode() ? config.server().httpPort() : config.client().httpPort();
+        String bindAddress = config.isServerMode() ? config.server().bindAddress() : config.client().bindAddress();
 
         server = HttpServer.create(new InetSocketAddress(bindAddress, port), 0);
 
@@ -63,7 +63,9 @@ public class LocalHttpServer {
         server.start();
 
         System.out.println("✓ HTTP Server started on http://" + bindAddress + ":" + port);
-        System.out.println("  → Open http://" + bindAddress + ":" + port + " in your browser");
+        if (config.isClientMode()) {
+            System.out.println("  → Open http://" + bindAddress + ":" + port + " in your browser");
+        }
     }
 
     /**

@@ -47,7 +47,7 @@ public class Main {
             }
 
             // 加载配置
-            Config config = ConfigLoader.loadFromArgs(args);
+            Config config = ConfigLoader.merge(ConfigLoader.loadFromArgs(args), args);
             System.out.println("Mode: " + config.mode());
             System.out.println();
 
@@ -172,6 +172,7 @@ public class Main {
         System.out.println("  (no args)              Start Localverse with default config");
         System.out.println("  --config <path>        Specify config file path");
         System.out.println("  --create-config        Create default config file");
+        System.out.println("  --mode <client|server> Override runtime mode from CLI");
         System.out.println("  --version              Show version information");
         System.out.println("  --help                 Show this help message");
         System.out.println();
@@ -179,6 +180,7 @@ public class Main {
         System.out.println("  java -jar localverse.jar");
         System.out.println("  java -jar localverse.jar --config=/path/to/config.json");
         System.out.println("  java -jar localverse.jar --create-config");
+        System.out.println("  java -jar localverse.jar --mode=server");
     }
 
     /**
