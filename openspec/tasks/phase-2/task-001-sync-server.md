@@ -10,7 +10,7 @@
 | 预估工时 | 24 小时 |
 | 依赖 | Phase 0 + Phase 1 完成 |
 | 产出 | localverse.jar (服务端模式) |
-| 状态 | 🔵 开发中（持久化 + 冲突检测 + 状态接口 + 冒烟测试已接入） |
+| 状态 | 🟡 收口中（持久化 + 冲突检测 + 广播 + 冒烟/并发验证） |
 
 ## 文档关系
 
@@ -1062,6 +1062,7 @@ public class ServerMigrations {
 
 ## 进度更新
 
+- 2026-02-17 06:55 UTC: 扩展冒烟脚本覆盖静态文件托管与双客户端并发 push，收口“静态托管正常 / 多客户端并发测试通过”验收项。
 - 2026-02-17 06:20 UTC: 新增 `openspec/tests/integration/sync-server-smoke.test.mjs` 冒烟脚本，验证 server 启动、双前缀 sync API、status 接口与 WebSocket `sync-updated` 广播。
 - 2026-02-17 04:57 UTC: `/api/sync` 增加 `/api/local/sync` 兼容路由，client/server 两种模式统一支持双前缀访问。
 - 2026-02-17 04:49 UTC: 新增 `GET /api/sync/status`，可查看总变更数与各实体最新版本。
@@ -1081,8 +1082,8 @@ public class ServerMigrations {
 - [x] 同步拉取正确（SQLite 持久化基线）
 - [x] 冲突检测正常（基线版本冲突检测）
 - [x] 广播功能正常（WebSocket 基线广播）
-- [ ] 静态文件托管正常
-- [ ] 多客户端并发测试通过
+- [x] 静态文件托管正常（根路径 HTML 冒烟验证）
+- [x] 多客户端并发测试通过（双客户端并发 push 冒烟验证）
 
 ## 参考规格
 

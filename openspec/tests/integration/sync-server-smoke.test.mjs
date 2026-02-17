@@ -11,7 +11,9 @@ import { join } from 'node:path';
  * 1) server 模式可启动；
  * 2) /api/sync 与 /api/local/sync 双前缀可用；
  * 3) push/pull/status 主流程可用；
- * 4) WebSocket 能收到 sync-updated 广播事件。
+ * 4) WebSocket 能收到 sync-updated 广播事件；
+ * 5) 静态文件托管入口可访问；
+ * 6) 多客户端并发 push 基线可用。
  */
 
 const HTTP_PORT = 18080;
@@ -113,6 +115,13 @@ async function main() {
   try {
     await waitForHttpReady(`http://127.0.0.1:${HTTP_PORT}/api/health`);
 
+    // 验证静态文件入口：根路径应能返回 HTML（用于确认静态托管链路可用）。
+    const staticResponse = await fetch(`http://127.0.0.1:${HTTP_PORT}/`);
+    const staticHtml = await staticResponse.text();
+    if (!staticResponse.ok || !staticHtml.toLowerCase().includes('<!doctype html')) {
+      throw new Error(`static serving unexpected payload: status=${staticResponse.status}`);
+    }
+
     // 建立 WS 连接并监听 sync-updated 事件。
     const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
     const wsMessages = [];
@@ -167,6 +176,51 @@ async function main() {
     const gotSyncEvent = wsMessages.some((msg) => msg.includes('sync-updated'));
     if (!gotSyncEvent) {
       throw new Error(`expected sync-updated broadcast, got: ${JSON.stringify(wsMessages)}`);
+    }
+
+    // 并发验证：模拟两个客户端同时提交变更，确认 server 模式下并发 push 不会整体失败。
+    const concurrentPushBodies = [
+      {
+        entity: 'notes',
+        changes: [
+          { id: 'n-2', title: 'client-a-1' },
+          { id: 'n-3', title: 'client-a-2' }
+        ]
+      },
+      {
+        entity: 'notes',
+        changes: [
+          { id: 'n-4', title: 'client-b-1' },
+          { id: 'n-5', title: 'client-b-2' }
+        ]
+      }
+    ];
+
+    const concurrentResponses = await Promise.all(
+      concurrentPushBodies.map((payload) => fetch(`http://127.0.0.1:${HTTP_PORT}/api/sync`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      }))
+    );
+
+    for (const [index, response] of concurrentResponses.entries()) {
+      if (!response.ok) {
+        throw new Error(`concurrent push #${index} failed: HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+      if (json?.success !== true || Number(json?.data?.accepted ?? 0) < 2) {
+        throw new Error(`concurrent push #${index} unexpected payload: ${JSON.stringify(json)}`);
+      }
+    }
+
+    // 校验并发后状态已增长，确保写入和统计链路一致。
+    const statusAfterConcurrentResponse = await fetch(`http://127.0.0.1:${HTTP_PORT}/api/sync/status`);
+    const statusAfterConcurrentJson = await statusAfterConcurrentResponse.json();
+    const notesAfterConcurrent = statusAfterConcurrentJson?.data?.entityVersions?.find((x) => x.entity === 'notes');
+    if (!notesAfterConcurrent || Number(notesAfterConcurrent.latestVersion) < 5) {
+      throw new Error(`concurrent status unexpected payload: ${JSON.stringify(statusAfterConcurrentJson)}`);
     }
 
     ws.close();
