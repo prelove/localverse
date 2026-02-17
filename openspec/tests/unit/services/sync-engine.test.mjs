@@ -327,6 +327,45 @@ async function testFailedQueueRetryOnReconnect() {
   engine.stop();
 }
 
+
+async function testManualComplexConflictResolutionEnqueue() {
+  const comm = new MockComm();
+  comm.online = true;
+  comm.pushConflictMode = true;
+
+  const engine = new SyncEngine({
+    communicationLayer: comm,
+    config: {
+      entityTypes: ['notes'],
+      pushDebounce: 20,
+      pullInterval: 100000
+    },
+    queueOptions: {
+      storage: new MemoryStorage()
+    }
+  });
+
+  await engine.start();
+  await engine.trackLocalChange({
+    entityType: 'notes',
+    entityId: 'n-1',
+    operation: 'upsert',
+    payload: { title: 'local', content: 'draft' }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  const conflicts = await engine.listConflicts();
+  assert.equal(conflicts.length, 1);
+
+  // 手动解决复杂冲突后，合并结果应被重新入队（随后进入自动同步）。
+  await engine.resolveConflict(conflicts[0].id, { title: 'resolved', content: 'final' });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(engine.getStatus().pendingCount >= 1 || engine.getStatus().syncing, true);
+
+  engine.stop();
+}
+
 async function testConflictResolverAutoMerge() {
   const resolver = new ConflictResolver({ now: () => 100 });
 
@@ -359,6 +398,7 @@ async function run() {
   await testConflictFlowInEngine();
   await testReconnectAutoSyncFromOfflineQueue();
   await testFailedQueueRetryOnReconnect();
+  await testManualComplexConflictResolutionEnqueue();
   await testConflictResolverAutoMerge();
   console.log('sync-engine.test: PASS');
 }

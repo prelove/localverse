@@ -71,6 +71,14 @@ export class ConflictResolver {
     return this.conflicts.filter((x) => x.resolved).map((x) => ({ ...x }));
   }
 
+  /**
+   * 按 ID 查询冲突。
+   */
+  async getConflictById(conflictId) {
+    const hit = this.conflicts.find((x) => x.id === conflictId);
+    return hit ? { ...hit } : null;
+  }
+
   async getConflictCount() {
     return this.conflicts.filter((x) => !x.resolved).length;
   }
