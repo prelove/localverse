@@ -234,10 +234,26 @@ export class SyncEngine {
   /**
    * 手动解决冲突，并刷新冲突计数。
    */
-  async resolveConflict(conflictId, mergedPayload = null) {
+  async resolveConflict(conflictId, mergedPayload = null, options = {}) {
+    const { enqueueResolvedChange = true } = options;
+
+    // 先读取冲突上下文，便于手动解决后回写一条合并结果变更。
+    const conflict = await this.conflictResolver.getConflictById(conflictId);
+
     await this.conflictResolver.resolveConflict(conflictId, mergedPayload);
     const conflictCount = await this.conflictResolver.getConflictCount();
     this.statusStore.patch({ conflictCount });
+
+    // 手动解决复杂冲突后，默认把合并结果重新入队并触发后续同步。
+    if (enqueueResolvedChange && mergedPayload && conflict?.localChange?.id && conflict?.entityType) {
+      await this.trackLocalChange({
+        entityType: conflict.entityType,
+        entityId: conflict.localChange.id,
+        operation: 'upsert',
+        payload: mergedPayload,
+        baseVersion: conflict.localChange.baseVersion ?? 0
+      });
+    }
   }
 
   /**

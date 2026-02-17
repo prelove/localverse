@@ -10,7 +10,7 @@
 | 预估工时 | 20 小时 |
 | 依赖 | task-001-sync-server |
 | 产出 | 前端同步引擎模块 |
-| 状态 | 🔵 开发中（队列持久化 + push/pull + 冲突处理基线） |
+| 状态 | ✅ 已完成（冲突处理 + 重连自动同步 + 状态UI基线） |
 
 ## 文档关系
 
@@ -1422,6 +1422,8 @@ describe('End-to-end sync', () => {
 
 ## 进度更新
 
+- 2026-02-17 10:40 UTC: 完成复杂冲突手动解决回写能力（resolve 后合并结果重新入队），task-002 验收项全部收口。
+- 2026-02-17 10:05 UTC: 接入 Header 同步状态展示（pending/conflict/failed/syncing），`SyncEngine` 状态通过 eventBus + store 实时更新 UI。
 - 2026-02-17 09:35 UTC: 完成 failed 队列重试机制（重连后 failed -> pending），`SyncEngine` 在线回调自动触发重试同步，并补充离线入队/重连自动同步单测。
 - 2026-02-17 09:00 UTC: 增强 `ConflictResolver`（自动合并/手动解决）并将冲突流接入 `PushService + SyncEngine`，补充冲突相关单测。
 - 2026-02-17 08:15 UTC: 完成 `SyncQueue`（localStorage 持久化）与 `ChangeTracker/PushService/PullService` 基线实现，`SyncEngine` 接入 trackLocalChange + queue 统计刷新。
@@ -1434,10 +1436,10 @@ describe('End-to-end sync', () => {
 - [x] 拉取增量工作（基线：按实体拉取 + version 游标推进）
 - [x] 冲突检测正确（基线：push 冲突回写 + conflict 列表）
 - [x] 自动合并简单冲突（基线：字段无重叠自动合并）
-- [ ] 手动解决复杂冲突
+- [x] 手动解决复杂冲突（基线：手动 resolve 后合并结果回写入队）
 - [x] 离线队列持久化（基线：localStorage + failed 队列保留）
 - [x] 重连后自动同步（基线：connected 事件触发 failed 重试 + push/pull）
-- [ ] 状态 UI 实时更新
+- [x] 状态 UI 实时更新（基线：Header 同步状态徽标）
 
 ## 参考规格
 
