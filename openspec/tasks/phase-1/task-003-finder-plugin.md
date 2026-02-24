@@ -565,7 +565,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 - [x] 插件目录结构完整
 - [x] manifest.json 配置正确
 - [ ] 主插件类实现完整
-- [ ] 搜索功能正常工作
+- [x] 搜索功能正常工作（performSearch 分支单元测试已通过）
 - [x] 过滤功能正常工作（applyFilters 单元测试已通过）
 - [x] 文件预览正常工作（PreviewService 单元测试已通过）
 - [ ] 快捷键正常工作
