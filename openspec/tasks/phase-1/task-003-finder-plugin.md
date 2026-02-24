@@ -568,10 +568,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 - [x] 搜索功能正常工作（performSearch 分支单元测试已通过）
 - [x] 过滤功能正常工作（applyFilters 单元测试已通过）
 - [x] 文件预览正常工作（PreviewService 单元测试已通过）
-- [ ] 快捷键正常工作
+- [x] 快捷键正常工作（handleKeydown/handleGlobalKeydown 单元测试已通过）
 - [ ] 样式美观统一
 - [ ] 性能指标达标
-- [ ] 所有测试通过
+- [x] 所有测试通过（当前 Finder 单元测试 20/20 通过）
 - [x] 文档完整
 
 ## 性能指标
