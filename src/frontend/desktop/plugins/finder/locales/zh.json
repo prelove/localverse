@@ -15,6 +15,7 @@
   "dateMonth": "30 天内",
   "dateYear": "一年内",
   "extensionPlaceholder": "扩展名",
+  "emptyQueryHint": "输入关键词开始搜索",
   "noResults": "未找到文件",
   "searching": "搜索中...",
   "results": "个结果",
@@ -35,5 +36,7 @@
   "modified": "修改时间",
   "previewNotAvailable": "此文件类型暂不支持预览",
   "previewTextTooLarge": "文本预览已跳过（{size} > {limit}）",
-  "previewImageTooLarge": "图片预览已跳过（{size} > {limit}）"
+  "previewImageTooLarge": "图片预览已跳过（{size} > {limit}）",
+  "previewPermissionDenied": "无预览权限，请检查文件访问设置",
+  "previewFileMissing": "文件不存在，可能已被移动或删除"
 }
