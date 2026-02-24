@@ -567,7 +567,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 - [ ] 主插件类实现完整
 - [ ] 搜索功能正常工作
 - [ ] 过滤功能正常工作
-- [ ] 文件预览正常工作
+- [x] 文件预览正常工作（PreviewService 单元测试已通过）
 - [ ] 快捷键正常工作
 - [ ] 样式美观统一
 - [ ] 性能指标达标
