@@ -548,10 +548,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 - [ ] 文件预览正常显示
 
 ### 性能测试
-- [ ] 1000 个文件搜索响应时间 < 100ms
-- [ ] 10000 个文件搜索响应时间 < 500ms
-- [ ] 索引构建时间合理
-- [ ] 内存占用在可接受范围
+- [x] 1000 个文件搜索响应时间 < 100ms（基线 2.83ms）
+- [x] 10000 个文件搜索响应时间 < 500ms（基线 13.64ms）
+- [x] 索引构建时间合理（基线约 94,544 files/s）
+- [x] 内存占用在可接受范围（Δheap 0.06MB）
 
 ### 边界测试
 - [x] 空搜索处理
@@ -570,7 +570,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 - [x] 文件预览正常工作（PreviewService 单元测试已通过）
 - [x] 快捷键正常工作（handleKeydown/handleGlobalKeydown 单元测试已通过）
 - [ ] 样式美观统一
-- [ ] 性能指标达标
+- [x] 性能指标达标（性能基线脚本 allPass=true）
 - [x] 所有测试通过（当前 Finder 单元测试 20/20 通过）
 - [x] 文档完整
 
