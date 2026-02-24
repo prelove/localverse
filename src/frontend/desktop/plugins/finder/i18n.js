@@ -41,7 +41,10 @@ export const translations = {
     modified: 'Modified',
     previewNotAvailable: 'Preview not available for this file type',
     previewTextTooLarge: 'Text preview skipped ({size} > {limit})',
-    previewImageTooLarge: 'Image preview skipped ({size} > {limit})'
+    previewImageTooLarge: 'Image preview skipped ({size} > {limit})',
+    emptyQueryHint: 'Start typing to search files',
+    previewPermissionDenied: 'Preview unavailable due to permission restrictions',
+    previewFileMissing: 'File no longer exists'
   },
   zh: {
     searchPlaceholder: '搜索文件...',
@@ -80,7 +83,10 @@ export const translations = {
     modified: '修改时间',
     previewNotAvailable: '此文件类型暂不支持预览',
     previewTextTooLarge: '文本预览已跳过（{size} > {limit}）',
-    previewImageTooLarge: '图片预览已跳过（{size} > {limit}）'
+    previewImageTooLarge: '图片预览已跳过（{size} > {limit}）',
+    emptyQueryHint: '输入关键词开始搜索',
+    previewPermissionDenied: '无预览权限，请检查文件访问设置',
+    previewFileMissing: '文件不存在，可能已被移动或删除'
   },
   ja: {
     searchPlaceholder: 'ファイルを検索...',
@@ -119,7 +125,10 @@ export const translations = {
     modified: '更新日時',
     previewNotAvailable: 'このファイルタイプのプレビューは利用できません',
     previewTextTooLarge: 'テキストプレビューを省略しました（{size} > {limit}）',
-    previewImageTooLarge: '画像プレビューを省略しました（{size} > {limit}）'
+    previewImageTooLarge: '画像プレビューを省略しました（{size} > {limit}）',
+    emptyQueryHint: '検索語を入力してください',
+    previewPermissionDenied: 'アクセス権限がないためプレビューできません',
+    previewFileMissing: 'ファイルが存在しません（移動または削除された可能性があります）'
   }
 };
 

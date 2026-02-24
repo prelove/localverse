@@ -210,12 +210,17 @@ export default class FinderPlugin {
   renderResults() {
     const { results, selectedIndex, query } = this.state;
 
+    // 当用户尚未输入关键词时，显示“引导文案”；输入后无结果再显示“无匹配结果”。
+    const emptyLabel = query.trim()
+      ? (this.t('noResults') || 'No files found')
+      : (this.t('emptyQueryHint') || 'Start typing to search files');
+
     return renderResultList({
       results,
       selectedIndex,
       query,
       locale: this.locale,
-      emptyLabel: this.t('noResults') || 'No files found'
+      emptyLabel
     });
   }
   

@@ -35,5 +35,8 @@
   "modified": "更新日時",
   "previewNotAvailable": "このファイルタイプのプレビューは利用できません",
   "previewTextTooLarge": "テキストプレビューを省略しました（{size} > {limit}）",
-  "previewImageTooLarge": "画像プレビューを省略しました（{size} > {limit}）"
+  "previewImageTooLarge": "画像プレビューを省略しました（{size} > {limit}）",
+  "emptyQueryHint": "検索語を入力してください",
+  "previewPermissionDenied": "アクセス権限がないためプレビューできません",
+  "previewFileMissing": "ファイルが存在しません（移動または削除された可能性があります）"
 }
