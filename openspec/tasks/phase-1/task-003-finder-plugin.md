@@ -564,14 +564,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS finder_fts USING fts5(
 
 - [x] 插件目录结构完整
 - [x] manifest.json 配置正确
-- [ ] 主插件类实现完整
+- [x] 主插件类实现完整（生命周期 install/activate/deactivate/uninstall 单元测试已通过）
 - [x] 搜索功能正常工作（performSearch 分支单元测试已通过）
 - [x] 过滤功能正常工作（applyFilters 单元测试已通过）
 - [x] 文件预览正常工作（PreviewService 单元测试已通过）
 - [x] 快捷键正常工作（handleKeydown/handleGlobalKeydown 单元测试已通过）
 - [ ] 样式美观统一
 - [x] 性能指标达标（性能基线脚本 allPass=true）
-- [x] 所有测试通过（当前 Finder 单元测试 20/20 通过）
+- [x] 所有测试通过（当前 Finder 单元测试 24/24 通过）
 - [x] 文档完整
 
 ## 性能指标
