@@ -122,12 +122,17 @@ export class WasmDatabaseService {
   }
   
   /**
-   * 执行 SQL（无参数，可以是多条语句）
+   * 执行 SQL（可选参数；有参数时等价于 run()，无参数时支持多条语句）
    * @param {string} sql - SQL 语句
+   * @param {Array} [params] - 绑定参数（可选）
    */
-  exec(sql) {
+  exec(sql, params) {
     this.ensureReady();
-    this.db.exec(sql);
+    if (params !== undefined) {
+      this.db.run(sql, params);
+    } else {
+      this.db.exec(sql);
+    }
   }
 
   /**

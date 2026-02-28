@@ -107,10 +107,15 @@ export class MockDatabaseService {
   }
   
   /**
-   * 执行 SQL（无参数）
+   * 执行 SQL（可选参数；有参数时等价于 run()，无参数时处理 DDL 语句）
+   * @param {string} sql - SQL 语句
+   * @param {Array} [params] - 绑定参数（可选）
    */
-  exec(sql) {
+  exec(sql, params) {
     this.ensureReady();
+    if (params !== undefined) {
+      return this.run(sql, params);
+    }
     
     // 简化的 CREATE TABLE 解析
     if (sql.includes('CREATE TABLE')) {
