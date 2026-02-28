@@ -1,0 +1,57 @@
+{
+  "id": "chat",
+  "name": {
+    "zh": "聊天",
+    "ja": "チャット",
+    "en": "Chat"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "团队即时通讯，支持群聊和文件分享",
+    "ja": "チーム向けインスタントメッセージング",
+    "en": "Team instant messaging with file sharing"
+  },
+  "icon": "💬",
+  "category": "collaboration",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 3
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write",
+    "network:sync",
+    "notification"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "notifications": {
+      "type": "boolean",
+      "default": true,
+      "label": { "zh": "桌面通知", "en": "Desktop notifications", "ja": "デスクトップ通知" }
+    },
+    "enterToSend": {
+      "type": "boolean",
+      "default": true,
+      "label": { "zh": "Enter 发送消息", "en": "Enter to send", "ja": "Enterで送信" }
+    },
+    "pollInterval": {
+      "type": "number",
+      "default": 3000,
+      "min": 1000,
+      "max": 30000,
+      "label": { "zh": "消息轮询间隔(ms)", "en": "Message poll interval (ms)", "ja": "メッセージ取得間隔(ms)" }
+    }
+  }
+}
