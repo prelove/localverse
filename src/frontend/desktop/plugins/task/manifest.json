@@ -1,0 +1,60 @@
+{
+  "id": "task",
+  "name": {
+    "zh": "任务",
+    "ja": "タスク",
+    "en": "Tasks"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "任务管理看板，支持项目、优先级和截止日期",
+    "ja": "タスク管理カンバン、プロジェクト・優先度・期日対応",
+    "en": "Task management board with projects, priorities, and due dates"
+  },
+  "icon": "✅",
+  "category": "productivity",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 4
+    },
+    "shortcut": {
+      "global": "Ctrl+Shift+T"
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write",
+    "notification"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "defaultView": {
+      "type": "select",
+      "options": ["board", "list"],
+      "default": "board",
+      "label": { "zh": "默认视图", "en": "Default view", "ja": "デフォルトビュー" }
+    },
+    "showCompletedTasks": {
+      "type": "boolean",
+      "default": true,
+      "label": { "zh": "显示已完成任务", "en": "Show completed tasks", "ja": "完了タスクを表示" }
+    },
+    "dueDateReminder": {
+      "type": "number",
+      "default": 24,
+      "min": 1,
+      "max": 168,
+      "label": { "zh": "截止提醒(小时)", "en": "Due date reminder (hours)", "ja": "期日リマインダー (時間)" }
+    }
+  }
+}
