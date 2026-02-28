@@ -1,0 +1,43 @@
+{
+  "id": "vote",
+  "name": {
+    "zh": "投票",
+    "ja": "投票",
+    "en": "Vote"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "快速创建和参与内网投票，支持单选、多选和匿名投票",
+    "ja": "社内投票の作成と参加をサポート（単一選択・複数選択・匿名投票）",
+    "en": "Create and participate in intranet polls with single, multiple-choice and anonymous voting"
+  },
+  "icon": "📊",
+  "category": "productivity",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 5
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "showExpired": {
+      "type": "boolean",
+      "default": false,
+      "label": { "zh": "显示已过期投票", "en": "Show expired votes", "ja": "期限切れの投票を表示" }
+    }
+  }
+}

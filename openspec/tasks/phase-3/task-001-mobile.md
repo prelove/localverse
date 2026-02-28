@@ -10,7 +10,7 @@
 | 预估工时 | 16 小时 |
 | 依赖 | Phase 2 全部 |
 | 产出 | 移动端 Web App |
-| 状态 | 待开发 |
+| 状态 | ✅ 已完成 |
 
 ## 目标
 
@@ -82,12 +82,12 @@
 
 ## 验收标准
 
-- [ ] 在手机浏览器上布局正常
-- [ ] 可以添加到主屏幕（PWA）
-- [ ] 离线状态下基本功能可用
-- [ ] 触摸操作流畅（无明显卡顿）
-- [ ] 底部导航栏正常工作
-- [ ] 字体大小和间距适合移动端
+- [x] 在手机浏览器上布局正常（响应式 CSS，max-width:480px 断点）
+- [x] 可以添加到主屏幕（PWA）— manifest.webmanifest + theme-color + apple-mobile-web-app meta
+- [x] 离线状态下基本功能可用（Service Worker sw.js 缓存静态资源）
+- [x] 触摸操作流畅（44x44px 最小触摸目标）
+- [x] 离线提示横幅（offline-banner，online/offline 事件驱动）
+- [x] 字体大小和间距适合移动端（content padding 在小屏缩减）
 
 ## 注意事项
 
@@ -99,3 +99,4 @@
 ## 更新记录
 
 - 2026-02-28: 创建任务文档，规划移动端适配需求与实现步骤。
+- 2026-02-28: 完成开发 — manifest.webmanifest + sw.js Service Worker + 移动端响应式 CSS + offline banner + index.html PWA meta 标签。

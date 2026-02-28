@@ -1,0 +1,44 @@
+{
+  "id": "announcement",
+  "name": {
+    "zh": "公告",
+    "ja": "お知らせ",
+    "en": "Announcements"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "团队公告广播系统，支持优先级和已读追踪",
+    "ja": "優先度と既読管理をサポートするチーム向け公告システム",
+    "en": "Team announcement broadcast with priority levels and read tracking"
+  },
+  "icon": "📢",
+  "category": "collaboration",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 6
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write",
+    "notification"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "showExpired": {
+      "type": "boolean",
+      "default": false,
+      "label": { "zh": "显示已过期公告", "en": "Show expired announcements", "ja": "期限切れのお知らせを表示" }
+    }
+  }
+}

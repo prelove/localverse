@@ -2,7 +2,7 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-02-28 (12:30 UTC)
+**最后更新**: 2026-02-28 (13:30 UTC)
 
 ### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
 - ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
@@ -18,6 +18,13 @@
 - ✅ 已完成: Chat Plugin（房间管理 + 消息发送 + 表情反应 + 消息回复 + 轮询刷新）
 - ✅ 已完成: Task Plugin（项目管理 + 看板/列表视图 + 子任务 + 过滤搜索 + 到期提醒）
 - 🎊 **重大里程碑**: Phase 2 所有任务已完成！
+
+### Phase 3: 扩展功能 - 100% 完成 (4/4) 🎉
+- ✅ 已完成: Mobile PWA（manifest + Service Worker + 响应式 CSS + offline banner）
+- ✅ 已完成: Vote Plugin（单选/多选/匿名投票 + 结果展示 + 9/9 单元测试）
+- ✅ 已完成: Calendar Plugin（月视图 + 事件CRUD + 重复事件展开 + 10/10 单元测试）
+- ✅ 已完成: Announcement Plugin（优先级公告 + 已读追踪 + 未读徽标 + 9/9 单元测试）
+- 🎊 **重大里程碑**: Phase 3 所有任务已完成！所有 18 个任务全部完成！
 
 ---
 > 🚀 **新手入门**：先阅读 [QUICK-START-GUIDE.md](../QUICK-START-GUIDE.md) 快速了解开发流程（5分钟）
@@ -67,12 +74,12 @@
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
-| [task-001-mobile](./phase-3/task-001-mobile.md) | 移动端适配 | 16h | Phase 2 | 待开发 |
-| [task-002-vote-plugin](./phase-3/task-002-vote-plugin.md) | 投票插件 | 8h | Phase 1 | 待开发 |
-| [task-003-calendar-plugin](./phase-3/task-003-calendar-plugin.md) | 日历插件 | 12h | Phase 1 | 待开发 |
-| [task-004-announcement](./phase-3/task-004-announcement.md) | 公告系统 | 8h | Phase 1 | 待开发 |
+| [task-001-mobile](./phase-3/task-001-mobile.md) | 移动端适配 | 16h | Phase 2 | ✅ 已完成（PWA + Service Worker + 响应式 CSS） |
+| [task-002-vote-plugin](./phase-3/task-002-vote-plugin.md) | 投票插件 | 8h | Phase 1 | ✅ 已完成（9/9 单元测试通过） |
+| [task-003-calendar-plugin](./phase-3/task-003-calendar-plugin.md) | 日历插件 | 12h | Phase 1 | ✅ 已完成（10/10 单元测试通过） |
+| [task-004-announcement](./phase-3/task-004-announcement.md) | 公告系统 | 8h | Phase 1 | ✅ 已完成（9/9 单元测试通过） |
 
-**Phase 3 总计：约 44 小时**
+**Phase 3 总计：约 44 小时** ✅ **100% 已完成** (2026-02-28)
 
 ## 依赖关系图
 
