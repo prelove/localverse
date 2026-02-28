@@ -1,0 +1,43 @@
+{
+  "id": "notification",
+  "name": {
+    "zh": "通知",
+    "ja": "通知",
+    "en": "Notifications"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "跨插件通知聚合中心，管理来自 Chat、Task、Calendar、公告等的通知",
+    "ja": "Chat・Task・Calendar・お知らせなどからの通知を集約する通知センター",
+    "en": "Cross-plugin notification hub aggregating alerts from Chat, Task, Calendar and Announcements"
+  },
+  "icon": "🔔",
+  "category": "system",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 0
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "maxHistory": {
+      "type": "number",
+      "default": 50,
+      "label": { "zh": "最大通知历史数", "en": "Max notification history", "ja": "最大通知履歴数" }
+    }
+  }
+}

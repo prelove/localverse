@@ -2,7 +2,7 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-02-28 (13:30 UTC)
+**最后更新**: 2026-02-28 (13:35 UTC)
 
 ### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
 - ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
@@ -24,7 +24,13 @@
 - ✅ 已完成: Vote Plugin（单选/多选/匿名投票 + 结果展示 + 9/9 单元测试）
 - ✅ 已完成: Calendar Plugin（月视图 + 事件CRUD + 重复事件展开 + 10/10 单元测试）
 - ✅ 已完成: Announcement Plugin（优先级公告 + 已读追踪 + 未读徽标 + 9/9 单元测试）
-- 🎊 **重大里程碑**: Phase 3 所有任务已完成！所有 18 个任务全部完成！
+- 🎊 **重大里程碑**: Phase 3 所有任务已完成！所有 18 个初始任务全部完成！
+
+### Phase 4: 质量与集成 - 25% 进行中 (1/4) 🔵
+- ✅ 已完成: Notifications Plugin（通知系统 + 跨插件聚合 + 已读管理 + 10/10 单元测试）
+- ⏳ 待开发: Dashboard（主页看板 + 活动摘要）
+- ⏳ 待开发: Settings（设置中心 + 全局配置）
+- ⏳ 待开发: File Attachments（文件附件系统）
 
 ---
 > 🚀 **新手入门**：先阅读 [QUICK-START-GUIDE.md](../QUICK-START-GUIDE.md) 快速了解开发流程（5分钟）
@@ -80,6 +86,17 @@
 | [task-004-announcement](./phase-3/task-004-announcement.md) | 公告系统 | 8h | Phase 1 | ✅ 已完成（9/9 单元测试通过） |
 
 **Phase 3 总计：约 44 小时** ✅ **100% 已完成** (2026-02-28)
+
+### Phase 4: 质量与集成 🔵 进行中
+
+| 任务 | 描述 | 预估 | 依赖 | 状态 |
+|------|------|------|------|------|
+| [task-001-notifications](./phase-4/task-001-notifications.md) | 通知系统 | 10h | Phase 0-3 | ✅ 已完成（10/10 单元测试通过） |
+| [task-002-dashboard](./phase-4/task-002-dashboard.md) | Dashboard 主页 | 12h | 001 | ⏳ 待开发 |
+| [task-003-settings](./phase-4/task-003-settings.md) | 设置中心 | 10h | 001 | ⏳ 待开发 |
+| [task-004-file-attachments](./phase-4/task-004-file-attachments.md) | 文件附件系统 | 8h | 003 | ⏳ 待开发 |
+
+**Phase 4 总计：约 40 小时** 🔵 **25% 进行中** (1/4 完成)
 
 ## 依赖关系图
 
