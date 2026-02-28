@@ -1,0 +1,28 @@
+{
+  "id": "settings",
+  "name": {
+    "zh": "设置",
+    "ja": "設定",
+    "en": "Settings"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "全局设置中心，管理语言、主题、通知偏好及数据",
+    "ja": "言語・テーマ・通知設定などグローバル設定センター",
+    "en": "Global settings center for language, theme, notifications and data management"
+  },
+  "icon": "⚙️",
+  "category": "system",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 99
+    }
+  },
+
+  "permissions": []
+}

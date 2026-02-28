@@ -1,0 +1,34 @@
+{
+  "id": "dashboard",
+  "name": {
+    "zh": "主页",
+    "ja": "ホーム",
+    "en": "Dashboard"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "应用主页看板，聚合各插件关键信息和快捷入口",
+    "ja": "各プラグインの重要情報とショートカットを集約したホームダッシュボード",
+    "en": "Home dashboard aggregating key information and shortcuts from all plugins"
+  },
+  "icon": "🏠",
+  "category": "system",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": -1
+    }
+  },
+
+  "permissions": [
+    "database:read"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  }
+}

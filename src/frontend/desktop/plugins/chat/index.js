@@ -3,6 +3,7 @@
  * Supports group chat, reactions, @mentions, replies, and file sharing
  */
 import ChatService from './services/chat-service.js';
+import AttachmentService from '../../services/attachments/attachment-service.js';
 
 class ChatPlugin {
   static id = 'chat';
@@ -25,6 +26,7 @@ class ChatPlugin {
 
     // Services
     this.chatService = null;
+    this.attachmentService = null;
 
     // Input buffer (preserved across renders)
     this.messageInput = '';
@@ -50,12 +52,15 @@ class ChatPlugin {
     console.log('[Chat] Installing...');
     this.chatService = new ChatService(this.context.services.DatabaseService);
     await this.chatService.initSchema();
+    this.attachmentService = new AttachmentService(this.context.services.DatabaseService);
+    await this.attachmentService.initSchema();
     console.log('[Chat] Installed');
   }
 
   async onActivate() {
     console.log('[Chat] Activating...');
     this.chatService = new ChatService(this.context.services.DatabaseService);
+    this.attachmentService = new AttachmentService(this.context.services.DatabaseService);
     await this.loadRooms();
     this.subscribeSyncEvents();
     console.log('[Chat] Activated');
@@ -1102,12 +1107,28 @@ class ChatPlugin {
   }
 
   async uploadAndSendFile(file) {
+    const roomId = this.state.currentRoom?.id || 'unknown';
+
+    // Use AttachmentService to persist the file when available
+    let url = URL.createObjectURL(file);
+    let persistedId = null;
+    if (this.attachmentService) {
+      try {
+        const att = await this.attachmentService.upload(file, 'chat', roomId);
+        persistedId = att.id;
+        const persistedUrl = await this.attachmentService.getUrl(att.id);
+        if (persistedUrl) url = persistedUrl;
+      } catch (err) {
+        console.warn('[Chat] AttachmentService upload failed, using blob URL:', err.message);
+      }
+    }
+
     const attachment = {
-      id: this.generateId(),
+      id: persistedId || this.generateId(),
       name: file.name,
       size: file.size,
       mimeType: file.type,
-      url: URL.createObjectURL(file)
+      url
     };
 
     if (file.type.startsWith('image/')) {

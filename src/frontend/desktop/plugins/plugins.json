@@ -1,3 +1,3 @@
 {
-  "plugins": ["notification", "finder", "wiki", "chat", "task", "vote", "announcement", "calendar", "example", "hello-world"]
+  "plugins": ["dashboard", "notification", "finder", "wiki", "chat", "task", "vote", "announcement", "calendar", "settings", "example", "hello-world"]
 }

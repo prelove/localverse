@@ -5,6 +5,7 @@
 import WikiService from './services/wiki-service.js';
 import LinkParser from './services/link-parser.js';
 import VersionManager from './services/version-manager.js';
+import AttachmentService from '../../services/attachments/attachment-service.js';
 
 class WikiPlugin {
   static id = 'wiki';
@@ -38,6 +39,7 @@ class WikiPlugin {
 
     // Services
     this.wikiService = null;
+    this.attachmentService = null;
     this.linkParser = new LinkParser();
     this.versionManager = null;
 
@@ -59,6 +61,8 @@ class WikiPlugin {
     // Initialize database schema
     this.wikiService = new WikiService(this.context.services.DatabaseService);
     await this.wikiService.initSchema();
+    this.attachmentService = new AttachmentService(this.context.services.DatabaseService);
+    await this.attachmentService.initSchema();
     
     console.log('Wiki plugin installed');
   }
@@ -69,6 +73,7 @@ class WikiPlugin {
     // Initialize services
     this.wikiService = new WikiService(this.context.services.DatabaseService);
     this.versionManager = new VersionManager(this.wikiService);
+    this.attachmentService = new AttachmentService(this.context.services.DatabaseService);
     
     // Load initial data
     await this.loadModules();
@@ -129,6 +134,9 @@ class WikiPlugin {
         ${selectedCard ? this.renderCardDetail(selectedCard) : ''}
       </div>
     `;
+
+    // Resolve attachment:// images asynchronously
+    this._resolveAttachmentImages();
   }
 
   renderSidebar(modules) {
@@ -856,6 +864,27 @@ class WikiPlugin {
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Render attachment:// image syntax: ![alt](attachment://id)
+    html = html.replace(
+      /!\[([^\]]*)\]\(attachment:\/\/([^)]+)\)/g,
+      (_, alt, id) => {
+        const escapedAlt = alt.replace(/"/g, '&quot;');
+        // Storage path is loaded async; render as deferred image using data-att-id
+        return `<img class="wiki-attachment-img" data-att-id="${this.escapeHtml(id)}" alt="${escapedAlt}" src="" style="max-width:100%;border-radius:4px;">`;
+      }
+    );
+
+    // Standard markdown images: ![alt](url)
+    html = html.replace(
+      /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g,
+      (_, alt, url) => {
+        const escapedAlt = alt.replace(/"/g, '&quot;');
+        const escapedUrl = url.replace(/"/g, '&quot;');
+        return `<img src="${escapedUrl}" alt="${escapedAlt}" style="max-width:100%;border-radius:4px;">`;
+      }
+    );
+
     html = html.replace(/\n/g, '<br>');
     
     const highlightQuery = options.highlightQuery;
@@ -1184,6 +1213,21 @@ class WikiPlugin {
       }
     }
     this.pendingChanges.clear();
+  }
+
+  // ==================== Attachment Images ====================
+
+  _resolveAttachmentImages() {
+    if (!this.container || !this.attachmentService) return;
+    const imgs = this.container.querySelectorAll('img.wiki-attachment-img[data-att-id]');
+    // Each image loads independently (fire-and-forget); errors are silenced per image
+    for (const img of imgs) {
+      const id = img.dataset.attId;
+      if (!id) continue;
+      this.attachmentService.getUrl(id)
+        .then(url => { if (url) img.src = url; })
+        .catch(() => {});
+    }
   }
 }
 
