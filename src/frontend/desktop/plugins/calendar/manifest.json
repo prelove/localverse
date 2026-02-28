@@ -1,0 +1,45 @@
+{
+  "id": "calendar",
+  "name": {
+    "zh": "日历",
+    "ja": "カレンダー",
+    "en": "Calendar"
+  },
+  "version": "1.0.0",
+  "description": {
+    "zh": "团队日程管理，支持月视图、事件提醒和重复事件",
+    "ja": "チームスケジュール管理、月表示・イベント通知・繰り返しイベント対応",
+    "en": "Team schedule management with month view, event reminders, and recurring events"
+  },
+  "icon": "📅",
+  "category": "productivity",
+
+  "entry": "./index.js",
+  "style": "./style.css",
+
+  "location": {
+    "sidebar": {
+      "enabled": true,
+      "order": 7
+    }
+  },
+
+  "permissions": [
+    "database:read",
+    "database:write",
+    "notification"
+  ],
+
+  "dependencies": {
+    "services": ["DatabaseService"]
+  },
+
+  "settings": {
+    "firstDayOfWeek": {
+      "type": "select",
+      "options": ["0", "1"],
+      "default": "1",
+      "label": { "zh": "每周起始日（0=周日，1=周一）", "en": "First day of week (0=Sun, 1=Mon)", "ja": "週の開始日 (0=日, 1=月)" }
+    }
+  }
+}

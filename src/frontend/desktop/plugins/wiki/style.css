@@ -366,6 +366,17 @@
   background: var(--warning-bg, #fffbeb);
 }
 
+.card.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.column-body.drag-over {
+  background: var(--primary-bg, #eff6ff);
+  outline: 2px dashed var(--primary-color, #3b82f6);
+  outline-offset: -2px;
+}
+
 .pin-indicator {
   position: absolute;
   top: 8px;

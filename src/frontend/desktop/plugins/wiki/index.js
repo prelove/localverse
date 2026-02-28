@@ -265,7 +265,8 @@ class WikiPlugin {
     return `
       <div class="card ${card.isPinned ? 'pinned' : ''} ${isFocused ? 'focused' : ''}" 
            data-card-id="${card.id}"
-           data-action="select-card">
+           data-action="select-card"
+           draggable="true">
         ${card.isPinned ? '<div class="pin-indicator">📌</div>' : ''}
         <h4 class="card-title">${this.escapeHtml(card.title)}</h4>
         ${contentPreview ? `<p class="card-preview">${contentPreview}</p>` : ''}
@@ -448,6 +449,51 @@ class WikiPlugin {
       }
 
       this.updateEditorPreview();
+    });
+
+    this.container.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.card[data-card-id]');
+      if (!card) return;
+      e.dataTransfer.setData('text/plain', card.dataset.cardId);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+
+    this.container.addEventListener('dragend', (e) => {
+      const card = e.target.closest('.card[data-card-id]');
+      if (card) card.classList.remove('dragging');
+      this.container.querySelectorAll('.column-body.drag-over')
+        .forEach(el => el.classList.remove('drag-over'));
+    });
+
+    this.container.addEventListener('dragover', (e) => {
+      const columnBody = e.target.closest('.column-body');
+      if (!columnBody) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      columnBody.classList.add('drag-over');
+    });
+
+    this.container.addEventListener('dragleave', (e) => {
+      const columnBody = e.target.closest('.column-body');
+      if (columnBody && !columnBody.contains(e.relatedTarget)) {
+        columnBody.classList.remove('drag-over');
+      }
+    });
+
+    this.container.addEventListener('drop', async (e) => {
+      const columnBody = e.target.closest('.column-body');
+      if (!columnBody) return;
+      e.preventDefault();
+      columnBody.classList.remove('drag-over');
+      const cardId = e.dataTransfer.getData('text/plain');
+      const column = columnBody.closest('.column[data-column-id]');
+      const toColumnId = column?.dataset.columnId;
+      if (!cardId || !toColumnId) return;
+      const card = this.state.allCards.find(c => c.id === cardId);
+      if (!card || String(card.column_id) === String(toColumnId)) return;
+      await this.wikiService.moveCard(cardId, toColumnId);
+      await this.selectModule(this.state.currentModule.id, { skipConfirm: true });
     });
   }
 
