@@ -2,15 +2,15 @@
 
 ## 📊 当前进度概览
 
-**最后更新**: 2026-02-28 (12:00 UTC)
+**最后更新**: 2026-02-28 (12:30 UTC)
 
 ### Phase 0: 基础设施 - 100% 完成 (6/6) 🎉
 - ✅ 已完成: Launcher, Local JAR, Communication, Database, Authentication, Plugin System
 - 🎊 **重大里程碑**: Phase 0 所有任务已完成！
 
-### Phase 1: 核心应用 - 50% 完成 (2/4)
-- ✅ 已完成: Frontend Core, Search Service
-- 🧪 测试中: Finder Plugin, Wiki Plugin
+### Phase 1: 核心应用 - 100% 完成 (4/4) 🎉
+- ✅ 已完成: Frontend Core, Search Service, Finder Plugin, Wiki Plugin
+- 🎊 **重大里程碑**: Phase 1 所有任务已完成！
 
 ### Phase 2: 服务端与同步 - 100% 完成 (4/4) 🎉
 - ✅ 已完成: Sync Server（持久化 + 冲突检测 + 状态接口 + 双前缀路由 + 冒烟并发验证）
@@ -47,10 +47,10 @@
 |------|------|------|------|------|
 | [task-001-frontend-core](./phase-1/task-001-frontend-core.md) | 前端框架 | 16h | Phase 0 | ✅ 已完成 |
 | [task-002-search-service](./phase-1/task-002-search-service.md) | 搜索服务 | 8h | 001 | ✅ 已完成 |
-| [task-003-finder-plugin](./phase-1/task-003-finder-plugin.md) | 文件搜索插件 | 12h | 002 | 测试中（基础单测完成） |
-| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | 测试中（服务层单测完成） |
+| [task-003-finder-plugin](./phase-1/task-003-finder-plugin.md) | 文件搜索插件 | 12h | 002 | ✅ 已完成（24/24 单元测试通过） |
+| [task-004-wiki-plugin](./phase-1/task-004-wiki-plugin.md) | 知识库插件 | 16h | 001 | ✅ 已完成（CRUD + 拖拽 + 10/10 单元测试通过） |
 
-**Phase 1 总计：约 52 小时**
+**Phase 1 总计：约 52 小时** ✅ **100% 已完成** (2026-02-28)
 
 ### Phase 2: 服务端与同步 🔴 核心基础设施
 
@@ -67,10 +67,10 @@
 
 | 任务 | 描述 | 预估 | 依赖 | 状态 |
 |------|------|------|------|------|
-| task-001-mobile | 移动端 | 16h | Phase 2 | 待创建 |
-| task-002-vote-plugin | 投票插件 | 8h | Phase 1 | 待创建 |
-| task-003-calendar-plugin | 日历插件 | 12h | Phase 1 | 待创建 |
-| task-004-announcement | 公告系统 | 8h | Phase 1 | 待创建 |
+| [task-001-mobile](./phase-3/task-001-mobile.md) | 移动端适配 | 16h | Phase 2 | 待开发 |
+| [task-002-vote-plugin](./phase-3/task-002-vote-plugin.md) | 投票插件 | 8h | Phase 1 | 待开发 |
+| [task-003-calendar-plugin](./phase-3/task-003-calendar-plugin.md) | 日历插件 | 12h | Phase 1 | 待开发 |
+| [task-004-announcement](./phase-3/task-004-announcement.md) | 公告系统 | 8h | Phase 1 | 待开发 |
 
 **Phase 3 总计：约 44 小时**
 
@@ -174,16 +174,23 @@ task-004-wiki-plugin        task-004-task-plugin
 - 模块: plugin-manager, plugin-loader, plugin-base, event-bus, permission-manager, plugin-storage
 - 示例: `examples/plugins/demo-plugin/`
 
-### Phase 1 进行中任务
+### Phase 1 已完成任务
 
-**Task 001: Frontend Core** (PR #10 - 部分完成)
+**Task 001: Frontend Core** (PR #10)
 - 位置: `src/frontend/desktop/`
 - 已实现: Router, State, Theme, i18n, Components
-- 待完善: 服务集成、插件加载、错误处理
 
-**Task 002: Search Service** (PR #12 - 开发中)
-- 预期位置: `src/frontend/desktop/services/search/`
-- 状态: 正在开发
+**Task 002: Search Service** (PR #12)
+- 位置: `src/frontend/desktop/services/search/`
+
+**Task 003: Finder Plugin** (已完成)
+- 位置: `src/frontend/desktop/plugins/finder/`
+- 功能: 实时搜索、文件过滤、预览、快捷键 (24/24 单元测试通过)
+
+**Task 004: Wiki Plugin** (已完成, 2026-02-28)
+- 位置: `src/frontend/desktop/plugins/wiki/`
+- 功能: 模块/列/卡片 CRUD、Markdown编辑、双向链接、标签、搜索、拖拽、自动保存、版本历史
+- 单元测试: `openspec/tests/unit/plugins/wiki-service.test.mjs` (10/10 通过)
 
 ---
 
