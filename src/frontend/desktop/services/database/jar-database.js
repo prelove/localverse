@@ -103,11 +103,12 @@ export class JarDatabaseService {
   }
   
   /**
-   * 执行 SQL（无参数，可以是多条语句）
+   * 执行 SQL（可选参数；有参数时等价于 run()，无参数时支持多条语句）
    * @param {string} sql - SQL 语句
+   * @param {Array} [params] - 绑定参数（可选）
    */
-  async exec(sql) {
-    await this.run(sql, []);
+  async exec(sql, params) {
+    await this.run(sql, params || []);
   }
 
   /**
